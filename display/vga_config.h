@@ -1,5 +1,5 @@
-#include "platform_config.h"
-#include "iopins.h"
+#include "../config/platform_config.h"
+#include "../config/iopins.h"
 
 // ****************************************************************************
 //                                 

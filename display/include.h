@@ -105,7 +105,8 @@ typedef unsigned char Bool;
 
 //#define VGA_RGB(r,g,b)   ( (((r>>5)&0x07)<<5) | (((g>>5)&0x07)<<2) | (((b>>6)&0x3)<<0) )
 
-
+#include "../include.h"
+/*
 // system includes
 #include <string.h>
 
@@ -127,11 +128,10 @@ typedef unsigned char Bool;
 #include "pico/printf.h"
 #include "pico/float.h"
 #include "pico/int64_ops.h"
-
-
+*/
 // PicoVGA includes
 #include "vga_config.h"	 // VGA configuration
 #include "vga_vmode.h"	 // VGA videomodes
 #include "vga.h"	     // VGA output
-#include "picovga.pio.h" // PIO
+//#include "picovga.pio.h" // PIO
 

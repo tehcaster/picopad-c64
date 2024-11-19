@@ -51,7 +51,8 @@
 //#define PC_ROM_BASE		((const u8*)(((u32)&__etext+(u32)&__data_end__-(u32)&__data_start__+0xfff+256+4096)&~0xfff)) // base address to load program to the flash (must be aligned to 4 KB)
 
 //#define USE_EMU_GB		2		// 1=use Game Boy emulator, 2=use Game Boy Color emulator
-#define USE_FRAMEBUF		0		// do not use pre-defined Frame buffer
+//#define USE_ST7789		0
+//#define USE_FRAMEBUF		0		// do not use pre-defined Frame buffer
 //#define GB_RAM_PAGE_NUM		57		// number of 4 KB RAM pages in Frame buffer
 //#define GB_RAM_BASE		((u8*)FrameBuf)	// RAM base address (declared as u8*)
 //#define GB_RAM_SIZE		(200*1024)	// RAM size in number of bytes
@@ -59,8 +60,8 @@
 #define USE_PWMSND		0		// use PWM sound output; set 1.. = number of channels (lib_pwmsnd.c, lib_pwmsnd.h)
 //#define USE_ORIGSDK		1		// include interface of original-SDK
 //#define EMU_DEBUG_SYNC	1		// 1 = debug measure time synchronization
-//#define USE_SCREENSHOT	1		// use screen shots
-#define USE_EMUSCREENSHOT	1		// use emulator screen shots
+#define USE_SCREENSHOT		0		// use screen shots
+#define USE_EMUSCREENSHOT	0		// use emulator screen shots
 //#define USE_USBPAD		1		// simulate keypad with USB keyboard
 //#define USE_FILESEL		1		// use file selection (lib_filesel.c, lib_filesel.h)
 //#define SYSTICK_MS		1		// increment of system time in [ms] on SysTick interrupt (default 5)

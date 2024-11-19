@@ -1,15 +1,17 @@
-#include "pico.h"
-#include "pico/stdlib.h"
+//#include "pico.h"
+//#include "pico/stdlib.h"
+
+#include "../include.h"
 
 extern "C" {
-  #include "iopins.h"  
-  #include "emuapi.h"  
+  #include "../config/iopins.h"  
+  #include "../display/emuapi.h"
 }
 #include "keyboard_osd.h"
 #include "c64.h"
 
-#include <stdio.h>
-#include "pico_dsp.h"
+//#include <stdio.h>
+#include "../display/pico_dsp.h"
 
 volatile bool vbl=true;
 
@@ -27,8 +29,8 @@ bool repeating_timer_callback(struct repeating_timer *t) {
 PICO_DSP tft;
 static int skip=0;
 
-#include "hardware/clocks.h"
-#include "hardware/vreg.h"
+//#include "hardware/clocks.h"
+//#include "hardware/vreg.h"
 
 int main(void) {
 //    vreg_set_voltage(VREG_VOLTAGE_1_05);
@@ -44,7 +46,7 @@ int main(void) {
 
     emu_init();
     char * filename;
-#ifdef FILEBROWSER
+#ifdef FILEBROWSERXXXTODO
     while (true) {      
         if (menuActive()) {
             uint16_t bClick = emu_DebounceLocalKeys();
@@ -150,7 +152,7 @@ void * emu_LineBuffer(int line)
 
 
 #ifdef HAS_SND
-#include "AudioPlaySystem.h"
+#include "../display/AudioPlaySystem.h"
 AudioPlaySystem mymixer;
 
 void emu_sndInit() {

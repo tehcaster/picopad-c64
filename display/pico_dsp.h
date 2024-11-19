@@ -15,14 +15,16 @@
 #ifndef _PICO_DSP_H
 #define _PICO_DSP_H
 
+#include "../include.h"
+
 #ifdef __cplusplus
-#include <stdio.h>
-#include <math.h>
-#include "pico.h"
+//#include <stdio.h>
+//#include <math.h>
+//#include "pico.h"
 #endif
 
-#include "platform_config.h"
-#include "iopins.h"
+#include "../config/platform_config.h"
+#include "../config/iopins.h"
 
 
 #ifdef LOHRES

@@ -1,8 +1,8 @@
 #ifndef EMUAPI_H
 #define EMUAPI_H
 
-#include "platform_config.h"
-#include "emucfg.h"
+#include "../config/platform_config.h"
+#include "../pico64/emucfg.h"
 
 #define ACTION_NONE     0
 #define ACTION_RUN      1

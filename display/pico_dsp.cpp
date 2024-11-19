@@ -10,12 +10,16 @@
 	Copyright (C) 2020 J-M Harvengt
 */
 
+#include "../include.h"
+
+/*
 #include "pico/stdlib.h"
 #include "pico/multicore.h"
 #include "hardware/spi.h"
 #include "hardware/dma.h"
 #include "hardware/irq.h"
 #include <string.h>
+*/
 
 #include "pico_dsp.h"
 #include "font8x8.h"
@@ -134,6 +138,7 @@ static void VgaInitReql(const sVmode* vmode)
   while (VgaVmodeReq != NULL) { __dmb(); }
 }
 
+#if 0
 static void core1_func()
 {
   const sVmode* v;
@@ -163,7 +168,10 @@ static void core1_func()
     }
   }
 }
-
+#else
+static void core1_func()
+{ }
+#endif
 
 void PICO_DSP::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
   int dx=0;
@@ -246,7 +254,7 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
       // create a semaphore to be posted when audio init is complete
       sem_init(&core1_initted, 0, 1);
       multicore_launch_core1(core1_func);
-      vmode = Video(DEV_VGA, RES_QVGA);
+//      vmode = Video(DEV_VGA, RES_QVGA);
       VgaInitReql(vmode);
       // wait for initialization of audio to be complete
       sem_acquire_blocking(&core1_initted);      
@@ -523,9 +531,9 @@ void PICO_DSP::waitSync()
 {
   if (gfxmode == MODE_TFT_320x240) {
   }
-  else { 
-    WaitVSync();
-  }
+//  else { 
+//    WaitVSync();
+//  }
 }
 
 void PICO_DSP::waitLine(int line)
@@ -1272,8 +1280,8 @@ void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel 
 /*******************************************************************
  Experimental PWM interrupt based sound driver !!!
 *******************************************************************/
-#include "hardware/irq.h"
-#include "hardware/pwm.h"
+//#include "hardware/irq.h"
+//#include "hardware/pwm.h"
 
 static bool fillfirsthalf = true;
 static uint16_t cnt = 0;

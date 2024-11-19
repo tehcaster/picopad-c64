@@ -44,6 +44,8 @@
 
 //#include "kinetis.h"
 
+#define UINT32_MAX       (4294967295UL)
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -45,12 +45,13 @@
   - optimize more
 */
 
+#include "../include.h"
 
 #include "Teensy64.h"
 #include "vic.h"
-#include <string.h>
-#include <math.h>
-#include <stdlib.h>
+//#include <string.h>
+//#include <math.h>
+//#include <stdlib.h>
 
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))

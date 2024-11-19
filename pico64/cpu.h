@@ -39,11 +39,11 @@
 //#include <arm_math.h>
 
 
-#define INLINE 			static inline __attribute__((always_inline))
+//#define INLINE 			static inline __attribute__((always_inline))
 #define INLINEOP 		static inline __attribute__((always_inline, flatten))
 #define OPCODE			static
 
-#define RAMSIZE 		65536	//Bytes
+#define C64_RAMSIZE 		65536	//Bytes
 
 
 #include "Teensy64.h"
@@ -97,9 +97,9 @@ struct tcpu {
   tcia cia2;
 
   union {
-	uint8_t RAM[RAMSIZE];
-	uint16_t RAM16[RAMSIZE/2];
-	uint32_t RAM32[RAMSIZE/4];
+	uint8_t RAM[C64_RAMSIZE];
+	uint16_t RAM16[C64_RAMSIZE/2];
+	uint32_t RAM32[C64_RAMSIZE/4];
   };
 
 

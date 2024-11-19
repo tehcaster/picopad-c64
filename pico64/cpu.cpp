@@ -45,6 +45,8 @@
  *****************************************************
 */
 
+#include "../include.h"
+
 #include "cpu.h"
 
 #define FLAG_CARRY     0x01
@@ -965,7 +967,7 @@ INLINEOP void dcp() {
 	cmp();
 }
 
-INLINEOP void isb() {
+INLINEOP void c64_isb() {
 	inc();
 	sbc();
 }
@@ -2367,7 +2369,7 @@ OPCODE void op0xE2(void) { //NOP
 OPCODE void op0xE3(void) { //undocumented
 	cpu.ticks = 8;
 	indx();
-	isb();
+	c64_isb();
 }
 
 OPCODE void op0xE4(void) {
@@ -2391,7 +2393,7 @@ OPCODE void op0xE6(void) {
 OPCODE void op0xE7(void) { //undocumented
 	cpu.ticks = 5;
 	zp();
-	isb();
+	c64_isb();
 }
 
 OPCODE void op0xE8(void) {
@@ -2437,7 +2439,7 @@ OPCODE void op0xEE(void) {
 OPCODE void op0xEF(void) { //undocumented
 	cpu.ticks = 6;
 	abso();
-	isb();
+	c64_isb();
 }
 
 OPCODE void op0xF0(void) {
@@ -2455,7 +2457,7 @@ OPCODE void op0xF1(void) {
 OPCODE void op0xF3(void) { //undocumented
 	cpu.ticks = 8;
 	indy();
-	isb();
+	c64_isb();
 }
 
 OPCODE void op0xF4(void) { //nop
@@ -2478,7 +2480,7 @@ OPCODE void op0xF6(void) {
 OPCODE void op0xF7(void) { //undocumented
 	cpu.ticks = 6;
 	zpx();
-	isb();
+	c64_isb();
 }
 
 OPCODE void op0xF8(void) {
@@ -2500,7 +2502,7 @@ OPCODE void op0xFA(void) { //nop
 OPCODE void op0xFB(void) { //undocumented
 	cpu.ticks = 7;
 	absy();
-	isb();
+	c64_isb();
 }
 
 OPCODE void op0xFC(void) { //nop
@@ -2523,7 +2525,7 @@ OPCODE void op0xFE(void) {
 OPCODE void op0xFF(void) { //undocumented
 	cpu.ticks = 7;
 	absx();
-	isb();
+	c64_isb();
 }
 
 OPCODE void opPATCHD2(void) {

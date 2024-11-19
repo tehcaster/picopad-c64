@@ -25,7 +25,7 @@
 
  */
 #include "reSID/sid.h"
-#include <stdint.h>
+//#include <stdint.h>
 
 #ifndef play_sid_h_
 #define play_sid_h_

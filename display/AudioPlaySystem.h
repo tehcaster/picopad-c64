@@ -3,7 +3,7 @@
 
 #ifdef HAS_SND
 
-#include "platform_config.h"
+#include "../config/platform_config.h"
 
 class AudioPlaySystem
 {

@@ -35,11 +35,11 @@
 #ifndef Teensy64_h_
 #define Teensy64_h_
 
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+//#include <stdint.h>
+//#include <stdio.h>
+//#include <string.h>
 
-#include "pico/stdlib.h"
+//#include "pico/stdlib.h"
 
 #define F_CPU 140000000.0
 #define F_BUS 140000000.0
@@ -52,7 +52,7 @@
 #define USBHOST (!PS2KEYBOARD)
 
 extern "C" {
-  #include "emuapi.h"
+  #include "../display/emuapi.h"
 }
 
 inline unsigned long millis() {

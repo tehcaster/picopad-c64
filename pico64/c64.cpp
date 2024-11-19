@@ -1,15 +1,15 @@
 #include "../include.h"
-#include "pico.h"
-#include "pico/stdlib.h"
-#include <stdio.h>
+//#include "pico.h"
+//#include "pico/stdlib.h"
+//#include <stdio.h>
 
 extern "C" {
-#include "emuapi.h"
-#include "platform_config.h"
+#include "../display/emuapi.h"
+#include "../config/platform_config.h"
 }
 
 #include "Teensy64.h"
-#include <string.h>
+//#include <string.h>
 
 #ifdef HAS_SND
 #include "reSID.h"

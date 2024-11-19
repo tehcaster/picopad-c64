@@ -2,15 +2,17 @@
 
 #define PROGMEM
 
-#include "pico.h"
-#include "pico/stdlib.h"
-#include "hardware/adc.h"
-#include <stdio.h>
-#include <string.h>
+#include "../include.h"
+
+//#include "pico.h"
+//#include "pico/stdlib.h"
+//#include "hardware/adc.h"
+//#include <stdio.h>
+//#include <string.h>
 
 extern "C" {
   #include "emuapi.h"
-  #include "iopins.h"
+  #include "../config/iopins.h"
 }
 
 static bool emu_writeConfig(void);
@@ -945,6 +947,7 @@ int emu_setKeymap(int index) {
 /********************************
  * Menu file loader UI
 ********************************/ 
+#ifdef XXXTODO
 #include "ff.h"
 static FATFS fatfs;
 static FIL file; 
@@ -981,7 +984,7 @@ static int readNbFiles(char * rootdir) {
 
   return totalFiles;  
 }  
-
+#endif
 
 
 void backgroundMenu(void) {
@@ -998,12 +1001,12 @@ static void menuLeft(void)
 #endif
 }
 
-
+#endif
 bool menuActive(void) 
 {
   return (menuOn);
 }
-
+#ifdef XXXTODO
 void toggleMenu(bool on) {
   if (on) {
     menuOn = true;
@@ -1137,16 +1140,22 @@ int handleMenu(uint16_t bClick)
 
   return (ACTION_NONE);  
 }
+#else
+int handleMenu(uint16_t bClick)
+{
+  return (ACTION_NONE);  
+}
+#endif
 
 char * menuSelection(void)
 {
   return (selection);  
 }
-#endif
 
 /********************************
  * File IO
 ********************************/ 
+#ifdef XXXTODO
 int emu_FileOpen(const char * filepath, const char * mode)
 {
   int retval = 0;
@@ -1299,7 +1308,7 @@ static bool emu_eraseConfig(void)
   f_unlink (ROMSDIR "/" AUTORUN_FILENAME);
   return true;
 }
-
+#endif
 
 /********************************
  * Initialization
@@ -1307,7 +1316,7 @@ static bool emu_eraseConfig(void)
 void emu_init(void)
 {
   bool forceVga = false;
-#ifdef FILEBROWSER
+#ifdef FILEBROWSERXXXTODO
   sd_init_driver(); 
   FRESULT fr = f_mount(&fatfs, "0:", 1);    
 
@@ -1378,7 +1387,7 @@ int keypressed = emu_ReadKeys();
   }
 #endif
 #endif
-
+#ifdef XXXTODO
   if (keypressed & MASK_JOY2_DOWN) {
     tft.fillScreenNoDma( RGBVAL16(0xff,0x00,0x00) );
     tft.drawTextNoDma(64,48,    (char*)" AUTURUN file erased", RGBVAL16(0xff,0xff,0x00), RGBVAL16(0xff,0x00,0x00), true);
@@ -1389,9 +1398,10 @@ int keypressed = emu_ReadKeys();
     if (emu_readConfig()) {
       autorun = true;
     }
-  }  
+  }
+#endif
 
-#ifdef FILEBROWSER
+#ifdef FILEBROWSERXXXTODO
   toggleMenu(true);
 #endif  
 }

@@ -32,8 +32,11 @@ Copyright Frank Bösing, 2017
     Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 
 */
-#include <stdint.h>
-#include <stdio.h>
+//#include <stdint.h>
+//#include <stdio.h>
+
+#include "../include.h"
+
 #include "timerutil.h"
 
 //Attention, don't use WFI-instruction - the CPU does not count cycles during sleep

@@ -33,7 +33,8 @@
 		
 */
 
-#include <string.h>
+#include "../include.h"
+
 #include "roms.h"
 #include "cpu.h"
 

@@ -24,8 +24,11 @@
 	Programm erhalten haben. Wenn nicht, siehe <http://www.gnu.org/licenses/>.
 
  */
+
+#include "../include.h"
+
 #include "reSID.h"
-#include <math.h>
+//#include <math.h>
 
 #define AUDIO_BLOCK_SAMPLES 443
 #define SAMPLERATE 22050

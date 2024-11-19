@@ -25,6 +25,8 @@
 
  */
 
+#include "../include.h"
+
 #include "reSID/envelope.cpp"
 #include "reSID/extfilt.cpp"
 #include "reSID/filter.cpp"

@@ -33,9 +33,11 @@
 
 */
 
+#include "../include.h"
+
 #include "cpu.h"
 #include "cia1.h"
-#include <string.h>
+//#include <string.h>
 
 
 #define DEBUGCIA1 0
