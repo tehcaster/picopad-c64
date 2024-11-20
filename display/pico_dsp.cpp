@@ -446,11 +446,13 @@ static void setDmaStruct() {
   dma_hw->ints0 = 1u << dma_tx;  
 }
 
+static size_t fb_used = 0;
+
 static inline uint16_t* fb_malloc(size_t len)
 {
-  uint32_t addr = (uint32_t) malloc(len + 32);
+  uint32_t addr = (uint32_t)FrameBuf + fb_used;
 
-  addr = (addr + 32) & 0xffffffe0;
+  fb_used += len;
 
   return (uint16_t*) addr;
 }
