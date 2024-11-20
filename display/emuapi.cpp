@@ -947,16 +947,32 @@ int emu_setKeymap(int index) {
 /********************************
  * Menu file loader UI
 ********************************/ 
-#ifdef XXXTODO
-#include "ff.h"
-static FATFS fatfs;
-static FIL file; 
-extern "C" int sd_init_driver(void);
 
 #ifdef FILEBROWSER
 static int readNbFiles(char * rootdir) {
   int totalFiles = 0;
 
+  sFile find;
+  sFileInfo fileinfo;
+
+  if (!FindOpen(&find, rootdir)) {
+    printf("failed to open directory %s\n", rootdir);
+  }
+
+  // TODO subdirectories and autorun maybe later
+  while (totalFiles < MAX_FILES) {
+    if (!FindNext(&find, &fileinfo, ATTR_FILE_MASK, "*.*"))
+      break;
+    printf("found: %s\n", &fileinfo.name[0]);
+
+    strncpy(&files[totalFiles][0], &fileinfo.name[0], MAX_FILENAME_SIZE-1);
+    totalFiles++;
+  }
+
+  FindClose(&find);
+
+  return totalFiles;
+#if 0
   DIR dir;
   FILINFO entry;
   FRESULT fr = f_findfirst(&dir, &entry, rootdir, "*");
@@ -981,11 +997,10 @@ static int readNbFiles(char * rootdir) {
     fr = f_findnext(&dir, &entry);  
   } 
   f_closedir(&dir);
-
+#endif
   return totalFiles;  
 }  
 #endif
-
 
 void backgroundMenu(void) {
     menuRedraw=true;  
@@ -1001,12 +1016,10 @@ static void menuLeft(void)
 #endif
 }
 
-#endif
 bool menuActive(void) 
 {
   return (menuOn);
 }
-#ifdef XXXTODO
 void toggleMenu(bool on) {
   if (on) {
     menuOn = true;
@@ -1034,10 +1047,8 @@ int handleMenu(uint16_t bClick)
     strcpy(selection,newpath);
     emu_printf("new filepath is");
     emu_printf(selection);
-    FILINFO entry;
-    FRESULT fr;
-    fr = f_stat(selection, &entry);
-    if ( (fr == FR_OK) && (entry.fattrib & AM_DIR) ) {
+
+    if (GetFileAttr(selection) & ATTR_DIR) {
         curFile = 0;
         nbFiles = readNbFiles(selection);
         menuRedraw=true;
@@ -1140,12 +1151,6 @@ int handleMenu(uint16_t bClick)
 
   return (ACTION_NONE);  
 }
-#else
-int handleMenu(uint16_t bClick)
-{
-  return (ACTION_NONE);  
-}
-#endif
 
 char * menuSelection(void)
 {
@@ -1155,14 +1160,14 @@ char * menuSelection(void)
 /********************************
  * File IO
 ********************************/ 
-#ifdef XXXTODO
+sFile file;
 int emu_FileOpen(const char * filepath, const char * mode)
 {
   int retval = 0;
 
   emu_printf("FileOpen...");
   emu_printf(filepath);
-  if( !(f_open(&file, filepath, FA_READ)) ) {
+  if( (FileOpen(&file, filepath)) ) {
     retval = 1;  
   }
   else {
@@ -1173,11 +1178,12 @@ int emu_FileOpen(const char * filepath, const char * mode)
 
 int emu_FileRead(void * buf, int size, int handler)
 {
-  unsigned int retval=0; 
-  f_read (&file, (void*)buf, size, &retval);
+  unsigned int retval=0;
+  retval = FileRead(&file, buf, size);
   return retval; 
 }
 
+#if 0
 int emu_FileGetc(int handler)
 {
   unsigned char c;
@@ -1188,12 +1194,14 @@ int emu_FileGetc(int handler)
   }  
   return (int)c; 
 }
+#endif
 
 void emu_FileClose(int handler)
 {
-  f_close(&file); 
+  FileClose(&file);
 }
 
+#if 0
 int emu_FileSeek(int handler, int seek, int origin)
 {
   f_lseek(&file, seek);
@@ -1204,19 +1212,18 @@ int emu_FileTell(int handler)
 {
   return (f_tell(&file));
 }
-
+#endif
 
 unsigned int emu_FileSize(const char * filepath)
 {
   int filesize=0;
   emu_printf("FileSize...");
   emu_printf(filepath);
-  FILINFO entry;
-  f_stat(filepath, &entry);
-  filesize = entry.fsize; 
-  return(filesize);    
+
+  return GetFileSize(filepath);
 }
 
+#if 0
 unsigned int emu_LoadFile(const char * filepath, void * buf, int size)
 {
   int filesize = 0;
@@ -1238,7 +1245,9 @@ unsigned int emu_LoadFile(const char * filepath, void * buf, int size)
  
   return(filesize);
 }
+#endif
 
+#ifdef XXXTODO
 static FIL outfile; 
 
 static bool emu_writeGfxConfig(void)
@@ -1316,17 +1325,16 @@ static bool emu_eraseConfig(void)
 void emu_init(void)
 {
   bool forceVga = false;
-#ifdef FILEBROWSERXXXTODO
-  sd_init_driver(); 
-  FRESULT fr = f_mount(&fatfs, "0:", 1);    
+#ifdef FILEBROWSER
+  if (!DiskMount())
+	  printf("SD failed to mount\n");
 
-  forceVga = emu_readGfxConfig();
+//  forceVga = emu_readGfxConfig();
 
   strcpy(selection,ROMSDIR);
   nbFiles = readNbFiles(selection); 
 
-  emu_printf("SD initialized, files found: ");
-  emu_printi(nbFiles);
+  printf("SD initialized, files found: %d\n", nbFiles);
 #endif
 
   emu_InitJoysticks();
@@ -1401,7 +1409,7 @@ int keypressed = emu_ReadKeys();
   }
 #endif
 
-#ifdef FILEBROWSERXXXTODO
+#ifdef FILEBROWSER
   toggleMenu(true);
 #endif  
 }

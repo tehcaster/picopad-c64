@@ -199,7 +199,6 @@ uint16_t addr,size;
   //emu_resetSD();
   tft.fillScreenNoDma( RGBVAL16(0x00,0x00,0x00) );
 #endif  
-#ifdef XXXTODO
 	if (emu_FileOpen(filename, "r+b") == 0) {
 		//Serial.println("not found");
 		cpu.pc = 0xf530; //Jump to $F530
@@ -208,16 +207,13 @@ uint16_t addr,size;
 #endif  
 		return;
 	}
-#endif
 
-#ifdef XXXTODO
 	size = emu_FileSize(filename);
 	int f = emu_FileOpen(filename, "r+b");
 	emu_FileRead(buffer, 2, f);
 	addr = buffer[1] * 256 + buffer[0];
 	emu_FileRead((char*)&cpu.RAM[addr], size - 2, f);
 	emu_FileClose(f);
-#endif
 
 	cpu.RAM[0xAF] = (addr + size - 2) & 0xff;
 	cpu.RAM[0xAE] = (addr + size - 2) / 256;

@@ -49,7 +49,7 @@ int main(void) {
 
     emu_init();
     char * filename;
-#ifdef FILEBROWSERXXXTODO
+#ifdef FILEBROWSER
     while (true) {      
         if (menuActive()) {
             uint16_t bClick = emu_DebounceLocalKeys();
