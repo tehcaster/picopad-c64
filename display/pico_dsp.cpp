@@ -456,16 +456,16 @@ void PICO_DSP::startRefresh(void) {
       int32_t len = (remaining >= (LINES_PER_BLOCK*TFT_WIDTH*2)?LINES_PER_BLOCK*TFT_WIDTH*2:remaining);     
       switch (i) {
         case 0:
-          if (fb == 0) fb = (uint16_t*)((int)malloc(len+64)&0xffffffe0);       
+          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
           break;
         case 1:
-          if (fb == 0) fb = (uint16_t*)((int)malloc(len+64)&0xffffffe0);      
+          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
           break;
         case 2:
-          if (fb == 0) fb = (uint16_t*)((int)malloc(len+64)&0xffffffe0);      
+          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
           break;
         case 3:
-          if (fb == 0) fb = (uint16_t*)((int)malloc(len+64)&0xffffffe0);       
+          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
           break;
       }
       blocks[i] = fb;
