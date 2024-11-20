@@ -446,6 +446,15 @@ static void setDmaStruct() {
   dma_hw->ints0 = 1u << dma_tx;  
 }
 
+static inline uint16_t* fb_malloc(size_t len)
+{
+  uint32_t addr = (uint32_t) malloc(len + 32);
+
+  addr = (addr + 32) & 0xffffffe0;
+
+  return (uint16_t*) addr;
+}
+
 void PICO_DSP::startRefresh(void) {
   if (gfxmode == MODE_TFT_320x240) {
     uint32_t remaining = TFT_HEIGHT*TFT_WIDTH*2;
@@ -453,19 +462,19 @@ void PICO_DSP::startRefresh(void) {
     nbTransfer = 0;
     while (remaining > 0) {
       uint16_t * fb = blocks[i];
-      int32_t len = (remaining >= (LINES_PER_BLOCK*TFT_WIDTH*2)?LINES_PER_BLOCK*TFT_WIDTH*2:remaining);     
+      int32_t len = (remaining >= (LINES_PER_BLOCK*TFT_WIDTH*2)?LINES_PER_BLOCK*TFT_WIDTH*2:remaining);
       switch (i) {
         case 0:
-          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
+          if (fb == 0) fb = fb_malloc(len);
           break;
         case 1:
-          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
+          if (fb == 0) fb = fb_malloc(len);
           break;
         case 2:
-          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
+          if (fb == 0) fb = fb_malloc(len);
           break;
         case 3:
-          if (fb == 0) fb = (uint16_t*)(((int)malloc(len+32)+32)&0xffffffe0);
+          if (fb == 0) fb = fb_malloc(len);
           break;
       }
       blocks[i] = fb;
