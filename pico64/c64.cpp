@@ -292,8 +292,8 @@ static uint8_t nbkeys = 0;
 static uint8_t kcnt = 0;
 static bool toggle = true;
 
-static char * textseq;
-static char * textload = "LOAD\"\"\r\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tRUN\r";
+static const char * textseq;
+static const char * textload = "LOAD\"\"\r\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tRUN\r";
 static char textkey[1];
 
 static bool res=false;
@@ -475,7 +475,7 @@ void c64_Input(int bClick) {
     }
   }
   else {
-    char k = textseq[kcnt];
+    const char k = textseq[kcnt];
     if (k != '\t') setKey(ascii2scan[k],toggle);
     if (!toggle) {
       kcnt++;

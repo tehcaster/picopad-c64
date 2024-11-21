@@ -25,6 +25,9 @@
 #include "font8x8.h"
 #include "include.h"
 
+/* This file has own one so remove the one from picolibsdk */
+#undef B16
+
 static gfx_mode_t gfxmode = MODE_UNDEFINED;
 
 /* TFT structures / constants */
