@@ -90,6 +90,7 @@ int main(void) {
     }
 }
 
+#if 0
 static unsigned short palette16[PALETTE_SIZE];
 void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int index)
 {
@@ -104,6 +105,7 @@ void emu_DrawLinePal16(unsigned char * VBuf, int width, int height, int line)
          tft.writeLinePal(width,height,line, VBuf, palette16);
     }
 }
+#endif
 
 void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line)
 {

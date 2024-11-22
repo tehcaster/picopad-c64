@@ -275,6 +275,7 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
       _mosi = TFT_MOSI;
       _sclk = TFT_SCLK;
       _bkl = TFT_BACKLIGHT;
+#if 1
       gpio_init(_dc);
       gpio_set_dir(_dc, GPIO_OUT); 
       gpio_init(_cs);
@@ -342,8 +343,10 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
         }
       }
       digitalWrite(_cs, 1);
+#endif
+//      DispInit(1);
       break;
-  }	
+  }
 
 
   return(GFX_OK);
@@ -494,15 +497,19 @@ void PICO_DSP::startRefresh(void) {
     }                
     curTransfer = 0;  
     rstop = 0;     
+#if 1
     digitalWrite(_cs, 1);
     setDmaStruct();
+#endif
     fillScreen(RGBVAL16(0x00,0x00,0x00));
+#if 1
     digitalWrite(_cs, 0);
-
     setArea((TFT_REALWIDTH-TFT_WIDTH)/2, (TFT_REALHEIGHT-TFT_HEIGHT)/2, (TFT_REALWIDTH-TFT_WIDTH)/2 + TFT_WIDTH-1, (TFT_REALHEIGHT-TFT_HEIGHT)/2+TFT_HEIGHT-1);  
     // we switch to 16bit mode!!
     spi_set_format(TFT_SPIREG, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
     dma_start_channel_mask(1u << dma_tx);    
+#endif
+
   }
   else { 
     fillScreen(RGBVAL16(0x00,0x00,0x00));   
@@ -583,6 +590,7 @@ void PICO_DSP::fillScreen(dsp_pixel color) {
         *dst++ = color;
       }
     }
+ //   DispUpdateAll();
   }
   else {
     vga_pixel color8 = VGA_RGB(R16(color),G16(color),B16(color));
@@ -768,7 +776,7 @@ void PICO_DSP::drawText(int16_t x, int16_t y, const char * text, dsp_pixel fgcol
     }
   }  
 }
-
+#if 0
 void PICO_DSP::drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_t arx, uint16_t ary, uint16_t arw, uint16_t arh)
 {
   int bmp_offx = 0;
@@ -845,7 +853,7 @@ void PICO_DSP::drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_
 void PICO_DSP::drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap) {
     drawSprite(x,y,bitmap, 0,0,0,0);
 }
-
+#endif
 void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
   if (gfxmode == MODE_TFT_320x240) {
     uint16_t * block=blocks[y>>6];
@@ -932,7 +940,7 @@ void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
     }
   }  
 }
-
+#if 0
 void PICO_DSP::writeLinePal(int width, int height, int y, uint8_t *buf, dsp_pixel *palette) {
   if (gfxmode == MODE_TFT_320x240) {
     if ( (height<fb_height) && (height > 2) ) y += (fb_height-height)/2;
@@ -1093,7 +1101,7 @@ void PICO_DSP::writeScreenPal(int width, int height, int stride, uint8_t *buf, d
     }
   }
 }
-
+#endif
 
 /***********************************************************************************************
     No DMA functions
@@ -1145,7 +1153,7 @@ void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pix
   }  
 }
 
-
+#if 0
 void PICO_DSP::drawSpriteNoDma(int16_t x, int16_t y, const dsp_pixel *bitmap) {  
   drawSpriteNoDma(x,y,bitmap, 0,0,0,0);
 }
