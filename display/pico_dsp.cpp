@@ -275,7 +275,7 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
       _mosi = TFT_MOSI;
       _sclk = TFT_SCLK;
       _bkl = TFT_BACKLIGHT;
-#if 1
+#if 0
       gpio_init(_dc);
       gpio_set_dir(_dc, GPIO_OUT); 
       gpio_init(_cs);
@@ -344,7 +344,7 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
       }
       digitalWrite(_cs, 1);
 #endif
-//      DispInit(1);
+      DispInit(1);
       break;
   }
 
