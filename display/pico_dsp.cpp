@@ -1108,14 +1108,16 @@ void PICO_DSP::writeScreenPal(int width, int height, int stride, uint8_t *buf, d
  ***********************************************************************************************/
 void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
   if (gfxmode == MODE_TFT_320x240) {
-    digitalWrite(_cs, 0);
-    setArea(0, 0, TFT_REALWIDTH-1, TFT_REALHEIGHT-1);  
+    ////digitalWrite(_cs, 0);
+    ////setArea(0, 0, TFT_REALWIDTH-1, TFT_REALHEIGHT-1);  
+    DispStartImg(0, TFT_REALWIDTH, 0, TFT_REALHEIGHT);
     int i,j;
     for (j=0; j<TFT_REALHEIGHT; j++)
     {
       for (i=0; i<TFT_REALWIDTH; i++) {
         //digitalWrite(_dc, 1);
-        SPItransfer16(color);     
+	////SPItransfer16(color);
+	DispSendImg2(color);
       }
     }
 #ifdef ILI9341  
@@ -1123,8 +1125,9 @@ void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
     SPItransfer(ILI9341_SLPOUT);
     digitalWrite(_dc, 1);
 #endif
-    digitalWrite(_cs, 1);
-    setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));     
+    ////digitalWrite(_cs, 1);
+    ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));
+    DispStopImg();
   }
   else {
     fillScreen(color);
@@ -1133,20 +1136,23 @@ void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
 
 void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color) {
   if (gfxmode == MODE_TFT_320x240) {
-    digitalWrite(_cs, 0);
-    setArea(x,y,x+w-1,y+h-1);
+    ////digitalWrite(_cs, 0);
+    ////setArea(x,y,x+w-1,y+h-1);
+    DispStartImg(x,x+w,y,y+h);
     int i;
     for (i=0; i<(w*h); i++)
     {
-      SPItransfer16(color);
+      ////SPItransfer16(color);
+      DispSendImg2(color);
     }
 #ifdef ILI9341  
     digitalWrite(_dc, 0);
     SPItransfer(ILI9341_SLPOUT);
     digitalWrite(_dc, 1);
 #endif
-    digitalWrite(_cs, 1);
-    setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));   
+    ////digitalWrite(_cs, 1);
+    ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));   
+    DispStopImg();
   }
   else {
     drawRect(x, y, w, h, color);
@@ -1221,67 +1227,68 @@ void PICO_DSP::drawSpriteNoDma(int16_t x, int16_t y, const dsp_pixel *bitmap, ui
     drawSprite(x, y, bitmap, arx, ary, arw, arh);
   }   
 }
-
+#endif
 void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
   if (gfxmode == MODE_TFT_320x240) {
     uint16_t c;
     while ((c = *text++)) {
       const unsigned char * charpt=&font8x8[c][0];
-      digitalWrite(_cs, 0);
-      setArea(x,y,x+7,y+(doublesize?15:7));
+      ////digitalWrite(_cs, 0);
+      ////setArea(x,y,x+7,y+(doublesize?15:7));
+      DispStartImg(x,x+8,y,y+(doublesize?16:8));
       for (int i=0;i<8;i++)
       {
         unsigned char bits;
         if (doublesize) {
           bits = *charpt;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);
           bits = bits >> 1;     
-          if (bits&0x01) SPItransfer16(fgcolor);
-          else SPItransfer16(bgcolor);       
+          if (bits&0x01) DispSendImg2(fgcolor);
+          else DispSendImg2(bgcolor);       
         }
         bits = *charpt++;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
         bits = bits >> 1;     
-        if (bits&0x01) SPItransfer16(fgcolor);
-        else SPItransfer16(bgcolor);
+        if (bits&0x01) DispSendImg2(fgcolor);
+        else DispSendImg2(bgcolor);
       }
       x +=8;
 #ifdef ILI9341  
@@ -1289,12 +1296,14 @@ void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel 
       SPItransfer(ILI9341_SLPOUT);
       digitalWrite(_dc, 1);
 #endif
-      digitalWrite(_cs, 1); 
+      ////digitalWrite(_cs, 1); 
+      DispStopImg();
     }
 
-    digitalWrite(_cs, 0);
-    setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));  
-    digitalWrite(_cs, 1);
+    ////digitalWrite(_cs, 0);
+    ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));  
+    ////digitalWrite(_cs, 1);
+    DispStopImg();
   }
   else {
     drawText(x, y, text, fgcolor, bgcolor, doublesize);
