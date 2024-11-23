@@ -19,7 +19,7 @@
 
 //#define USE_DRAW_STDIO	0		// use DRAW stdio (DrawPrint function)
 //#define USE_USB_STDIO		1		// use USB stdio (UsbPrint function)
-//#define USE_UART_STDIO	1		// use UART stdio (UartPrint function)
+#define USE_UART_STDIO		1		// use UART stdio (UartPrint function)
 
 //#define USE_EMU			1		// use emulators
 //#define USE_EMU_I4004		1		// use I4004 CPU emulator
