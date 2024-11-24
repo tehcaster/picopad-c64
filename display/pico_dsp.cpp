@@ -106,6 +106,7 @@ static volatile uint8_t rstop = 0;
 static volatile bool cancelled = false;
 static volatile uint8_t curTransfer = 0;
 static uint8_t nbTransfer = 0;
+uint32_t nFrames = 0;
 
 /* VGA structures / constants */
 #define R16(rgb) ((rgb>>8)&0xf8) 
@@ -410,6 +411,7 @@ static void dma_isr() {
   curTransfer++;
   if (curTransfer >= nbTransfer) {
     curTransfer = 0;
+    nFrames++;
   }
   if (cancelled) {
     rstop = 1;

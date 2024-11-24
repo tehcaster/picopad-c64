@@ -32,6 +32,10 @@ static int skip=0;
 //#include "hardware/clocks.h"
 //#include "hardware/vreg.h"
 
+static u32 fpsLast;
+static u32 nFramesLast;
+static u32 nFramesC64Last;
+
 int main(void) {
 //	DrawPrintStart();
 	UartPrintStart();
@@ -67,10 +71,22 @@ int main(void) {
     tft.startRefresh();
     struct repeating_timer timer;
     add_repeating_timer_ms(25, repeating_timer_callback, NULL, &timer);    
+
+    fpsLast = Time();
+    nFramesLast = nFrames;
+    nFramesC64Last = nFramesC64;
     while (true) {
         //uint16_t bClick = emu_DebounceLocalKeys();
         //emu_Input(bClick);  
-        emu_Step();        
+        emu_Step();
+
+	if (Time() - fpsLast > 1000000) {
+		fpsLast = Time();
+		printf("display FPS: %u\n", nFrames - nFramesLast);
+		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
+		nFramesLast = nFrames;
+		nFramesC64Last = nFramesC64;
+	}
     }
 }
 

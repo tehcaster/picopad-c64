@@ -26,6 +26,7 @@
 #include "../config/platform_config.h"
 #include "../config/iopins.h"
 
+extern uint32_t nFrames;
 
 #ifdef LOHRES
 #define TFT_WIDTH      240 

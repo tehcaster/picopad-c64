@@ -77,6 +77,7 @@ typedef uint16_t tpixel;
 #define MAXCYCLESSPRITES3_7       5
 #define MAXCYCLESSPRITES    (MAXCYCLESSPRITES0_2 + MAXCYCLESSPRITES3_7)
 
+u32 nFramesC64 = 0;
 
 /*****************************************************************************************************/
 /*****************************************************************************************************/
@@ -1306,7 +1307,9 @@ void vic_do(void) {
     cpu.vic.denLatch = 0;
     //if (cpu.vic.rasterLine == LINECNT) {
       emu_DrawVsync();
-    //}    
+    //}
+
+    nFramesC64++;
 
   } else  cpu.vic.rasterLine++;
 
@@ -1888,6 +1891,8 @@ if ( cpu.vic.rasterLine >= LINECNT ) {
     cpu.vic.rasterLine = 0;
     cpu.vic.vcbase = 0;
     cpu.vic.denLatch = 0;
+
+    nFramesC64++;
 
   } else  {
 	  cpu.vic.rasterLine++;
