@@ -432,7 +432,8 @@ static void setDmaStruct() {
   }    
   dmaconfig = dma_channel_get_default_config(dma_tx);
   channel_config_set_transfer_data_size(&dmaconfig, DMA_SIZE_16);
-  channel_config_set_dreq(&dmaconfig, TFT_SPIDREQ);  
+  channel_config_set_dreq(&dmaconfig, TFT_SPIDREQ);
+  channel_config_set_bswap(&dmaconfig, true);
   //channel_config_set_read_increment(&dmaconfig, true); // read incrementing
   //channel_config_set_write_increment(&dmaconfig, false); // no write incrementing
 
