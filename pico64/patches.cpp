@@ -214,6 +214,7 @@ uint16_t addr,size;
 	addr = buffer[1] * 256 + buffer[0];
 	emu_FileRead((char*)&cpu.RAM[addr], size - 2, f);
 	emu_FileClose(f);
+	DiskUnmount();
 
 	cpu.RAM[0xAF] = (addr + size - 2) & 0xff;
 	cpu.RAM[0xAE] = (addr + size - 2) / 256;
