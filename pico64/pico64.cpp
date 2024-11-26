@@ -72,6 +72,8 @@ int main(void) {
     struct repeating_timer timer;
     add_repeating_timer_ms(25, repeating_timer_callback, NULL, &timer);    
 
+    printf("display baud: %u want %u\n", SPI_GetBaudrate(DISP_SPI), DISP_SPI_BAUD);
+    printf("peri clock: %u\n", CurrentFreq[CLK_PERI]);
     fpsLast = Time();
     nFramesLast = nFrames;
     nFramesC64Last = nFramesC64;
