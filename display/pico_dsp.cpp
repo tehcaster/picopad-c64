@@ -411,17 +411,18 @@ bool PICO_DSP::isflipped(void)
 static void dma_isr() { 
   irq_clear(DMA_IRQ_0);
   dma_hw->ints0 = 1u << dma_tx;
-  curTransfer++;
-  if (curTransfer >= nbTransfer) {
-    curTransfer = 0;
+  //curTransfer++;
+  //if (curTransfer >= nbTransfer) {
+  //  curTransfer = 0;
     nFrames++;
-  }
+  //}
   if (cancelled) {
     rstop = 1;
   }
   else 
   {
-    dma_channel_transfer_from_buffer_now(dma_tx, blocks[curTransfer], blocklens[curTransfer]);
+    dma_channel_transfer_from_buffer_now(dma_tx, blocks[0], TFT_HEIGHT*TFT_WIDTH);
+    //dma_channel_transfer_from_buffer_now(dma_tx, blocks[curTransfer],blocklens[curTransfer]);
   }  
 }
 
@@ -442,7 +443,7 @@ static void setDmaStruct() {
       &dmaconfig,
       &spi_get_hw(TFT_SPIREG)->dr, // write address
       blocks[0],
-      blocklens[0],
+      TFT_HEIGHT*TFT_WIDTH,
       false
   ); 
 
