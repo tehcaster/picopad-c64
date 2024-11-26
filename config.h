@@ -75,6 +75,11 @@
 #define SD_BAUD		4000000 // SD card baud speed (should be max. 7-12 Mbit/s; default standard bus speed
 #define SD_BAUDWRITE	1000000 // SD card baud speed of write (should be max. 7-12 Mbit/s; default standard bus speed
 
+#define DISP_SPI_BAUD         62500000        // SPI baudrate (max. CLK_PERI/2 = 24 MHz, absolute max. 62.5 MHz)
+#define PLL_KHZ               250000          // PLL system frequency in kHz (default 125000 kHz)
+#define USE_FAST_PERI         1               // use fast perifery - use system clock instead of USB clock
+
+
 //#define USE_REAL16		1		// 1 = use real16 numbers (3 digits, exp +-4)
 //#define USE_REAL32		1		// 1 = use real32 numbers (float, 7 digits, exp +-38)
 //#define USE_REAL48		1		// 1 = use real48 numbers (11 digits, exp +-153)
