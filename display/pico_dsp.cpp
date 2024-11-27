@@ -1327,13 +1327,17 @@ static void (*fillsamples)(short * stream, int len) = nullptr;
 static uint32_t * i2s_tx_buffer;
 static short * i2s_tx_buffer16;
 
+u32 timeSWISR = 0;
+
 static void SOFTWARE_isr() {
+  u32 start = Time();
   if (fillfirsthalf) {
     fillsamples((short *)i2s_tx_buffer, sampleBufferSize);
   }  
   else { 
     fillsamples((short *)&i2s_tx_buffer[sampleBufferSize/2], sampleBufferSize);
   }
+  timeSWISR += Time() - start;
 }
 
 static void AUDIO_isr() {

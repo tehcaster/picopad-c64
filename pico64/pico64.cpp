@@ -35,6 +35,7 @@ static int skip=0;
 static u32 fpsLast;
 static u32 nFramesLast;
 static u32 nFramesC64Last;
+static u32 timeSWISRLast;
 
 int main(void) {
 //	DrawPrintStart();
@@ -85,9 +86,11 @@ int main(void) {
 	if (Time() - fpsLast > 1000000) {
 		fpsLast = Time();
 		printf("display FPS: %u\n", nFrames - nFramesLast);
-		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
 		nFramesLast = nFrames;
+		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
 		nFramesC64Last = nFramesC64;
+		printf("SWISR: %u ms\n", (timeSWISR - timeSWISRLast) / 1024);
+		timeSWISRLast = timeSWISR;
 	}
     }
 }
