@@ -178,23 +178,9 @@ void * emu_LineBuffer(int line)
 
 
 #ifdef HAS_SND
-#include "../display/AudioPlaySystem.h"
-AudioPlaySystem mymixer;
 
 void emu_sndInit() {
-  tft.begin_audio(256, mymixer.snd_Mixer);
-  mymixer.start();    
-}
-
-void emu_sndPlaySound(int chan, int volume, int freq)
-{
-  if (chan < 6) {
-    mymixer.sound(chan, freq, volume); 
-  }
-}
-
-void emu_sndPlayBuzz(int size, int val) {
-  mymixer.buzz(size,val); 
+  tft.begin_audio(256);
 }
 
 #endif

@@ -130,3 +130,5 @@ typedef unsigned char Bool;
 #include "pico/int64_ops.h"
 */
 
+void SND_Process(void * stream, int len);
+

@@ -76,7 +76,7 @@ public:
   void end();
   void startRefresh(void);
   void stopRefresh();
-  void begin_audio(int samplesize, void (*callback)(short * stream, int len));
+  void begin_audio(int samplesize);
   void end_audio();
 
 
