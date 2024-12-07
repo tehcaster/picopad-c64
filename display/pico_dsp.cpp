@@ -132,40 +132,8 @@ static semaphore_t core1_initted;
 static void core1_func();
 static void core1_sio_irq();
 
-#if 0
-static void core1_func()
-{
-  const sVmode* v;
-
-  multicore_fifo_clear_irq();
-  irq_set_exclusive_handler(SIO_IRQ_PROC1,core1_sio_irq);
-  //irq_set_priority (SIO_IRQ_PROC1, 129);    
-  irq_set_enabled(SIO_IRQ_PROC1,true);
-
-  sem_release(&core1_initted);
- 
-  while (true)
-  {
-    __dmb();
-
-    // initialize videomode
-    v = VgaVmodeReq;
-    if (v != NULL)
-    {
-      if ((u32)v == (u32)1) {
-        //VgaTerm(); // terminate
-      }
-      else
-        VgaInit(v,(u8*)framebuffer,320,240,320);
-      __dmb();
-      VgaVmodeReq = NULL;
-    }
-  }
-}
-#else
 static void core1_func()
 { }
-#endif
 
 void PICO_DSP::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
   int dx=0;
@@ -224,75 +192,7 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
       _mosi = TFT_MOSI;
       _sclk = TFT_SCLK;
       _bkl = TFT_BACKLIGHT;
-#if 0
-      gpio_init(_dc);
-      gpio_set_dir(_dc, GPIO_OUT); 
-      gpio_init(_cs);
-      gpio_set_dir(_cs, GPIO_OUT);
-      digitalWrite(_cs, 1);
-      digitalWrite(_dc, 1);
-      if (_bkl != 0xff) {
-        gpio_init(_bkl);
-        gpio_set_dir(_bkl, GPIO_OUT); 
-        digitalWrite(_bkl, 1);
-      } 
 
-      spi_init(TFT_SPIREG, SPICLOCK);
-      spi_set_format(TFT_SPIREG, 8, SPI_MODE, SPI_CPHA_0, SPI_MSB_FIRST);
-      gpio_set_function(_sclk , GPIO_FUNC_SPI);
-      gpio_set_function(_mosi , GPIO_FUNC_SPI);
-         
-      // Initialize display
-      if (_rst != 0xff) {
-        gpio_init(_rst);
-        gpio_set_dir(_rst, GPIO_OUT);     
-        digitalWrite(_rst, 1);
-        sleep_ms(100);
-        digitalWrite(_rst, 0);
-        sleep_ms(100);
-        digitalWrite(_rst, 1);
-        sleep_ms(200);
-      }
-      const uint8_t *addr = init_commands;
-      uint8_t count;
-      digitalWrite(_cs, 0);
-      while (count = *addr++) {
-        uint8_t command = *addr++;
-#ifdef ILI9341
-        if ( command == TFT_INVON ) {
-          // Skip TFT_INVON for ILI
-        }
-        else 
-#endif
-        {
-          digitalWrite(_dc, 0); // command
-          SPItransfer(command);
-          uint16_t ms = count & DELAY_MASK;
-          count &= ~DELAY_MASK;
-          while (--count > 0) { // data
-            uint8_t data = *addr++;
-#ifdef ILI9341
-#else
-            if ( command == TFT_MADCTL ) {
-              data = TFT_MADCTL_MX | TFT_MADCTL_MV |TFT_MADCTL_RGB;
-            }
-#endif
-            digitalWrite(_dc, 1);
-            SPItransfer(data);
-          }
-          if (ms) {
-            ms = *addr++; // Read post-command delay time (ms)
-            if(ms == 255) ms = 500;   // If 255, delay for 500 ms
-            digitalWrite(_cs, 1);
-            //SPI.endTransaction();
-            sleep_ms(ms);
-            //SPI.beginTransaction(SPISettings(SPICLOCK, MSBFIRST, SPI_MODE));
-            digitalWrite(_cs, 0);      
-          }     
-        }
-      }
-      digitalWrite(_cs, 1);
-#endif
       DispInit(1);
       break;
   }
@@ -523,12 +423,6 @@ void PICO_DSP::waitLine(int line)
 /***********************************************************************************************
     GFX functions
  ***********************************************************************************************/
-/*
-vga_pixel * PICO_DSP::getLineBuffer(int j) {
-  return (&framebuffer[j*fb_stride]);
-}
-*/
-
 void PICO_DSP::fillScreen(dsp_pixel color) {
   int i,j;
   if (gfxmode == MODE_TFT_320x240) {
@@ -635,84 +529,7 @@ void PICO_DSP::drawText(int16_t x, int16_t y, const char * text, dsp_pixel fgcol
     }  
   }
 }
-#if 0
-void PICO_DSP::drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_t arx, uint16_t ary, uint16_t arw, uint16_t arh)
-{
-  int bmp_offx = 0;
-  int bmp_offy = 0;
-  uint16_t *bmp_ptr;
-  int w =*bitmap++;
-  int h = *bitmap++;
-  if ( (arw == 0) || (arh == 0) ) {
-    // no crop window
-    arx = x;
-    ary = y;
-    arw = w;
-    arh = h;
-  }
-  else {
-    if ( (x>(arx+arw)) || ((x+w)<arx) || (y>(ary+arh)) || ((y+h)<ary)   ) {
-      return;
-    }
-    // crop area
-    if ( (x > arx) && (x<(arx+arw)) ) { 
-      arw = arw - (x-arx);
-      arx = arx + (x-arx);
-    } else {
-      bmp_offx = arx;
-    }
-    if ( ((x+w) > arx) && ((x+w)<(arx+arw)) ) {
-      arw -= (arx+arw-x-w);
-    }  
-    if ( (y > ary) && (y<(ary+arh)) ) {
-      arh = arh - (y-ary);
-      ary = ary + (y-ary);
-    } else {
-      bmp_offy = ary;
-    }
-    if ( ((y+h) > ary) && ((y+h)<(ary+arh)) ) {
-      arh -= (ary+arh-y-h);
-    }     
-  }
-  int l=ary;
-  bitmap = bitmap + bmp_offy*w + bmp_offx;
 
-
-  if (gfxmode == MODE_TFT_320x240) {
-    for (int row=0;row<arh; row++)
-    {
-      uint16_t * block=blocks[l>>6];
-      uint16_t * dst=&block[(l&0x3F)*fb_stride+arx];  
-      bmp_ptr = (uint16_t*)bitmap;
-      for (int col=0;col<arw; col++)
-      {
-          *dst++ = *bmp_ptr++;            
-      } 
-      bitmap += w;
-      l++;
-    } 
-  }
-  else {
-    for (int row=0;row<arh; row++)
-    {
-      vga_pixel * dst=&framebuffer[l*fb_stride+arx];  
-      bmp_ptr = (uint16_t *)bitmap;
-      for (int col=0;col<arw; col++)
-      {
-          uint16_t pix= *bmp_ptr++;
-          *dst++ = VGA_RGB(R16(pix),G16(pix),B16(pix));
-      } 
-      bitmap += w;
-      l++;
-    }     
-  }  
-
-}
-
-void PICO_DSP::drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap) {
-    drawSprite(x,y,bitmap, 0,0,0,0);
-}
-#endif
 void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
   if (gfxmode == MODE_TFT_320x240) {
     uint16_t * block=blocks[y>>6];
@@ -799,168 +616,6 @@ void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
     }
   }  
 }
-#if 0
-void PICO_DSP::writeLinePal(int width, int height, int y, uint8_t *buf, dsp_pixel *palette) {
-  if (gfxmode == MODE_TFT_320x240) {
-    if ( (height<fb_height) && (height > 2) ) y += (fb_height-height)/2;
-    uint16_t * block=blocks[y>>6];
-    uint16_t * dst=&block[(y&0x3F)*fb_stride];
-    if (width > fb_width) {
-#ifdef TFT_LINEARINT    
-      int delta = (width/(width-fb_width))-1;
-      int pos = delta;
-      for (int i=0; i<fb_width; i++)
-      {
-        uint16_t val = palette[*buf++];
-        pos--;
-        if (pos == 0) {
-#ifdef LINEARINT_HACK
-          val  = ((uint32_t)palette[*buf++] + val)/2;
-#else
-          uint16_t val2 = *buf++;
-          val = RGBVAL16((R16(val)+R16(val2))/2,(G16(val)+G16(val2))/2,(B16(val)+B16(val2))/2);
-#endif        
-          pos = delta;
-        }
-        *dst++=val;
-      }
-#else
-      int step = ((width << 8)/fb_width);
-      int pos = 0;
-      for (int i=0; i<fb_width; i++)
-      {
-        *dst++=palette[buf[pos >> 8]];
-        pos +=step;
-      }  
-#endif
-    }
-    else if ((width*2) == fb_width) {
-      for (int i=0; i<width; i++)
-      {
-        *dst++=palette[*buf];
-        *dst++=palette[*buf++];
-      } 
-    }
-    else {
-      if (width <= fb_width) {
-        dst += (fb_width-width)/2;
-      }
-      for (int i=0; i<width; i++)
-      {
-        *dst++=palette[*buf++];
-      } 
-    }    
-  }  
-  else {
-    if ( (height<fb_height) && (height > 2) ) y += (fb_height-height)/2;
-    vga_pixel * dst=&framebuffer[y*fb_stride];
-    if (width > fb_width) {
-      int step = ((width << 8)/fb_width);
-      int pos = 0;
-      for (int i=0; i<fb_width; i++)
-      {
-        uint16_t pix = palette[buf[pos >> 8]];
-        *dst++= VGA_RGB(R16(pix),G16(pix),B16(pix));
-        pos +=step;
-      }  
-    }
-    else if ((width*2) == fb_width) {
-      for (int i=0; i<width; i++)
-      {
-        uint16_t pix = palette[*buf++];
-        *dst++= VGA_RGB(R16(pix),G16(pix),B16(pix));
-        *dst++= VGA_RGB(R16(pix),G16(pix),B16(pix));
-      } 
-    }
-    else {
-      if (width <= fb_width) {
-        dst += (fb_width-width)/2;
-      }
-      for (int i=0; i<width; i++)
-      {
-        uint16_t pix = palette[*buf++];
-        *dst++= VGA_RGB(R16(pix),G16(pix),B16(pix));
-      } 
-    }
-  }
-}
-
-void PICO_DSP::writeScreenPal(int width, int height, int stride, uint8_t *buf, dsp_pixel *palette16) {
-  uint8_t *src; 
-  int i,j,y=0;
-  int sy = 0;  
-  int systep=(1<<8);
-  int h = height;
-  if (height <= ( (2*fb_height)/3)) {
-    systep=(systep*height)/fb_height;
-    h = fb_height;
-  }  
-  if (gfxmode == MODE_TFT_320x240) {
-    if (width*2 <= fb_width) {
-      for (j=0; j<h; j++)
-      {
-        uint16_t * block=blocks[y>>6];
-        uint16_t * dst=&block[(y&0x3F)*fb_stride];        
-        src=&buf[(sy>>8)*stride];
-        for (i=0; i<width; i++)
-        {
-          uint16_t val = palette16[*src++];
-          *dst++ = val;
-          *dst++ = val;
-        }
-        y++;
-        sy+=systep;  
-      }
-    }
-    else if (width <= fb_width) {
-      for (j=0; j<h; j++)
-      {
-        uint16_t * block=blocks[y>>6];
-        uint16_t * dst=&block[(y&0x3F)*fb_stride+(fb_width-width)/2];        
-        src=&buf[(sy>>8)*stride];
-        for (i=0; i<width; i++)
-        {
-          uint16_t val = palette16[*src++];
-          *dst++ = val;
-        }
-        y++;
-        sy+=systep;  
-      }
-    }
-  }       
-  else { // VGA
-    if (width*2 <= fb_width) {
-      for (j=0; j<h; j++)
-      {
-        vga_pixel * dst=&framebuffer[y*fb_stride];                
-        src=&buf[(sy>>8)*stride];
-        for (i=0; i<width; i++)
-        {
-          uint16_t pix = palette16[*src++];
-          *dst++ = VGA_RGB(R16(pix),G16(pix),B16(pix));
-          *dst++ = VGA_RGB(R16(pix),G16(pix),B16(pix));
-        }
-        y++;
-        sy+=systep;  
-      }
-    }
-    else if (width <= fb_width) {
-      for (j=0; j<h; j++)
-      {
-        vga_pixel * dst=&framebuffer[y*fb_stride+(fb_width-width)/2];                
-        src=&buf[(sy>>8)*stride];
-        for (i=0; i<width; i++)
-        {
-          uint16_t pix = palette16[*src++];
-          *dst++ = VGA_RGB(R16(pix),G16(pix),B16(pix));
-        }
-        y++;
-        sy+=systep;  
-      }
-    }
-  }
-}
-#endif
 
 /***********************************************************************************************
     No DMA functions
@@ -1018,75 +673,6 @@ void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pix
   }  
 }
 
-#if 0
-void PICO_DSP::drawSpriteNoDma(int16_t x, int16_t y, const dsp_pixel *bitmap) {  
-  drawSpriteNoDma(x,y,bitmap, 0,0,0,0);
-}
-
-void PICO_DSP::drawSpriteNoDma(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_t arx, uint16_t ary, uint16_t arw, uint16_t arh)
-{
-  if (gfxmode == MODE_TFT_320x240) {
-    int bmp_offx = 0;
-    int bmp_offy = 0;
-    uint16_t *bmp_ptr;
-    int w =*bitmap++;
-    int h =*bitmap++;
-    if ( (arw == 0) || (arh == 0) ) {
-      // no crop window
-      arx = x;
-      ary = y;
-      arw = w;
-      arh = h;
-    }
-    else {
-      if ( (x>(arx+arw)) || ((x+w)<arx) || (y>(ary+arh)) || ((y+h)<ary)   ) {
-        return;
-      }
-      // crop area
-      if ( (x > arx) && (x<(arx+arw)) ) { 
-        arw = arw - (x-arx);
-        arx = arx + (x-arx);
-      } else {
-        bmp_offx = arx;
-      }
-      if ( ((x+w) > arx) && ((x+w)<(arx+arw)) ) {
-        arw -= (arx+arw-x-w);
-      }  
-      if ( (y > ary) && (y<(ary+arh)) ) {
-        arh = arh - (y-ary);
-        ary = ary + (y-ary);
-      } else {
-        bmp_offy = ary;
-      }
-      if ( ((y+h) > ary) && ((y+h)<(ary+arh)) ) {
-        arh -= (ary+arh-y-h);
-      }     
-    }
-    digitalWrite(_cs, 0);
-    setArea(arx, ary, arx+arw-1, ary+arh-1);        
-    bitmap = bitmap + bmp_offy*w + bmp_offx;
-    for (int row=0;row<arh; row++)
-    {
-      bmp_ptr = (uint16_t*)bitmap;
-      for (int col=0;col<arw; col++)
-      {
-          SPItransfer16(*bmp_ptr++);             
-      } 
-      bitmap +=  w;
-    }
-#ifdef ILI9341  
-    digitalWrite(_dc, 0);
-    SPItransfer(ILI9341_SLPOUT);
-    digitalWrite(_dc, 1);
-#endif
-    setArea(0, 0, TFT_REALWIDTH-1, TFT_REALHEIGHT-1);  
-    digitalWrite(_cs, 1);  
-  }
-  else {
-    drawSprite(x, y, bitmap, arx, ary, arw, arh);
-  }   
-}
-#endif
 void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
   if (gfxmode == MODE_TFT_320x240) {
     uint16_t c;
