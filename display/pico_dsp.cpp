@@ -98,14 +98,10 @@ static const uint8_t init_commands[] = {
 /* TFT structures / constants */
 #define RGBVAL16(r,g,b)  ( (((r>>3)&0x1f)<<11) | (((g>>2)&0x3f)<<5) | (((b>>3)&0x1f)<<0) )
 
-static uint16_t * blocks[NR_OF_BLOCK];
-static uint16_t blocklens[NR_OF_BLOCK];
 static dma_channel_config dmaconfig;
 static uint dma_tx=0;
 static volatile uint8_t rstop = 0;
 static volatile bool cancelled = false;
-static volatile uint8_t curTransfer = 0;
-static uint8_t nbTransfer = 0;
 uint32_t nFrames = 0;
 
 /* VGA structures / constants */
@@ -222,18 +218,13 @@ bool PICO_DSP::isflipped(void)
 static void dma_isr() { 
   irq_clear(DMA_IRQ_0);
   dma_hw->ints0 = 1u << dma_tx;
-  //curTransfer++;
-  //if (curTransfer >= nbTransfer) {
-  //  curTransfer = 0;
     nFrames++;
-  //}
   if (cancelled) {
     rstop = 1;
   }
   else 
   {
-    dma_channel_transfer_from_buffer_now(dma_tx, blocks[0], TFT_HEIGHT*TFT_WIDTH);
-    //dma_channel_transfer_from_buffer_now(dma_tx, blocks[curTransfer],blocklens[curTransfer]);
+    dma_channel_transfer_from_buffer_now(dma_tx, &FrameBuf[0], TFT_HEIGHT*TFT_WIDTH);
   }  
 }
 
@@ -253,7 +244,7 @@ static void setDmaStruct() {
       dma_tx,
       &dmaconfig,
       &spi_get_hw(TFT_SPIREG)->dr, // write address
-      blocks[0],
+      &FrameBuf[0],
       TFT_HEIGHT*TFT_WIDTH,
       false
   ); 
@@ -264,51 +255,7 @@ static void setDmaStruct() {
   dma_hw->ints0 = 1u << dma_tx;  
 }
 
-static size_t fb_used = 0;
-
-static inline uint16_t* fb_malloc(size_t len)
-{
-  uint32_t addr = (uint32_t)FrameBuf + fb_used;
-
-  fb_used += len;
-
-  return (uint16_t*) addr;
-}
-
 void PICO_DSP::startRefresh(void) {
-  if (gfxmode == MODE_TFT_320x240) {
-    uint32_t remaining = TFT_HEIGHT*TFT_WIDTH*2;
-    int i=0;
-    nbTransfer = 0;
-    while (remaining > 0) {
-      uint16_t * fb = blocks[i];
-      int32_t len = (remaining >= (LINES_PER_BLOCK*TFT_WIDTH*2)?LINES_PER_BLOCK*TFT_WIDTH*2:remaining);
-      switch (i) {
-        case 0:
-          if (fb == 0) fb = fb_malloc(len);
-          break;
-        case 1:
-          if (fb == 0) fb = fb_malloc(len);
-          break;
-        case 2:
-          if (fb == 0) fb = fb_malloc(len);
-          break;
-        case 3:
-          if (fb == 0) fb = fb_malloc(len);
-          break;
-      }
-      blocks[i] = fb;
-      blocklens[i] = len/2;
-      if (blocks[i] == 0) {
-        fillScreenNoDma(RGBVAL16(0xFF,0xFF,0x00));
-        printf("FB allocaltion failed for block %d\n",i);
-        sleep_ms(10000);    
-      }
-      nbTransfer++;
-      remaining -= len;    
-      i++;
-    }                
-    curTransfer = 0;  
     rstop = 0;     
 #if 1
     digitalWrite(_cs, 1);
@@ -322,15 +269,9 @@ void PICO_DSP::startRefresh(void) {
     spi_set_format(TFT_SPIREG, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
     dma_start_channel_mask(1u << dma_tx);    
 #endif
-
-  }
-  else { 
-    fillScreen(RGBVAL16(0x00,0x00,0x00));   
-  }
 }
 
 void PICO_DSP::stopRefresh(void) {
-  if (gfxmode == MODE_TFT_320x240) {
     rstop = 1;
     unsigned long m = time_us_32()*1000;   
     cancelled = true; 
@@ -348,7 +289,6 @@ void PICO_DSP::stopRefresh(void) {
     // we switch back to GFX mode!!
     begin(gfxmode);
     setArea(0, 0, TFT_REALWIDTH-1, TFT_REALHEIGHT-1);    
-  }
 }
 
 
@@ -365,20 +305,10 @@ int PICO_DSP::get_frame_buffer_size(int *width, int *height)
 
 void PICO_DSP::waitSync()
 {
-  if (gfxmode == MODE_TFT_320x240) {
-  }
-//  else { 
-//    WaitVSync();
-//  }
 }
 
 void PICO_DSP::waitLine(int line)
 {
-  if (gfxmode == MODE_TFT_320x240) {
-  }
-  else { 
-//  while (currentLine != line) {};
-  }
 }
 
 
@@ -386,132 +316,42 @@ void PICO_DSP::waitLine(int line)
     GFX functions
  ***********************************************************************************************/
 void PICO_DSP::fillScreen(dsp_pixel color) {
-  int i,j;
-  if (gfxmode == MODE_TFT_320x240) {
-    for (j=0; j<TFT_HEIGHT; j++)
-    {
-      uint16_t * block=blocks[j>>6];
-      uint16_t * dst=&block[(j&0x3F)*fb_stride];
-      for (i=0; i<fb_width; i++)
-      {
-        *dst++ = color;
-      }
-    }
- //   DispUpdateAll();
-  }
+  DrawClearCol(color);
 }
 
 void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
-  if (gfxmode == MODE_TFT_320x240) {
-    uint16_t * block=blocks[y>>6];
-    uint16_t * dst=&block[(y&0x3F)*fb_stride];
-    if (width > fb_width) {
-#ifdef TFT_LINEARINT   
-      int delta = (width/(width-fb_width))-1;   
-      int pos = delta;
-      for (int i=0; i<fb_width; i++)
-      {
-        uint16_t val = *buf++;
-        pos--;      
-        if (pos == 0) {
-#ifdef LINEARINT_HACK        
-          val  = ((uint32_t)*buf++ + val)/2;
-#else
-          uint16_t val2 = *buf++;
-          val = RGBVAL16((R16(val)+R16(val2))/2,(G16(val)+G16(val2))/2,(B16(val)+B16(val2))/2);
- #endif        
-          pos = delta;
-        }
-        *dst++=val;
-      }
-  #else
-      int step = ((width << 8)/fb_width);
-      int pos = 0;
-      for (int i=0; i<fb_width; i++)
-      {
-        *dst++=buf[pos >> 8];
-        pos +=step;
-      }  
-  #endif       
-    }
-    else if ((width*2) == fb_width) 
-    {
-      for (int i=0; i<width; i++)
-      {
-        *dst++=*buf;
-        *dst++=*buf++;
-      }       
-    }
-    else
-    {
-      if (width <= fb_width) {
-        dst += (fb_width-width)/2;
-      }
-      for (int i=0; i<width; i++)
-      {
-        *dst++=*buf++;
-      }       
-    }    
-  }
+    memcpy(&FrameBuf[y*TFT_WIDTH], buf, TFT_WIDTH*2);
 }
 
 /***********************************************************************************************
     No DMA functions
  ***********************************************************************************************/
 void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
-  if (gfxmode == MODE_TFT_320x240) {
-    ////digitalWrite(_cs, 0);
-    ////setArea(0, 0, TFT_REALWIDTH-1, TFT_REALHEIGHT-1);  
     DispStartImg(0, TFT_REALWIDTH, 0, TFT_REALHEIGHT);
     int i,j;
     for (j=0; j<TFT_REALHEIGHT; j++)
     {
       for (i=0; i<TFT_REALWIDTH; i++) {
-        //digitalWrite(_dc, 1);
-	////SPItransfer16(color);
 	DispSendImg2(color);
       }
     }
-#ifdef ILI9341  
-    digitalWrite(_dc, 0);
-    SPItransfer(ILI9341_SLPOUT);
-    digitalWrite(_dc, 1);
-#endif
-    ////digitalWrite(_cs, 1);
-    ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));
     DispStopImg();
-  }
 }
 
 void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color) {
-  if (gfxmode == MODE_TFT_320x240) {
-    ////digitalWrite(_cs, 0);
-    ////setArea(x,y,x+w-1,y+h-1);
-    DispStartImg(x,x+w,y,y+h);
+    DispStartImg(x, x+w, y, y+h);
     int i;
     for (i=0; i<(w*h); i++)
     {
-      ////SPItransfer16(color);
       DispSendImg2(color);
     }
-#ifdef ILI9341  
-    digitalWrite(_dc, 0);
-    SPItransfer(ILI9341_SLPOUT);
-    digitalWrite(_dc, 1);
-#endif
-    ////digitalWrite(_cs, 1);
-    ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));   
     DispStopImg();
-  }
 }
 
 void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
-  if (gfxmode == MODE_TFT_320x240) {
     uint16_t c;
     while ((c = *text++)) {
       const unsigned char * charpt=&font8x8[c][0];
-      ////digitalWrite(_cs, 0);
-      ////setArea(x,y,x+7,y+(doublesize?15:7));
       DispStartImg(x,x+8,y,y+(doublesize?16:8));
       for (int i=0;i<8;i++)
       {
@@ -568,20 +408,8 @@ void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel 
         else DispSendImg2(bgcolor);
       }
       x +=8;
-#ifdef ILI9341  
-      digitalWrite(_dc, 0);
-      SPItransfer(ILI9341_SLPOUT);
-      digitalWrite(_dc, 1);
-#endif
-      ////digitalWrite(_cs, 1); 
       DispStopImg();
     }
-
-    ////digitalWrite(_cs, 0);
-    ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));  
-    ////digitalWrite(_cs, 1);
-    DispStopImg();
-  }
 }
 
 /*******************************************************************
