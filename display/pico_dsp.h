@@ -83,7 +83,6 @@ public:
   // framebuffer/screen operation
   int get_frame_buffer_size(int *width, int *height);
   void setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2);
-  void flipscreen(bool flip);
   bool isflipped(void);
 
   // wait next Vsync
@@ -96,21 +95,13 @@ public:
 
   //dsp_pixel * getLineBuffer(int j);
   void writeLine(int width, int height, int y, dsp_pixel *buf);
-  void writeLinePal(int width, int height, int y, uint8_t *buffer, dsp_pixel *palette16);
-  void writeScreenPal(int width, int height, int stride, uint8_t *buf, dsp_pixel *palette16);
-  
+
   void fillScreen(dsp_pixel color);
-  void drawText(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize);
-  void drawRect(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color);
-  void drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap);
-  void drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_t croparx, uint16_t cropary, uint16_t croparw, uint16_t croparh);
 
   // NoDMA functions
   void fillScreenNoDma(dsp_pixel color);
   void drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize);
   void drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color);
-  void drawSpriteNoDma(int16_t x, int16_t y, const dsp_pixel *bitmap);
-  void drawSpriteNoDma(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_t croparx, uint16_t cropary, uint16_t croparw, uint16_t croparh);
 
 private:
   static uint8_t _vsync_pin;

@@ -95,23 +95,6 @@ int main(void) {
     }
 }
 
-#if 0
-static unsigned short palette16[PALETTE_SIZE];
-void emu_SetPaletteEntry(unsigned char r, unsigned char g, unsigned char b, int index)
-{
-    if (index<PALETTE_SIZE) {
-        palette16[index]  = RGBVAL16(r,g,b);        
-    }
-}
-
-void emu_DrawLinePal16(unsigned char * VBuf, int width, int height, int line) 
-{
-    if (skip == 0) {
-         tft.writeLinePal(width,height,line, VBuf, palette16);
-    }
-}
-#endif
-
 void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line)
 {
     if (skip == 0) {

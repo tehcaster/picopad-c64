@@ -210,44 +210,6 @@ gfx_mode_t PICO_DSP::getMode(void)
   return gfxmode;
 }
 
-void PICO_DSP::flipscreen(bool flip)
-{
-  digitalWrite(_dc, 0);
-  digitalWrite(_cs, 0);
-  SPItransfer(TFT_MADCTL);
-  digitalWrite(_dc, 1);
-  if (flip) {
-    flipped=true;
-
-#ifdef ILI9341         
-    SPItransfer(TFT_MADCTL_MV | TFT_MADCTL_BGR);
-#endif
-#ifdef ST7789
-#ifdef ROTATE_SCREEN
-    SPItransfer(TFT_MADCTL_RGB);
-#else
-    SPItransfer(TFT_MADCTL_MY | TFT_MADCTL_MV |TFT_MADCTL_RGB);
-#endif
-#endif 
-  }
-  else {
-    flipped=false;
-   
-#ifdef ILI9341        
-    SPItransfer(TFT_MADCTL_MX | TFT_MADCTL_MY | TFT_MADCTL_MV | TFT_MADCTL_BGR);
-#endif
-#ifdef ST7789
-#ifdef ROTATE_SCREEN
-    SPItransfer(TFT_MADCTL_MX | TFT_MADCTL_MY | TFT_MADCTL_RGB);
-#else
-    SPItransfer(TFT_MADCTL_MX | TFT_MADCTL_MV | TFT_MADCTL_RGB);
-#endif
-#endif  
-  }
-  digitalWrite(_cs, 1);   
-}
-
-
 bool PICO_DSP::isflipped(void)
 {
   return(flipped);
@@ -439,97 +401,6 @@ void PICO_DSP::fillScreen(dsp_pixel color) {
   }
 }
 
-void PICO_DSP::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color) {
-  int i,j,l=y;
-  if (gfxmode == MODE_TFT_320x240) {
-    for (j=0; j<h; j++)
-    {
-      uint16_t * block=blocks[l>>6];
-      uint16_t * dst=&block[(l&0x3F)*fb_stride+x];
-      for (i=0; i<w; i++)
-      {
-        *dst++ = color;
-      }
-      l++;
-    }
-  }
-}
-
-void PICO_DSP::drawText(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
-  if (gfxmode == MODE_TFT_320x240) {
-    uint16_t c;
-    uint16_t * block;
-    uint16_t * dst;
-    fgcolor = fgcolor;
-    bgcolor = bgcolor;
-    while ((c = *text++)) {
-      const unsigned char * charpt=&font8x8[c][0];
-      int l=y;
-      for (int i=0;i<8;i++)
-      {     
-        unsigned char bits;
-        if (doublesize) {
-          block=blocks[l>>6];
-          dst=&block[(l&0x3F)*fb_stride+x];         
-          bits = *charpt;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor;
-          else *dst++=bgcolor;
-          l++;       
-        }
-        block=blocks[l>>6];
-        dst=&block[(l&0x3F)*fb_stride+x]; 
-        bits = *charpt++;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor;
-        else *dst++=bgcolor;
-        l++;
-      }
-      x +=8;
-    }  
-  }
-}
-
 void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
   if (gfxmode == MODE_TFT_320x240) {
     uint16_t * block=blocks[y>>6];
@@ -582,39 +453,6 @@ void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
       }       
     }    
   }
-  else {
-    if ( (height<fb_height) && (height > 2) ) y += (fb_height-height)/2;
-    vga_pixel * dst=&framebuffer[y*fb_stride];    
-    if (width > fb_width) {
-      int step = ((width << 8)/fb_width);
-      int pos = 0;
-      for (int i=0; i<fb_width; i++)
-      {
-        uint16_t pix = buf[pos >> 8];
-        *dst++ = VGA_RGB(R16(pix),G16(pix),B16(pix)); 
-        pos +=step;
-      }        
-    }
-    else if ((width*2) == fb_width) {
-      for (int i=0; i<width; i++)
-      {
-        uint16_t pix = *buf++;
-        vga_pixel col = VGA_RGB(R16(pix),G16(pix),B16(pix));
-        *dst++= col;
-        *dst++= col;
-      }       
-    }
-    else {
-      if (width <= fb_width) {
-        dst += (fb_width-width)/2;
-      }
-      for (int i=0; i<width; i++)
-      {
-        uint16_t pix = *buf++;
-        *dst++= VGA_RGB(R16(pix),G16(pix),B16(pix));
-      }      
-    }
-  }  
 }
 
 /***********************************************************************************************
@@ -643,9 +481,6 @@ void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
     ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));
     DispStopImg();
   }
-  else {
-    fillScreen(color);
-  }   
 }
 
 void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color) {
@@ -668,9 +503,6 @@ void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pix
     ////setArea(0, 0, (TFT_REALWIDTH-1), (TFT_REALHEIGHT-1));   
     DispStopImg();
   }
-  else {
-    drawRect(x, y, w, h, color);
-  }  
 }
 
 void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
@@ -750,9 +582,6 @@ void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel 
     ////digitalWrite(_cs, 1);
     DispStopImg();
   }
-  else {
-    drawText(x, y, text, fgcolor, bgcolor, doublesize);
-  } 
 }
 
 /*******************************************************************

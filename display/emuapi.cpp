@@ -152,12 +152,6 @@ void emu_Free(void * pt)
   free(pt);
 }
 
-void emu_drawText(unsigned short x, unsigned short y, const char * text, unsigned short fgcolor, unsigned short bgcolor, int doublesize)
-{
-  tft.drawText(x, y, text, fgcolor, bgcolor, doublesize?true:false);
-}
-
-
 /********************************
  * OSKB handling
 ********************************/ 
@@ -1387,11 +1381,11 @@ int keypressed = emu_ReadKeys();
   // Flip screen if UP pressed
   if (keypressed & MASK_JOY2_UP)
   {
-    tft.flipscreen(true);
+    //tft.flipscreen(true);
   }
   else 
   {
-    tft.flipscreen(false);
+    //tft.flipscreen(false);
   }
 #endif
 #endif
