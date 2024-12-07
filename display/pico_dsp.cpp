@@ -128,19 +128,9 @@ static int  fb_width;
 static int  fb_height;
 static int  fb_stride;
 
-static const sVmode* vmode=NULL;
-static const sVmode* volatile VgaVmodeReq = NULL; // request to reinitialize videomode, 1=only stop driver
-
 static semaphore_t core1_initted;
 static void core1_func();
 static void core1_sio_irq();
-static void VgaInitReql(const sVmode* vmode)
-{
-  if (vmode == NULL) vmode = (const sVmode*)1;
-  __dmb();
-  VgaVmodeReq = vmode;
-  while (VgaVmodeReq != NULL) { __dmb(); }
-}
 
 #if 0
 static void core1_func()
@@ -223,47 +213,6 @@ PICO_DSP::PICO_DSP()
 gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
 {
   switch(mode) {
-    case MODE_VGA_320x240:
-      // Reset SPI if we come from TFT mode
-      if (gfxmode == MODE_TFT_320x240) {
-        fillScreenNoDma(RGBVAL16(0x0,0x00,0x00));
-        digitalWrite(_cs, 0);
-        digitalWrite(_dc, 0);
-        SPItransfer(TFT_DISPOFF);
-        digitalWrite(_cs, 1);
-        sleep_ms(20);
-        digitalWrite(_cs, 0);
-        digitalWrite(_cs, 1);
-        if (_bkl != 0xff) {
-          digitalWrite(_bkl, 0);
-        }
-        //spi_init(TFT_SPIREG, 0);
-        //spi_deinit(TFT_SPIREG);
-        //spi_set_slave(TFT_SPIREG, true);
-      }  
-      gfxmode = mode;
-      fb_width = 320;
-      fb_height = 240;      
-      fb_stride = fb_width;
-      /* initialize gfx buffer */
-      if (fb0 == NULL) {
-        void *mallocpt = malloc(fb_stride*fb_height*sizeof(vga_pixel)+4);    
-        fb0 = (vga_pixel *)((void*)((intptr_t)mallocpt & ~3));
-      }
-      visible_framebuffer = fb0;
-      framebuffer = fb0;
-      for (uint i = 0; i < fb_height*fb_width; i++) {
-        framebuffer[i] = VGA_RGB(rand() % 255,rand() % 255,rand() % 255);      
-      }
-      // create a semaphore to be posted when audio init is complete
-      sem_init(&core1_initted, 0, 1);
-      multicore_launch_core1(core1_func);
-//      vmode = Video(DEV_VGA, RES_QVGA);
-      VgaInitReql(vmode);
-      // wait for initialization of audio to be complete
-      sem_acquire_blocking(&core1_initted);      
-      break;
-
     case MODE_TFT_320x240:
       gfxmode = mode;
       fb_width = TFT_WIDTH;
@@ -594,17 +543,6 @@ void PICO_DSP::fillScreen(dsp_pixel color) {
     }
  //   DispUpdateAll();
   }
-  else {
-    vga_pixel color8 = VGA_RGB(R16(color),G16(color),B16(color));
-    for (j=0; j<fb_height; j++)
-    {
-      vga_pixel * dst=&framebuffer[j*fb_stride];
-      for (i=0; i<fb_width; i++)
-      {
-        *dst++ = color8;
-      }
-    }    
-  }  
 }
 
 void PICO_DSP::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color) {
@@ -621,18 +559,6 @@ void PICO_DSP::drawRect(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel co
       l++;
     }
   }
-  else {
-    vga_pixel color8 = VGA_RGB(R16(color),G16(color),B16(color));
-    for (j=0; j<h; j++)
-    {
-      vga_pixel * dst=&framebuffer[l*fb_stride+x];
-      for (i=0; i<w; i++)
-      {
-        *dst++ = color8;
-      }
-      l++;
-    }
-  }  
 }
 
 void PICO_DSP::drawText(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
@@ -708,75 +634,6 @@ void PICO_DSP::drawText(int16_t x, int16_t y, const char * text, dsp_pixel fgcol
       x +=8;
     }  
   }
-  else {
-    vga_pixel fgcolor8 = VGA_RGB(R16(fgcolor),G16(fgcolor),B16(fgcolor));
-    vga_pixel bgcolor8 = VGA_RGB(R16(bgcolor),G16(bgcolor),B16(bgcolor));
-    vga_pixel c;
-    vga_pixel * dst;
-    while ((c = *text++)) {
-      const unsigned char * charpt=&font8x8[c][0];
-      int l=y;
-      for (int i=0;i<8;i++)
-      {     
-        unsigned char bits;
-        if (doublesize) {
-          dst=&framebuffer[l*fb_stride+x];
-          bits = *charpt;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          bits = bits >> 1;     
-          if (bits&0x01) *dst++=fgcolor8;
-          else *dst++=bgcolor8;
-          l++;
-        }
-        dst=&framebuffer[l*fb_stride+x]; 
-        bits = *charpt++;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        bits = bits >> 1;     
-        if (bits&0x01) *dst++=fgcolor8;
-        else *dst++=bgcolor8;
-        l++;
-      }
-      x +=8;
-    }
-  }  
 }
 #if 0
 void PICO_DSP::drawSprite(int16_t x, int16_t y, const dsp_pixel *bitmap, uint16_t arx, uint16_t ary, uint16_t arw, uint16_t arh)

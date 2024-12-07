@@ -56,7 +56,6 @@ typedef enum gfx_mode_t
 {
   MODE_UNDEFINED   = 0,
   MODE_TFT_320x240 = 1,
-  MODE_VGA_320x240 = 2
 } gfx_mode_t;
 
 typedef enum vga_error_t

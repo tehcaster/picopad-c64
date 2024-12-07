@@ -20,8 +20,6 @@ SRC += pico64/reSID.cpp
 SRC += pico64/pico64.cpp
 
 SRC += display/pico_dsp.cpp
-#SRC += display/vga.cpp
-#SRC += display/vga_vmode.cpp
 SRC += display/emuapi.cpp
 SRC += display/AudioPlaySystem.cpp
 

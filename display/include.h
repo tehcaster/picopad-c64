@@ -129,9 +129,4 @@ typedef unsigned char Bool;
 #include "pico/float.h"
 #include "pico/int64_ops.h"
 */
-// PicoVGA includes
-#include "vga_config.h"	 // VGA configuration
-#include "vga_vmode.h"	 // VGA videomodes
-#include "vga.h"	     // VGA output
-//#include "picovga.pio.h" // PIO
 
