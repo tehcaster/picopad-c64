@@ -27,6 +27,7 @@
 #include "../config/iopins.h"
 
 extern uint32_t nFrames;
+extern bool audio_paused;
 
 #ifdef LOHRES
 #define TFT_WIDTH      240 

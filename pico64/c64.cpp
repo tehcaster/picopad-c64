@@ -6,6 +6,7 @@
 extern "C" {
 #include "../display/emuapi.h"
 #include "../config/platform_config.h"
+#include "../display/osd.h"
 }
 
 #include "Teensy64.h"
@@ -436,14 +437,16 @@ void c64_Input(int bClick) {
     }
     else if ((bClick & MASK_KEY_USER2) || res2) {
      if (bClick & MASK_KEY_USER2 && !res2) {
-	    setKey(ascii2scan['N'], true); 
+	    setKey(ascii2scan[133], true); 
 	    res2 = true;
      } else if (!(bClick & MASK_KEY_USER2) && res2) {
-	    setKey(ascii2scan['N'], true); 
+	    setKey(ascii2scan[133], false); 
 	    res2 = false;
      }
     }
     else if ((bClick & MASK_KEY_USER3) || res3) {
+     osd_active = true;
+     #if 0
      char key = keys3[key3];
      if (bClick & MASK_KEY_USER3 && !res3) {
 	    setKey(ascii2scan[key], true); 
@@ -453,6 +456,7 @@ void c64_Input(int bClick) {
 	    res3 = false;
 	    key3 = (key3 + 1) % sizeof(keys3);
      }
+     #endif
     }
     else  
     {

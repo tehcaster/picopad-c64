@@ -6,6 +6,7 @@
 extern "C" {
   #include "../config/iopins.h"  
   #include "../display/emuapi.h"
+  #include "../display/osd.h"
 }
 #include "keyboard_osd.h"
 #include "c64.h"
@@ -16,6 +17,8 @@ extern "C" {
 volatile bool vbl=true;
 
 bool repeating_timer_callback(struct repeating_timer *t) {
+    if (osd_active)
+	    return true;
     uint16_t bClick = emu_DebounceLocalKeys();
     emu_Input(bClick);     
     if (vbl) {
@@ -84,6 +87,14 @@ int main(void) {
         //uint16_t bClick = emu_DebounceLocalKeys();
         //emu_Input(bClick);  
         emu_Step();
+
+	if (osd_active) {
+		audio_paused = true;
+		osd_start();
+		osd_active = false;
+		audio_paused = false;
+		fpsLast = Time();
+	}
 
 	if (Time() - fpsLast > 1000000) {
 		fpsLast = Time();

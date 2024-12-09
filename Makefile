@@ -3,7 +3,7 @@
 ASRC +=
 
 # C source files
-CSRC +=
+CSRC += display/osd.c
 
 # C++ source files
 SRC += pico64/c64.cpp

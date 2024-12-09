@@ -426,6 +426,8 @@ static uint32_t i2s_tx_buffer[AUDIO_SAMPLES];
 
 u32 timeSWISR = 0;
 
+bool audio_paused = false;
+
 static void SOFTWARE_isr() {
   u32 start = Time();
   if (fillfirsthalf) {
@@ -439,6 +441,12 @@ static void SOFTWARE_isr() {
 
 static void AUDIO_isr() {
   pwm_clear_irq(pwm_gpio_to_slice_num(AUDIO_PIN));
+
+  if (audio_paused) {
+	  pwm_set_gpio_level(AUDIO_PIN, 0);
+	  return;
+  }
+
   short *i2s_tx_buffer16 = (short *)i2s_tx_buffer;
   long s = i2s_tx_buffer16[cnt++]; 
   s += i2s_tx_buffer16[cnt++];
