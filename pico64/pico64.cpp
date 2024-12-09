@@ -36,6 +36,7 @@ static u32 fpsLast;
 static u32 nFramesLast;
 static u32 nFramesC64Last;
 static u32 timeSWISRLast;
+char fpsBuf[16];
 
 int main(void) {
 //	DrawPrintStart();
@@ -78,6 +79,7 @@ int main(void) {
     fpsLast = Time();
     nFramesLast = nFrames;
     nFramesC64Last = nFramesC64;
+    SelFont8x8();
     while (true) {
         //uint16_t bClick = emu_DebounceLocalKeys();
         //emu_Input(bClick);  
@@ -86,8 +88,12 @@ int main(void) {
 	if (Time() - fpsLast > 1000000) {
 		fpsLast = Time();
 		printf("display FPS: %u\n", nFrames - nFramesLast);
+		snprintf(fpsBuf, sizeof(fpsBuf), "LCD FPS: %3d", nFrames - nFramesLast);
+		DrawTextBg(fpsBuf, 0, 0, COL_GRAY, COL_BLACK);
 		nFramesLast = nFrames;
 		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
+		snprintf(fpsBuf, sizeof(fpsBuf), "C64 FPS: %3d", nFramesC64 - nFramesC64Last);
+		DrawTextBg(fpsBuf, 320-12*8, 0, COL_GRAY, COL_BLACK);
 		nFramesC64Last = nFramesC64;
 		printf("SWISR: %u ms\n", (timeSWISR - timeSWISRLast) / 1024);
 		timeSWISRLast = timeSWISR;
