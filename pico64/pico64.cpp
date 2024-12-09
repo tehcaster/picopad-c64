@@ -169,7 +169,7 @@ void * emu_LineBuffer(int line)
 #ifdef HAS_SND
 
 void emu_sndInit() {
-  tft.begin_audio(256);
+  tft.begin_audio();
 }
 
 #endif

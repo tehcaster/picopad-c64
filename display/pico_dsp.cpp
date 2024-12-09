@@ -420,38 +420,38 @@ void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel 
 
 static bool fillfirsthalf = true;
 static uint16_t cnt = 0;
-static uint16_t sampleBufferSize = 0;
 
-static uint32_t * i2s_tx_buffer;
-static short * i2s_tx_buffer16;
+#define AUDIO_SAMPLES	256
+static uint32_t i2s_tx_buffer[AUDIO_SAMPLES];
 
 u32 timeSWISR = 0;
 
 static void SOFTWARE_isr() {
   u32 start = Time();
   if (fillfirsthalf) {
-    SND_Process((short *)i2s_tx_buffer, sampleBufferSize);
+    SND_Process((short *)i2s_tx_buffer, AUDIO_SAMPLES);
   }  
   else { 
-    SND_Process((short *)&i2s_tx_buffer[sampleBufferSize/2], sampleBufferSize);
+    SND_Process((short *)&i2s_tx_buffer[AUDIO_SAMPLES/2], AUDIO_SAMPLES);
   }
   timeSWISR += Time() - start;
 }
 
 static void AUDIO_isr() {
   pwm_clear_irq(pwm_gpio_to_slice_num(AUDIO_PIN));
+  short *i2s_tx_buffer16 = (short *)i2s_tx_buffer;
   long s = i2s_tx_buffer16[cnt++]; 
   s += i2s_tx_buffer16[cnt++];
   s = s/2 + 32767; 
   pwm_set_gpio_level(AUDIO_PIN, s >> 8);
-  cnt = cnt & (sampleBufferSize*2-1);
+  cnt = cnt & (AUDIO_SAMPLES*2-1);
 
   if (cnt == 0) {
     fillfirsthalf = false;
     //irq_set_pending(RTC_IRQ+1);
     multicore_fifo_push_blocking(0);
   } 
-  else if (cnt == sampleBufferSize) {
+  else if (cnt == AUDIO_SAMPLES) {
     fillfirsthalf = true;
     //irq_set_pending(RTC_IRQ+1);
     multicore_fifo_push_blocking(0);
@@ -478,20 +478,9 @@ static void core1_func_tft() {
     }
 }
 
-void PICO_DSP::begin_audio(int samplesize)
+void PICO_DSP::begin_audio()
 {
-  i2s_tx_buffer =  (uint32_t*)malloc(samplesize*sizeof(uint32_t));
-
-  if (i2s_tx_buffer == NULL) {
-    printf("sound buffer could not be allocated!!!!!\n");
-    return;  
-  }
-  memset((void*)i2s_tx_buffer,0, samplesize*sizeof(uint32_t));
-  printf("sound buffer allocated\n");
-
-  i2s_tx_buffer16 = (short*)i2s_tx_buffer;
-
-  sampleBufferSize = samplesize;
+  memset(i2s_tx_buffer, 0, sizeof(i2s_tx_buffer));
 
   gpio_set_function(AUDIO_PIN, GPIO_FUNC_PWM);
 
@@ -525,9 +514,6 @@ void PICO_DSP::begin_audio(int samplesize)
  
 void PICO_DSP::end_audio()
 {
-  if (i2s_tx_buffer != NULL) {
-    free(i2s_tx_buffer);
-  }  
 }
 
 
