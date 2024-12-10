@@ -426,7 +426,11 @@ static uint32_t i2s_tx_buffer[AUDIO_SAMPLES];
 
 u32 timeSWISR = 0;
 
+#define SNDFRAC 10      // number of fraction bits
+#define SNDINT (1<<SNDFRAC) // integer part of sound fraction (= 1024)
+
 bool audio_paused = false;
+int audio_vol = SNDINT;
 
 static void SOFTWARE_isr() {
   u32 start = Time();
@@ -448,10 +452,17 @@ static void AUDIO_isr() {
   }
 
   short *i2s_tx_buffer16 = (short *)i2s_tx_buffer;
-  long s = i2s_tx_buffer16[cnt++]; 
+  long s = i2s_tx_buffer16[cnt++];
   s += i2s_tx_buffer16[cnt++];
-  s = s/2 + 32767; 
-  pwm_set_gpio_level(AUDIO_PIN, s >> 8);
+  s = s/2 * audio_vol + 32767*SNDINT;
+
+  s >>= (8 + SNDFRAC);
+  if (s < 0)
+    s = 0;
+  else if (s > 255)
+    s = 255;
+
+  pwm_set_gpio_level(AUDIO_PIN, (u8)s);
   cnt = cnt & (AUDIO_SAMPLES*2-1);
 
   if (cnt == 0) {
@@ -486,8 +497,30 @@ static void core1_func_tft() {
     }
 }
 
+int calc_vol()
+{
+  u8 vol = ConfigGetVolume();
+  float v = 1.0f;
+
+  if (vol == 0)
+	  return 0;
+
+  /* stupid but we won't call this often */
+  while (vol < CONFIG_VOLUME_FULL) {
+	v *= 0.8f;
+	vol++;
+  }
+  while (vol > CONFIG_VOLUME_FULL) {
+	v *= 1.25f;
+	vol--;
+  }
+  return (int)(v*SNDINT);
+}
+
 void PICO_DSP::begin_audio()
 {
+  audio_vol = calc_vol();
+
   memset(i2s_tx_buffer, 0, sizeof(i2s_tx_buffer));
 
   gpio_set_function(AUDIO_PIN, GPIO_FUNC_PWM);
