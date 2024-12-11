@@ -430,7 +430,8 @@ u32 timeSWISR = 0;
 #define SNDINT (1<<SNDFRAC) // integer part of sound fraction (= 1024)
 
 bool audio_paused = false;
-int audio_vol = SNDINT;
+
+static int audio_vol = SNDINT;
 
 static void SOFTWARE_isr() {
   u32 start = Time();
@@ -497,13 +498,15 @@ static void core1_func_tft() {
     }
 }
 
-int calc_vol()
+void audio_vol_update()
 {
   u8 vol = ConfigGetVolume();
   float v = 1.0f;
 
-  if (vol == 0)
-	  return 0;
+  if (vol == 0) {
+	  audio_vol = 0;
+	  return;
+  }
 
   /* stupid but we won't call this often */
   while (vol < CONFIG_VOLUME_FULL) {
@@ -514,12 +517,12 @@ int calc_vol()
 	v *= 1.25f;
 	vol--;
   }
-  return (int)(v*SNDINT);
+  audio_vol = (int)(v*SNDINT);
 }
 
 void PICO_DSP::begin_audio()
 {
-  audio_vol = calc_vol();
+  audio_vol_update();
 
   memset(i2s_tx_buffer, 0, sizeof(i2s_tx_buffer));
 

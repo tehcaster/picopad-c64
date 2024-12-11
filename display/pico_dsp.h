@@ -18,9 +18,8 @@
 #include "../include.h"
 
 #ifdef __cplusplus
-//#include <stdio.h>
-//#include <math.h>
-//#include "pico.h"
+extern "C"
+{
 #endif
 
 #include "../config/platform_config.h"
@@ -28,6 +27,7 @@
 
 extern uint32_t nFrames;
 extern bool audio_paused;
+void audio_vol_update();
 
 #ifdef LOHRES
 #define TFT_WIDTH      240 
@@ -65,6 +65,7 @@ typedef enum vga_error_t
 	GFX_ERROR = -1
 } gfx_error_t;
 
+#ifdef __cplusplus
 class PICO_DSP
 {
 public:
@@ -112,7 +113,11 @@ protected:
   uint8_t _miso, _mosi, _sclk, _bkl;
   bool flipped=false;  
 };
+#endif
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 
