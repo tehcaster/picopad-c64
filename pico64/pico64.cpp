@@ -6,8 +6,8 @@
 extern "C" {
   #include "../config/iopins.h"  
   #include "../display/emuapi.h"
-  #include "../display/osd.h"
 }
+#include "../display/osd.h"
 #include "keyboard_osd.h"
 #include "c64.h"
 

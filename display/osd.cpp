@@ -43,6 +43,7 @@ void osd_start(void)
 			DrawClear();
 			return;
 		default:
+			;
 		}
 	}
 }

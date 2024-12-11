@@ -3,7 +3,7 @@
 ASRC +=
 
 # C source files
-CSRC += display/osd.c
+#CSRC +=
 
 # C++ source files
 SRC += pico64/c64.cpp
@@ -21,6 +21,7 @@ SRC += pico64/pico64.cpp
 
 SRC += display/pico_dsp.cpp
 SRC += display/emuapi.cpp
+SRC += display/osd.cpp
 
 # Makefile includes
 include ../../../Makefile.inc
