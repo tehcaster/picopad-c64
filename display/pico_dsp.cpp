@@ -447,7 +447,7 @@ static void AUDIO_isr() {
   pwm_clear_irq(pwm_gpio_to_slice_num(AUDIO_PIN));
 
   if (audio_paused) {
-	  pwm_set_gpio_level(AUDIO_PIN, 0);
+	  pwm_set_gpio_level(AUDIO_PIN, 127);
 	  return;
   }
 

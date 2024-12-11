@@ -6,6 +6,7 @@ bool osd_active = false;
 
 void osd_start(void)
 {
+	KeyWaitNoPressed();
 	KeyFlush();
 	DrawClear();
 	DrawText("PAUSED", 0, 0, COL_WHITE);
@@ -19,4 +20,5 @@ void osd_start(void)
 		if (key == KEY_B)
 			ResetToBootLoader();
 	}
+	DrawClear();
 }
