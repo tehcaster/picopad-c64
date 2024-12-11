@@ -431,7 +431,7 @@ void c64_Input(int bClick) {
           kcnt=0;
         }
         else {
-          cpu.swapJoysticks = !cpu.swapJoysticks;
+//          cpu.swapJoysticks = !cpu.swapJoysticks;
         }        
       }
     }
