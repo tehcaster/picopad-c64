@@ -14,7 +14,7 @@
 #define TITLE "    C64 Emulator "
 #define ROMSDIR "C64"
 
-#define emu_Init(ROM) {c64_Start(ROM); c64_Init(); }
+#define emu_Init() { c64_Init(); }
 #define emu_Step(x) { c64_Step(); }
 #define emu_Input(x) { c64_Input(x); }
 

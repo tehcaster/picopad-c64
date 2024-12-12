@@ -1010,147 +1010,6 @@ static void menuLeft(void)
 #endif
 }
 
-bool menuActive(void) 
-{
-  return (menuOn);
-}
-void toggleMenu(bool on) {
-  if (on) {
-    menuOn = true;
-    backgroundMenu();
-  } else {
-    tft.fillScreenNoDma(RGBVAL16(0x00,0x00,0x00));    
-    menuOn = false;    
-  }
-}
-
-int handleMenu(uint16_t bClick)
-{
-  if (autorun) {
-      menuLeft();
-      toggleMenu(false);
-      menuRedraw=false;
-      return (ACTION_RUN);
-  }  
-
-  if ( (bClick & MASK_JOY2_BTN) || (bClick & MASK_KEY_USER1) || (bClick & MASK_KEY_USER4) ) {
-    char newpath[MAX_FILENAME_PATH];
-    strcpy(newpath, selection);
-    strcat(newpath, "/");
-    strcat(newpath, selected_filename);
-    strcpy(selection,newpath);
-    emu_printf("new filepath is");
-    emu_printf(selection);
-
-    if (GetFileAttr(selection) & ATTR_DIR) {
-        curFile = 0;
-        nbFiles = readNbFiles(selection);
-        menuRedraw=true;
-    }
-    else
-    {
-#ifdef PICOMPUTER
-      if (key_alt) {
-        emu_writeConfig();
-      }
-#endif
-#ifdef PICOZX
-      if (bClick & MASK_KEY_USER4) {
-        emu_writeConfig();
-      }
-#endif
-      menuLeft();
-      toggleMenu(false);
-      menuRedraw=false;
-#ifdef PICOZX
-      if ( tft.getMode() != MODE_VGA_320x240) {   
-        if ( (bClick & MASK_KEY_USER1) ) {
-          tft.begin(MODE_VGA_320x240);
-        }
-      }
-#endif
-      return (ACTION_RUN);
-    }
-  }
-  else if ( (bClick & MASK_JOY2_UP) || (bClick & MASK_JOY1_UP) ) {
-    if (curFile!=0) {
-      menuRedraw=true;
-      curFile--;
-    }
-  }
-  else if ( (bClick & MASK_JOY2_RIGHT) || (bClick & MASK_JOY1_RIGHT) ) {
-    if ((curFile-9)>=0) {
-      menuRedraw=true;
-      curFile -= 9;
-    } else if (curFile!=0) {
-      menuRedraw=true;
-      curFile--;
-    }
-  }  
-  else if ( (bClick & MASK_JOY2_DOWN) || (bClick & MASK_JOY1_DOWN) )  {
-    if ((curFile<(nbFiles-1)) && (nbFiles)) {
-      curFile++;
-      menuRedraw=true;
-    }
-  }
-  else if ( (bClick & MASK_JOY2_LEFT) || (bClick & MASK_JOY1_LEFT) ) {
-    if ((curFile<(nbFiles-9)) && (nbFiles)) {
-      curFile += 9;
-      menuRedraw=true;
-    }
-    else if ((curFile<(nbFiles-1)) && (nbFiles)) {
-      curFile++;
-      menuRedraw=true;
-    }
-  }
-  else if ( (bClick & MASK_KEY_USER2) ) {
-    emu_SwapJoysticks(0);
-    menuRedraw=true;  
-  } 
-
-  if (menuRedraw && nbFiles) {
-    int fileIndex = 0;
-    tft.drawRectNoDma(MENU_FILE_XOFFSET,MENU_FILE_YOFFSET, MENU_FILE_W, MENU_FILE_H, MENU_FILE_BGCOLOR);
-//    if (curFile <= (MAX_MENULINES/2-1)) topFile=0;
-//    else topFile=curFile-(MAX_MENULINES/2);
-    if (curFile <= (MAX_MENULINES-1)) topFile=0;
-    else topFile=curFile-(MAX_MENULINES/2);
-
-    int i=0;
-    while (i<MAX_MENULINES) {
-      if (fileIndex>=nbFiles) {
-          // no more files
-          break;
-      }
-      char * filename = &files[fileIndex][0];    
-      if (fileIndex >= topFile) {              
-        if ((i+topFile) < nbFiles ) {
-          if ((i+topFile)==curFile) {
-            tft.drawTextNoDma(MENU_FILE_XOFFSET,i*TEXT_HEIGHT+MENU_FILE_YOFFSET, filename, RGBVAL16(0xff,0xff,0x00), RGBVAL16(0xff,0x00,0x00), true);
-            strcpy(selected_filename,filename);            
-          }
-          else {
-            tft.drawTextNoDma(MENU_FILE_XOFFSET,i*TEXT_HEIGHT+MENU_FILE_YOFFSET, filename, RGBVAL16(0xff,0xff,0xff), MENU_FILE_BGCOLOR, true);      
-          }
-        }
-        i++; 
-      }
-      fileIndex++;    
-    }
-
-     
-    tft.drawTextNoDma(48,MENU_JOYS_YOFFSET+8, (emu_SwapJoysticks(1)?(char*)"SWAP=1":(char*)"SWAP=0"), RGBVAL16(0x00,0xff,0xff), RGBVAL16(0x00,0x00,0xff), false);
-    menuRedraw=false;     
-  }
-
-  return (ACTION_NONE);  
-}
-
-char * menuSelection(void)
-{
-  return (selection);  
-}
-
 /********************************
  * File IO
 ********************************/ 
@@ -1319,17 +1178,6 @@ static bool emu_eraseConfig(void)
 void emu_init(void)
 {
   bool forceVga = false;
-#ifdef FILEBROWSER
-  if (!DiskMount())
-	  printf("SD failed to mount\n");
-
-//  forceVga = emu_readGfxConfig();
-
-  strcpy(selection,ROMSDIR);
-  nbFiles = readNbFiles(selection); 
-
-  printf("SD initialized, files found: %d\n", nbFiles);
-#endif
 
   emu_InitJoysticks();
 #ifdef SWAP_JOYSTICK
@@ -1402,10 +1250,6 @@ int keypressed = emu_ReadKeys();
     }
   }
 #endif
-
-#ifdef FILEBROWSER
-  toggleMenu(true);
-#endif  
 }
 
 

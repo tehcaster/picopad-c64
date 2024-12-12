@@ -63,7 +63,7 @@
 #define USE_SCREENSHOT		0		// use screen shots
 #define USE_EMUSCREENSHOT	0		// use emulator screen shots
 //#define USE_USBPAD		1		// simulate keypad with USB keyboard
-//#define USE_FILESEL		1		// use file selection (lib_filesel.c, lib_filesel.h)
+#define USE_FILESEL		1		// use file selection (lib_filesel.c, lib_filesel.h)
 //#define SYSTICK_MS		1		// increment of system time in [ms] on SysTick interrupt (default 5)
 
 //#define USE_USBPORT		1		// use USB Mini-Port (sdk_usbport.c, sdk_usbport.h)

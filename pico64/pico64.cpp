@@ -57,22 +57,11 @@ int main(void) {
     stdio_init_all();
 
     emu_init();
-    char * filename;
-#ifdef FILEBROWSER
-    while (true) {      
-        if (menuActive()) {
-            uint16_t bClick = emu_DebounceLocalKeys();
-            int action = handleMenu(bClick);
-            filename = menuSelection();   
-            if (action == ACTION_RUN) {
-              break;    
-            }
-            tft.waitSync();
-        }
-    }
-#endif    
+    FileSelInit("/C64", "Select game", "PRG", &FileSelColBlue);
+    if (!FileSel())
+	    ResetToBootLoader();
     emu_start();
-    emu_Init(filename);
+    emu_Init();
     tft.startRefresh();
     struct repeating_timer timer;
     add_repeating_timer_ms(25, repeating_timer_callback, NULL, &timer);    

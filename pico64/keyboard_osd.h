@@ -10,10 +10,7 @@ extern void handleVirtualkeyboard(void);
 extern bool callibrationActive(void);
 extern int  handleCallibration(uint16_t bClick);
 
-extern bool menuActive(void);
 extern char * menuSelection(void);
-extern void toggleMenu(bool on);
-extern int  handleMenu(uint16_t bClick);
 
 
 #endif

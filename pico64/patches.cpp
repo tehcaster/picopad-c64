@@ -42,10 +42,7 @@
 
 #define DIRECTORY ROMSDIR + "/\0"
 
-static char filename[64];
 static char buffer[2];
-
-extern char * menuSelection(void);
 
 void patchLOAD(void) {
 
@@ -183,13 +180,15 @@ uint16_t addr,size;
 
 	//$B7    : Length of file name or disk command
 	//$BB-$BC: Pointer to current file name or disk command
+#if 0
   memset(filename,0,sizeof(filename));
   if ( cpu.RAM[0xB7] == 0) {
 	strcpy(filename,menuSelection());
   }
   else {
 	strncpy(filename, (char*)&cpu.RAM[cpu.RAM[0xBC] * 256 + cpu.RAM[0xBB]], cpu.RAM[0xB7] );
-  }     
+  }
+#endif
 	secondaryAddress = cpu.RAM[0xB9];
 
   //Serial.println("loading");
@@ -199,7 +198,7 @@ uint16_t addr,size;
   //emu_resetSD();
   tft.fillScreenNoDma( RGBVAL16(0x00,0x00,0x00) );
 #endif  
-	if (emu_FileOpen(filename, "r+b") == 0) {
+	if (emu_FileOpen(FileSelTempBuf, "r+b") == 0) {
 		//Serial.println("not found");
 		cpu.pc = 0xf530; //Jump to $F530
 #ifdef EXTERNAL_SD  
@@ -208,8 +207,8 @@ uint16_t addr,size;
 		return;
 	}
 
-	size = emu_FileSize(filename);
-	int f = emu_FileOpen(filename, "r+b");
+	size = emu_FileSize(FileSelTempBuf);
+	int f = emu_FileOpen(FileSelTempBuf, "r+b");
 	emu_FileRead(buffer, 2, f);
 	addr = buffer[1] * 256 + buffer[0];
 	emu_FileRead((char*)&cpu.RAM[addr], size - 2, f);
