@@ -72,8 +72,6 @@ int main(void) {
     nFramesC64Last = nFramesC64;
     SelFont8x8();
     while (true) {
-        //uint16_t bClick = emu_DebounceLocalKeys();
-        //emu_Input(bClick);  
         emu_Step();
 
 	if (osd_active) {

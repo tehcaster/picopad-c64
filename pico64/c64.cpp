@@ -164,25 +164,18 @@ uint8_t cia1PORTA(void) {
   uint8_t v;
 
   v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
-  int keys = emu_GetPad();
 #ifndef PICOMPUTER
   /*
   if (oskbActive) keys = 0;
   */
 #endif  
-  if (!cpu.swapJoysticks) {
-    if (keys & MASK_JOY2_BTN) v &= 0xEF;
-    if (keys & MASK_JOY2_UP) v &= 0xFE;
-    if (keys & MASK_JOY2_DOWN) v &= 0xFD;
-    if (keys & MASK_JOY2_RIGHT) v &= 0xFB;
-    if (keys & MASK_JOY2_LEFT) v &= 0xF7;
-  } else {
-    if (keys & MASK_JOY1_BTN) v &= 0xEF;
-    if (keys & MASK_JOY1_UP) v &= 0xFE;
-    if (keys & MASK_JOY1_DOWN) v &= 0xFD;
-    if (keys & MASK_JOY1_RIGHT) v &= 0xFB;
-    if (keys & MASK_JOY1_LEFT) v &= 0xF7;
-  }	
+  if (cpu.swapJoysticks) {
+    if (KeyPressed(KEY_A)) v &= 0xEF;
+    if (KeyPressed(KEY_UP)) v &= 0xFE;
+    if (KeyPressed(KEY_DOWN)) v &= 0xFD;
+    if (KeyPressed(KEY_LEFT)) v &= 0xFB;
+    if (KeyPressed(KEY_RIGHT)) v &= 0xF7;
+  }
 
 
   if (!kbdData.kv) return v; //Keine Taste gedrückt
@@ -224,17 +217,11 @@ uint8_t cia1PORTB(void) {
   */
 #endif  
   if (!cpu.swapJoysticks) {
-    if (keys & MASK_JOY1_BTN) v &= 0xEF;
-    if (keys & MASK_JOY1_UP) v &= 0xFE;
-    if (keys & MASK_JOY1_DOWN) v &= 0xFD;
-    if (keys & MASK_JOY1_RIGHT) v &= 0xFB;
-    if (keys & MASK_JOY1_LEFT) v &= 0xF7;
-  } else {
-    if (keys & MASK_JOY2_BTN) v &= 0xEF;
-    if (keys & MASK_JOY2_UP) v &= 0xFE;
-    if (keys & MASK_JOY2_DOWN) v &= 0xFD;
-    if (keys & MASK_JOY2_RIGHT) v &= 0xFB;
-    if (keys & MASK_JOY2_LEFT) v &= 0xF7;
+    if (KeyPressed(KEY_A)) v &= 0xEF;
+    if (KeyPressed(KEY_UP)) v &= 0xFE;
+    if (KeyPressed(KEY_DOWN)) v &= 0xFD;
+    if (KeyPressed(KEY_LEFT)) v &= 0xFB;
+    if (KeyPressed(KEY_RIGHT)) v &= 0xF7;
   }
 
   if (!kbdData.kv) return v; //Keine Taste gedrückt
