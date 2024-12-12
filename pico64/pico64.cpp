@@ -30,7 +30,6 @@ bool repeating_timer_callback(struct repeating_timer *t) {
 }
 
 PICO_DSP tft;
-static int skip=0;
 
 //#include "hardware/clocks.h"
 //#include "hardware/vreg.h"
@@ -103,68 +102,8 @@ int main(void) {
 
 void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line)
 {
-    if (skip == 0) {
-        tft.writeLine(width,height,line, VBuf);
-    }
+    tft.writeLine(width,height,line, VBuf);
 }
-
-void emu_DrawVsync(void)
-{
-    skip += 1;
-    skip &= VID_FRAME_SKIP;
-    volatile bool vb=vbl; 
-    //while (vbl==vb) {};
-#ifdef USE_VGA   
-    //tft.waitSync();                   
-#else 
-    //while (vbl==vb) {};
-#endif
-}
-
-/*
-void emu_DrawLine8(unsigned char * VBuf, int width, int height, int line) 
-{
-    if (skip == 0) {
-#ifdef USE_VGA                        
-      tft.writeLine(width,height,line, VBuf);      
-#endif      
-    }
-} 
-
-void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line) 
-{
-    if (skip == 0) {
-#ifdef USE_VGA        
-        tft.writeLine16(width,height,line, VBuf);
-#else
-        tft.writeLine(width,height,line, VBuf);
-#endif        
-    }
-}  
-
-void emu_DrawScreen(unsigned char * VBuf, int width, int height, int stride) 
-{
-    if (skip == 0) {
-#ifdef USE_VGA                
-        tft.writeScreen(width,height-TFT_VBUFFER_YCROP,stride, VBuf+(TFT_VBUFFER_YCROP/2)*stride, palette8);
-#else
-        tft.writeScreen(width,height-TFT_VBUFFER_YCROP,stride, VBuf+(TFT_VBUFFER_YCROP/2)*stride, palette16);
-#endif
-    }
-}
-
-int emu_FrameSkip(void)
-{
-    return skip;
-}
-
-void * emu_LineBuffer(int line)
-{
-    return (void*)tft.getLineBuffer(line);    
-}
-*/
-
-
 
 #ifdef HAS_SND
 

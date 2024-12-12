@@ -1306,7 +1306,7 @@ void vic_do(void) {
     cpu.vic.vcbase = 0;
     cpu.vic.denLatch = 0;
     //if (cpu.vic.rasterLine == LINECNT) {
-      emu_DrawVsync();
+      //emu_DrawVsync();
     //}
 
     nFramesC64++;

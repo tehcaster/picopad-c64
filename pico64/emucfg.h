@@ -2,7 +2,6 @@
 #define EMUCFG_H
 
 #define PALETTE_SIZE         256
-#define VID_FRAME_SKIP       0x0
 #define TFT_VBUFFER_YCROP    0
 #define SINGLELINE_RENDERING 1
 #define CUSTOM_SND           1

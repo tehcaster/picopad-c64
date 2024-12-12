@@ -51,13 +51,7 @@ extern PICO_DSP tft;
 
 
 
-static int nbFiles=0;
-static int curFile=0;
-static int topFile=0;
 static char selection[MAX_FILENAME_PATH]="";
-static char selected_filename[MAX_FILENAME_SIZE]="";
-static char files[MAX_FILES][MAX_FILENAME_SIZE];
-static bool menuRedraw=true;
 
 #if (defined(PICOMPUTER) || defined(PICOZX) )
 static const unsigned short * keys;
@@ -936,80 +930,6 @@ int emu_setKeymap(int index) {
   return 0;
 }
 
-
-
-/********************************
- * Menu file loader UI
-********************************/ 
-
-#ifdef FILEBROWSER
-static int readNbFiles(char * rootdir) {
-  int totalFiles = 0;
-
-  sFile find;
-  sFileInfo fileinfo;
-
-  if (!FindOpen(&find, rootdir)) {
-    printf("failed to open directory %s\n", rootdir);
-  }
-
-  // TODO subdirectories and autorun maybe later
-  while (totalFiles < MAX_FILES) {
-    if (!FindNext(&find, &fileinfo, ATTR_FILE_MASK, "*.*"))
-      break;
-    printf("found: %s\n", &fileinfo.name[0]);
-
-    strncpy(&files[totalFiles][0], &fileinfo.name[0], MAX_FILENAME_SIZE-1);
-    totalFiles++;
-  }
-
-  FindClose(&find);
-
-  return totalFiles;
-#if 0
-  DIR dir;
-  FILINFO entry;
-  FRESULT fr = f_findfirst(&dir, &entry, rootdir, "*");
-  while ( (fr == FR_OK) && (entry.fname[0]) && (totalFiles<MAX_FILES) ) {  
-    if (!entry.fname[0]) {
-      // no more files
-      break;
-    }
-    char * filename = entry.fname;   
-    if ( !(entry.fattrib & AM_DIR) ) {
-      if (strcmp(filename,AUTORUN_FILENAME)) {
-        strncpy(&files[totalFiles][0], filename, MAX_FILENAME_SIZE-1);
-        totalFiles++;
-      }  
-    }
-    else {
-      if ( (strcmp(filename,".")) && (strcmp(filename,"..")) ) {
-        strncpy(&files[totalFiles][0], filename, MAX_FILENAME_SIZE-1);
-        totalFiles++;
-      }
-    }
-    fr = f_findnext(&dir, &entry);  
-  } 
-  f_closedir(&dir);
-#endif
-  return totalFiles;  
-}  
-#endif
-
-void backgroundMenu(void) {
-    menuRedraw=true;  
-    tft.fillScreenNoDma(RGBVAL16(0x00,0x00,0x00));
-    tft.drawTextNoDma(0,0, TITLE, RGBVAL16(0x00,0xff,0xff), RGBVAL16(0x00,0x00,0xff), true);           
-}
-
-
-static void menuLeft(void)
-{
-#if (defined(ILI9341) || defined(ST7789)) && defined(USE_VGA)
-  toggleOskb(true);  
-#endif
-}
-
 /********************************
  * File IO
 ********************************/ 
@@ -1036,36 +956,10 @@ int emu_FileRead(void * buf, int size, int handler)
   return retval; 
 }
 
-#if 0
-int emu_FileGetc(int handler)
-{
-  unsigned char c;
-  unsigned int retval=0;
-  if( !(f_read (&file, &c, 1, &retval)) )
-  if (retval != 1) {
-    emu_printf("emu_FileGetc failed");
-  }  
-  return (int)c; 
-}
-#endif
-
 void emu_FileClose(int handler)
 {
   FileClose(&file);
 }
-
-#if 0
-int emu_FileSeek(int handler, int seek, int origin)
-{
-  f_lseek(&file, seek);
-  return (seek);
-}
-
-int emu_FileTell(int handler)
-{
-  return (f_tell(&file));
-}
-#endif
 
 unsigned int emu_FileSize(const char * filepath)
 {
@@ -1075,30 +969,6 @@ unsigned int emu_FileSize(const char * filepath)
 
   return GetFileSize(filepath);
 }
-
-#if 0
-unsigned int emu_LoadFile(const char * filepath, void * buf, int size)
-{
-  int filesize = 0;
-    
-  emu_printf("LoadFile...");
-  emu_printf(filepath);
-  if( !(f_open(&file, filepath, FA_READ)) ) {
-    filesize = f_size(&file);
-    emu_printf(filesize);
-    if (size >= filesize)
-    {
-      unsigned int retval=0;
-      if( (f_read (&file, buf, filesize, &retval)) ) {
-        emu_printf("File read failed");        
-      }
-    }
-    f_close(&file);
-  }
- 
-  return(filesize);
-}
-#endif
 
 #ifdef XXXTODO
 static FIL outfile; 

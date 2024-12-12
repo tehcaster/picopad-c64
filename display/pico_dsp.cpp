@@ -338,16 +338,6 @@ void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
     DispStopImg();
 }
 
-void PICO_DSP::drawRectNoDma(int16_t x, int16_t y, int16_t w, int16_t h, dsp_pixel color) {
-    DispStartImg(x, x+w, y, y+h);
-    int i;
-    for (i=0; i<(w*h); i++)
-    {
-      DispSendImg2(color);
-    }
-    DispStopImg();
-}
-
 void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
     uint16_t c;
     while ((c = *text++)) {
