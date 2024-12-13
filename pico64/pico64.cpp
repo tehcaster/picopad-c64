@@ -14,19 +14,10 @@ extern "C" {
 //#include <stdio.h>
 #include "../display/pico_dsp.h"
 
-volatile bool vbl=true;
-
-bool repeating_timer_callback(struct repeating_timer *t) {
-    if (osd_active)
-	    return true;
+static void handle_input()
+{
     uint16_t bClick = emu_DebounceLocalKeys();
-    emu_Input(bClick);     
-    if (vbl) {
-        vbl = false;
-    } else {
-        vbl = true;
-    }   
-    return true;
+    emu_Input(bClick);
 }
 
 PICO_DSP tft;
@@ -38,6 +29,7 @@ static u32 fpsLast;
 static u32 nFramesLast;
 static u32 nFramesC64Last;
 static u32 timeSWISRLast;
+static u32 nFramesC64NextInput;
 char fpsBuf[16];
 
 int main(void) {
@@ -61,18 +53,22 @@ int main(void) {
 	    ResetToBootLoader();
     emu_start();
     emu_Init();
+    SelFont8x8();
     tft.startRefresh();
-    struct repeating_timer timer;
-    add_repeating_timer_ms(25, repeating_timer_callback, NULL, &timer);    
 
     printf("display baud: %u want %u\n", SPI_GetBaudrate(DISP_SPI), DISP_SPI_BAUD);
     printf("peri clock: %u\n", CurrentFreq[CLK_PERI]);
+
     fpsLast = Time();
     nFramesLast = nFrames;
     nFramesC64Last = nFramesC64;
-    SelFont8x8();
+    nFramesC64NextInput = nFramesC64 + 1;
+
     while (true) {
-        emu_Step();
+	if (nFramesC64 == nFramesC64NextInput) {
+		nFramesC64NextInput = nFramesC64 + 1;
+		handle_input();
+	}
 
 	if (osd_active) {
 		audio_paused = true;
@@ -81,6 +77,8 @@ int main(void) {
 		audio_paused = false;
 		fpsLast = Time();
 	}
+
+	emu_Step();
 
 	if (Time() - fpsLast > 1000000) {
 		fpsLast = Time();
