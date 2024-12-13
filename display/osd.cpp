@@ -55,6 +55,8 @@ void osd_start(void)
 		case KEY_B:
 			ResetToBootLoader();
 		case KEY_Y:
+			KeyWaitNoPressed();
+			KeyFlush();
 			DrawClear();
 			return;
 		default:

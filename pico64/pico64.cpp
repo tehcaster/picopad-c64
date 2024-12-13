@@ -62,7 +62,7 @@ int main(void) {
     fpsLast = Time();
     nFramesLast = nFrames;
     nFramesC64Last = nFramesC64;
-    nFramesC64NextInput = nFramesC64 + 1;
+    nFramesC64NextInput = nFramesC64 + 100;
 
     while (true) {
 	if (nFramesC64 == nFramesC64NextInput) {
