@@ -14,12 +14,6 @@ extern "C" {
 //#include <stdio.h>
 #include "../display/pico_dsp.h"
 
-static void handle_input()
-{
-    uint16_t bClick = emu_DebounceLocalKeys();
-    emu_Input(bClick);
-}
-
 PICO_DSP tft;
 
 //#include "hardware/clocks.h"
@@ -67,7 +61,7 @@ int main(void) {
     while (true) {
 	if (nFramesC64 == nFramesC64NextInput) {
 		nFramesC64NextInput = nFramesC64 + 1;
-		handle_input();
+		emu_Input();
 	}
 
 	if (osd_active) {

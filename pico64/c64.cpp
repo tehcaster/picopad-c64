@@ -164,11 +164,7 @@ uint8_t cia1PORTA(void) {
   uint8_t v;
 
   v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
-#ifndef PICOMPUTER
-  /*
-  if (oskbActive) keys = 0;
-  */
-#endif  
+
   if (cpu.swapJoysticks) {
     if (KeyPressed(KEY_A)) v &= 0xEF;
     if (KeyPressed(KEY_UP)) v &= 0xFE;
@@ -210,12 +206,7 @@ uint8_t cia1PORTB(void) {
   uint8_t v;
 
   v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]) ;
-  int keys = emu_GetPad();
-#ifndef PICOMPUTER
-  /*
-  if (oskbActive) keys = 0;
-  */
-#endif  
+
   if (!cpu.swapJoysticks) {
     if (KeyPressed(KEY_A)) v &= 0xEF;
     if (KeyPressed(KEY_UP)) v &= 0xFE;
@@ -285,7 +276,7 @@ static const char * digits = "0123456789ABCDEF";
 static char buf[5] = {0,0,0,0,0};
 #endif
 
-void c64_Input(int bClick)
+void c64_Input()
 {
 	static bool firsttime = true;
 	static bool toggle = true;

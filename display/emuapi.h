@@ -58,17 +58,6 @@ extern int emu_IsVga(void);
 //extern void emu_DrawLine(unsigned char * VBuf, int width, int height, int line);
 //extern void * emu_LineBuffer(int line);
 
-extern void emu_InitJoysticks(void);
-extern int emu_SwapJoysticks(int statusOnly);
-extern unsigned short emu_DebounceLocalKeys(void);
-extern int emu_ReadKeys(void);
-extern int emu_GetPad(void);
-extern int emu_ReadAnalogJoyX(int min, int max);
-extern int emu_ReadAnalogJoyY(int min, int max);
-extern int emu_ReadI2CKeyboard(void);
-extern unsigned char emu_ReadI2CKeyboard2(int row);
-extern void emu_KeyboardOnUp(int keymodifer, int key);
-extern void emu_KeyboardOnDown(int keymodifer, int key);
 extern int emu_oskbActive(void);
 
 extern void emu_sndInit();

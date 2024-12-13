@@ -15,7 +15,7 @@
 
 #define emu_Init() { c64_Init(); }
 #define emu_Step(x) { c64_Step(); }
-#define emu_Input(x) { c64_Input(x); }
+#define emu_Input() { c64_Input(); }
 
 #ifdef KEYMAP_PRESENT
    
