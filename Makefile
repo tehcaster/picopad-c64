@@ -25,3 +25,7 @@ SRC += display/osd.cpp
 
 # Makefile includes
 include ../../../Makefile.inc
+
+# Fast, not small!
+CFLAGS += -O2
+
