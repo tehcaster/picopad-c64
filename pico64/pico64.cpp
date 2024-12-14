@@ -95,6 +95,11 @@ void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line)
     tft.writeLine(width,height,line, VBuf);
 }
 
+void stoprefresh(void)
+{
+	tft.stopRefresh();
+}
+
 #ifdef HAS_SND
 
 void emu_sndInit() {
