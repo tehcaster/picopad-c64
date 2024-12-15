@@ -23,18 +23,20 @@ static const char * const kb_text[][KEYS_ROW] = {
 	},
 };
 
-static void osd_draw_kb_row(int row, int select)
+static NOINLINE void osd_draw_kb_space(bool selected)
+{
+	int y = 20 + 4 * 16  + 4;
+
+	DrawTextBg("SPACE", (320 - 5*8) / 2, y,
+//		   COL_WHITE, COL_BLACK);
+		   selected ? COL_BLACK : COL_WHITE,
+		   selected ? COL_LTGREEN : COL_BLACK);
+}
+
+static NOINLINE void osd_draw_kb_row(int row, int select)
 {
 	int x = 20;
 	int y = 20 + row * 16  + 4;
-
-	if (row == 4) {
-		DrawTextBg("SPACE", (320 - 5*8) / 2, y,
-//				COL_WHITE, COL_BLACK);
-			   select != -1 ? COL_BLACK : COL_WHITE,
-			   select != -1 ? COL_LTGREEN : COL_BLACK);
-		return;
-	}
 
 	for (int key = 0; key < KEYS_ROW; key++) {
 		if (kb_text[row][key]) {
@@ -50,8 +52,9 @@ static void osd_draw_kb_row(int row, int select)
 
 static void osd_draw_kb(int row, int col)
 {
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 4; i++)
 		osd_draw_kb_row(i, i == row ? col : -1);
+	osd_draw_kb_space(row == 4);
 }
 
 void stoprefresh(void);
@@ -111,7 +114,7 @@ static void osd_start_kb(void)
 			break;
 		case KEY_X:
 			SelFont8x8();
-			stoprefresh();
+//			stoprefresh();
 			return;
 		default:
 			;
