@@ -23,6 +23,25 @@ static const char * const kb_text[][KEYS_ROW] = {
 	},
 };
 
+static u8 kb_codes[][KEYS_ROW] = {
+	{
+	CK_LEFTARR, CK_1, CK_2, CK_3, CK_4, CK_5, CK_6, CK_7, CK_8, CK_9,
+		CK_0, CK_PLUS, CK_MINUS, CK_POUND, CK_HOME, CK_DELETE, CK_F1
+	},
+	{
+	CK_CONTROL, CK_Q, CK_W, CK_E, CK_R, CK_T, CK_Y, CK_U, CK_I, CK_O, CK_P,
+		CK_AT, CK_ASTERISK, CK_CARET, CK_RESTORE, 0, CK_F3
+	},
+	{
+	CK_STOP, CK_A, CK_S, CK_D, CK_F, CK_G, CK_H, CK_J, CK_L, CK_M, CK_COLON,
+		CK_SEMICOL, CK_EQUAL, CK_RETURN, 0, 0, CK_F5
+	},
+	{
+	CK_CMDR, CK_LSHIFT, CK_Z, CK_X, CK_C, CK_V, CK_B, CK_N, CK_M, CK_COMMA,
+		CK_PERIOD, CK_SLASH, CK_RSHIFT, CK_CRSR_DN, CK_CRSR_RT, 0, CK_F7
+	},
+};
+
 static NOINLINE void osd_draw_kb_space(bool selected)
 {
 	int y = 20 + 4 * 16  + 4;
