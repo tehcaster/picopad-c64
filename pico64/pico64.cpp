@@ -69,22 +69,25 @@ int main(void) {
 		osd_start();
 		osd_active = false;
 		audio_paused = false;
+
 		fpsLast = Time();
+		nFramesLast = nFrames;
+		nFramesC64Last = nFramesC64;
 	}
 
 	emu_Step();
 
 	if (Time() - fpsLast > 1000000) {
 		fpsLast = Time();
-		printf("display FPS: %u\n", nFrames - nFramesLast);
+//		printf("display FPS: %u\n", nFrames - nFramesLast);
 		snprintf(fpsBuf, sizeof(fpsBuf), "LCD FPS: %3d", nFrames - nFramesLast);
 		DrawTextBg(fpsBuf, 0, 0, COL_GRAY, COL_BLACK);
 		nFramesLast = nFrames;
-		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
+//		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
 		snprintf(fpsBuf, sizeof(fpsBuf), "C64 FPS: %3d", nFramesC64 - nFramesC64Last);
 		DrawTextBg(fpsBuf, 320-12*8, 0, COL_GRAY, COL_BLACK);
 		nFramesC64Last = nFramesC64;
-		printf("SWISR: %u ms\n", (timeSWISR - timeSWISRLast) / 1024);
+//		printf("SWISR: %u ms\n", (timeSWISR - timeSWISRLast) / 1024);
 		timeSWISRLast = timeSWISR;
 	}
     }
