@@ -6,25 +6,9 @@
 
 bool osd_active = false;
 u8 osd_key_pending = CK_NOKEY;
+u8 osd_mods_pending = 0;
 
 #define KEYS_ROW	17
-
-/*
-static const char * const kb_text[][KEYS_ROW] = {
-	{
-	"<-", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "+", "-", "Lb", "HOME", "DEL", "F1"
-	},
-	{
-	"CTRL", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "@", "*", "^", "REST", NULL, "F3"
-	},
-	{
-	"RN/SP", "a", "s", "d", "f", "g", "h", "j", "k", "l", ":", ";", "=", "RTRN", NULL, NULL, "F5",
-	},
-	{
-	"C=", "Sft", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "Sft", "DN", "RT", NULL, "F7"
-	},
-};
-*/
 
 static const u8 kb_codes[][KEYS_ROW] = {
 	{
@@ -46,7 +30,7 @@ static const u8 kb_codes[][KEYS_ROW] = {
 };
 
 /* indexed by CK_ codes */
-static const char * const kb_labels[CK_MAX] = {
+static const char * const kb_labels[2*CK_MAX+2] = {
 	"DEL", "RTRN", "RT", "F7", "F1", "F3", "F5", "DN",
 	"3", "w", "a", "4", "z", "s", "e", "Sft",
 	"5", "r", "d", "6", "c", "f", "t", "x",
@@ -54,12 +38,30 @@ static const char * const kb_labels[CK_MAX] = {
 	"9", "i", "j", "0", "m", "k", "o", "n",
 	"+", "p", "l", "-", ".", ":", "@", ",",
 	"Lb", "*", ";", "HOME", "Sft", "=", "^", "/",
-	"1", "<-", "CTRL", "2", "SPACE", "C=", "q", "RN/SP"
+	"1", "<-", "CTRL", "2", "SPACE", "C=", "q", "RN/SP",
+
+	"INS", "RTRN", "LT", "F8", "F2", "F4", "F6", "UP",
+	"#", "W", "A", "$", "Z", "S", "E", "Sft",
+	"%", "R", "D", "&", "C", "F", "T", "X",
+	"'", "Y", "G", "(", "B", "H", "U", "V",
+	")", "I", "J", "0", "M", "K", "O", "N",
+	"+", "P", "L", "-", ">", "[", "@", "<",
+	"Lb", "*", "]", "CLR ", "Sft", "=", "^", "?",
+	"!", "<-", "CTRL", "\"", "SPACE", "C=", "Q", "RN/SP",
+
+	0, "REST",
 };
 
-static NOINLINE void osd_draw_kb_space(bool selected)
+struct kb_state {
+	int row;
+	int col;
+	u8 mods;
+};
+
+static NOINLINE void osd_draw_kb_space(struct kb_state *kbs)
 {
 	int y = 20 + 4 * 16  + 4;
+	bool selected = (kbs->row == 4);
 
 	DrawTextBg(kb_labels[CK_SPACE], (320 - 5*8) / 2, y,
 //		   COL_WHITE, COL_BLACK);
@@ -67,110 +69,138 @@ static NOINLINE void osd_draw_kb_space(bool selected)
 		   selected ? COL_LTGREEN : COL_BLACK);
 }
 
-static NOINLINE void osd_draw_kb_row(int row, int select)
+static NOINLINE void osd_draw_kb_row(int row, struct kb_state *kbs)
 {
 	int x = 20;
 	int y = 20 + row * 16  + 4;
 
-	for (int key = 0; key < KEYS_ROW; key++) {
-		u8 ck = kb_codes[row][key];
+	for (int col = 0; col < KEYS_ROW; col++) {
+		u8 ck = kb_codes[row][col];
 		if (ck != CK_NOKEY) {
-			const char *label;
-			if (ck < CK_MAX) {
-				label = kb_labels[ck];
-			} else if (ck == CK_RESTORE) {
-				label = "REST";
-			} else {
-				label = "??";
+			bool selected = (kbs->row == row) && (kbs->col == col);
+			bool mod_active = false;
+			const char *label = "??";
+			COLTYPE fg, bg;
+
+			if ((ck == CK_LSHIFT && kbs->mods & CK_MOD_LSHIFT) ||
+			    (ck == CK_RSHIFT && kbs->mods & CK_MOD_RSHIFT) ||
+			    (ck == CK_CMDR && kbs->mods & CK_MOD_CMDR) ||
+			    (ck == CK_CONTROL && kbs->mods & CK_MOD_CONTROL))
+				mod_active = true;
+
+			fg = selected ? COL_BLACK : COL_WHITE;
+			bg = selected ? COL_LTGREEN : COL_BLACK;
+			if (mod_active) {
+				COLTYPE tmp = fg;
+				fg = bg;
+				bg = tmp;
 			}
-			DrawTextBg(label, x, y,
-				   key == select ? COL_BLACK : COL_WHITE,
-				   key == select ? COL_LTGREEN : COL_BLACK);
+
+			if (ck < CK_MAX && kbs->mods & (CK_MOD_LSHIFT | CK_MOD_RSHIFT))
+				ck = CKSH(ck);
+			if (ck < count_of(kb_labels))
+				label = kb_labels[ck];
+
+			DrawTextBg(label, x, y, fg, bg);
 			x += strlen(label) * 8 + 4;
 		}
 		/* right-align the Fx column */
-		if (key == KEYS_ROW - 2)
+		if (col == KEYS_ROW - 2) {
 			x = 320 - 20 - 2*8;
+		}
 	}
 }
 
-static void osd_draw_kb(int row, int col)
+static void osd_draw_kb(struct kb_state *kbs)
 {
 	for (int i = 0; i < 4; i++)
-		osd_draw_kb_row(i, i == row ? col : -1);
-	osd_draw_kb_space(row == 4);
+		osd_draw_kb_row(i, kbs);
+	osd_draw_kb_space(kbs);
 }
 
 void stoprefresh(void);
 
-static u8 osd_kb_getcode(int row, int col)
+static u8 osd_kb_get_code(struct kb_state *kbs)
 {
-	if (row == 4)
+	if (kbs->row == 4)
 		return CK_SPACE;
 	else
-		return kb_codes[row][col];
+		return kb_codes[kbs->row][kbs->col];
+}
+
+static void osd_kb_fixup_col(struct kb_state *kbs)
+{
+	while (kb_codes[kbs->row][kbs->col] == CK_NOKEY)
+		kbs->col--;
 }
 
 /* return true if osd should exit */
 static bool osd_start_kb(void)
 {
-	int row = 0;
-	int col = 0;
+	struct kb_state kbs = { };
 	bool redraw = true;
 	SelFont8x16();
 	DrawClear();
 	while(true) {
 		if (redraw)
-			osd_draw_kb(row, col);
+			osd_draw_kb(&kbs);
 		redraw = true;
 
 		char key = KeyGet();
+		u8 kc;
 		switch(key) {
 		case NOKEY:
 			redraw = false;
 			break;
 		case KEY_RIGHT:
-			if (row == 4)
+			if (kbs.row == 4)
 				break;
-			col++;
-			if (col == KEYS_ROW)
-				col = 0;
-			else if (kb_codes[row][col] == CK_NOKEY)
-				col = KEYS_ROW - 1;
+			if (++kbs.col == KEYS_ROW)
+				kbs.col = 0;
+			else if (kb_codes[kbs.row][kbs.col] == CK_NOKEY)
+				kbs.col = KEYS_ROW - 1;
 			break;
 		case KEY_LEFT:
-			if (row == 4)
+			if (kbs.row == 4)
 				break;
-			col--;
-			if (col < 0)
-				col = KEYS_ROW - 1;
-			while (kb_codes[row][col] == CK_NOKEY)
-				col--;
+			if (--kbs.col < 0)
+				kbs.col = KEYS_ROW - 1;
+			osd_kb_fixup_col(&kbs);
 			break;
 		case KEY_DOWN:
-			row++;
-			if (row > 4)
-				row = 0;
-			if (row < 4) {
-				while (kb_codes[row][col] == CK_NOKEY)
-					col--;
-			}
+			if (++kbs.row > 4)
+				kbs.row = 0;
+			if (kbs.row < 4)
+				osd_kb_fixup_col(&kbs);
 			break;
 		case KEY_UP:
-			row--;
-			if (row < 0)
-				row = 4;
-			if (row < 4) {
-				while (kb_codes[row][col] == CK_NOKEY)
-					col--;
-			}
+			if (--kbs.row < 0)
+				kbs.row = 4;
+			if (kbs.row < 4)
+				osd_kb_fixup_col(&kbs);
 			break;
 		case KEY_X:
 			SelFont8x8();
 //			stoprefresh();
 			return false;
 		case KEY_A:
-			osd_key_pending = osd_kb_getcode(row, col);
+			kc = osd_kb_get_code(&kbs);
+			if (kc == CK_LSHIFT) {
+				kbs.mods ^= CK_MOD_LSHIFT;
+				break;
+			} else if (kc == CK_RSHIFT) {
+				kbs.mods ^= CK_MOD_RSHIFT;
+				break;
+			} else if (kc == CK_CMDR) {
+				kbs.mods ^= CK_MOD_CMDR;
+				break;
+			} else if (kc == CK_CONTROL) {
+				kbs.mods ^= CK_MOD_CONTROL;
+				break;
+			}
+
+			osd_key_pending = kc;
+			osd_mods_pending = kbs.mods;
 			return true;
 		default:
 			;

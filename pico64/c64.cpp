@@ -231,7 +231,7 @@ void c64_Input()
 	}
 
 	if (osd_key_pending != CK_NOKEY) {
-		setKey(osd_key_pending, 0);
+		setKey(osd_key_pending, osd_mods_pending);
 		osd_key_timeout = 2;
 		osd_key_pending = CK_NOKEY;
 		return;
