@@ -203,31 +203,70 @@ static bool osd_start_kb(void)
 	}
 }
 
-static void osd_draw_vol(void)
+static void osd_menu_name(const char *text, int row, int selrow)
+{
+	bool selected = (row == selrow);
+	DrawTextBg(text, 0, 16*(row+1), selected ? COL_BLACK : COL_WHITE,
+				selected ? COL_LTGREEN : COL_BLACK);
+}
+
+static void osd_menu_val(const char *text, int row)
+{
+	DrawTextBg(text, 8*10, 16*(row+1), COL_WHITE, COL_BLACK);
+}
+
+static void osd_draw_vol(int row, int selrow)
 {
 	int vol = ConfigGetVolume();
 	char buf[50];
 
-	snprintf(buf, sizeof(buf), "VOLUME: %3d %% (UP / DOWN)", vol * 10);
+	osd_menu_name("VOLUME:", row, selrow);
 
-	DrawTextBg(buf, 0, 16, COL_WHITE, COL_BLACK);
+	snprintf(buf, sizeof(buf), "%3d %% (A - mute/100%)", vol * 10);
+	osd_menu_val(buf, row);
 }
 
-static void osd_draw_joy(void)
+static void osd_draw_joy(int row, int selrow)
 {
 	char buf[50];
 
-	snprintf(buf, sizeof(buf), "JOYSTICK: %d (A to change)", cpu.swapJoysticks);
+	osd_menu_name("JOYSTICK:", row, selrow);
 
-	DrawTextBg(buf, 0, 32, COL_WHITE, COL_BLACK);
+	snprintf(buf, sizeof(buf), "%d", cpu.swapJoysticks + 1);
+	osd_menu_val(buf, row);
 }
 
-static void osd_draw_all(void)
+static void osd_action(int row, u8 key)
+{
+	/* joystick */
+	if (row == 0) {
+		cpu.swapJoysticks = !cpu.swapJoysticks;
+		return;
+	}
+	/* volume */
+	if (row == 1) {
+		if (key == KEY_LEFT)
+			ConfigDecVolume();
+		else if (key == KEY_RIGHT)
+			ConfigIncVolume();
+		else if (key == KEY_A) {
+			if (ConfigGetVolume() != 0)
+				ConfigSetVolume(0);
+			else
+				ConfigSetVolume(CONFIG_VOLUME_FULL);
+		}
+		audio_vol_update();
+		return;
+	}
+}
+
+#define OSD_MENU_MAXROW	1
+static void osd_draw_all(int selrow)
 {
 	DrawClear();
-	DrawText("PAUSED", 0, 0, COL_WHITE);
-	osd_draw_vol();
-	osd_draw_joy();
+	DrawText("PAUSED: Y - back, X - kbd, B - reboot", 0, 0, COL_WHITE);
+	osd_draw_joy(0, selrow);
+	osd_draw_vol(1, selrow);
 }
 
 static void osd_cleanup(void)
@@ -239,28 +278,31 @@ static void osd_cleanup(void)
 
 void osd_start(void)
 {
+	int selrow = 0;
+	bool redraw = true;
+
 	SelFont8x8();
-	osd_draw_all();
+	osd_draw_all(selrow);
+
 	KeyWaitNoPressed();
 	KeyFlush();
 
 	while(true) {
-		char key = KeyGet();
+		char key;
+		if (redraw)
+			osd_draw_all(selrow);
+
+		redraw = true;
+		key = KeyGet();
 
 		switch(key) {
 		case KEY_UP:
-			ConfigIncVolume();
-			audio_vol_update();
-			osd_draw_vol();
+			if (selrow != 0)
+				selrow--;
 			break;
 		case KEY_DOWN:
-			ConfigDecVolume();
-			audio_vol_update();
-			osd_draw_vol();
-			break;
-		case KEY_A:
-			cpu.swapJoysticks = !cpu.swapJoysticks;
-			osd_draw_joy();
+			if (selrow < OSD_MENU_MAXROW)
+				selrow++;
 			break;
 		case KEY_X:
 			if (osd_start_kb()) {
@@ -268,15 +310,20 @@ void osd_start(void)
 				SelFont8x8();
 				return;
 			}
-			osd_draw_all();
 			break;
 		case KEY_B:
 			ResetToBootLoader();
+			break;
 		case KEY_Y:
 			osd_cleanup();
 			return;
+		case KEY_A:
+		case KEY_LEFT:
+		case KEY_RIGHT:
+			osd_action(selrow, key);
+			break;
 		default:
-			;
+			redraw = false;
 		}
 	}
 }
