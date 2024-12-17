@@ -58,18 +58,17 @@ struct kb_state {
 	u8 mods;
 };
 
-static NOINLINE void osd_draw_kb_space(struct kb_state *kbs)
+static void osd_draw_kb_space(struct kb_state *kbs)
 {
 	int y = 20 + 4 * 16  + 4;
 	bool selected = (kbs->row == 4);
 
 	DrawTextBg(kb_labels[CK_SPACE], (320 - 5*8) / 2, y,
-//		   COL_WHITE, COL_BLACK);
 		   selected ? COL_BLACK : COL_WHITE,
 		   selected ? COL_LTGREEN : COL_BLACK);
 }
 
-static NOINLINE void osd_draw_kb_row(int row, struct kb_state *kbs)
+static void osd_draw_kb_row(int row, struct kb_state *kbs)
 {
 	int x = 20;
 	int y = 20 + row * 16  + 4;
@@ -117,8 +116,6 @@ static void osd_draw_kb(struct kb_state *kbs)
 		osd_draw_kb_row(i, kbs);
 	osd_draw_kb_space(kbs);
 }
-
-void stoprefresh(void);
 
 static u8 osd_kb_get_code(struct kb_state *kbs)
 {
@@ -180,8 +177,6 @@ static bool osd_start_kb(void)
 				osd_kb_fixup_col(&kbs);
 			break;
 		case KEY_X:
-			SelFont8x8();
-//			stoprefresh();
 			return false;
 		case KEY_A:
 			kc = osd_kb_get_code(&kbs);
@@ -213,7 +208,7 @@ static void osd_draw_vol(void)
 	int vol = ConfigGetVolume();
 	char buf[50];
 
-	snprintf(buf, sizeof(buf), "VOLUME: %3d %% (UP / DOWN) %s", vol * 10);
+	snprintf(buf, sizeof(buf), "VOLUME: %3d %% (UP / DOWN)", vol * 10);
 
 	DrawTextBg(buf, 0, 16, COL_WHITE, COL_BLACK);
 }
@@ -244,6 +239,7 @@ static void osd_cleanup(void)
 
 void osd_start(void)
 {
+	SelFont8x8();
 	osd_draw_all();
 	KeyWaitNoPressed();
 	KeyFlush();
@@ -269,6 +265,7 @@ void osd_start(void)
 		case KEY_X:
 			if (osd_start_kb()) {
 				osd_cleanup();
+				SelFont8x8();
 				return;
 			}
 			osd_draw_all();
