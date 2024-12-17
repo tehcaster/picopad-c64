@@ -93,6 +93,13 @@ static void setKey(u8 ck, u8 mods)
 	kbdData.mods = mods;
 }
 
+static void unsetKey()
+{
+	kbdData.portA = 0;
+	kbdData.portB = 0;
+	kbdData.mods = 0;
+}
+
 uint8_t cia1PORTA(void) {
 
 	uint8_t v;
@@ -107,7 +114,7 @@ uint8_t cia1PORTA(void) {
 		if (KeyPressed(KEY_RIGHT)) v &= 0xF7;
 	}
 
-	if (kbdData.portA && !kbdData.portB && !kbdData.mods)
+	if (!kbdData.portA && !kbdData.portB && !kbdData.mods)
 		return v;
 
 	uint8_t filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
@@ -140,7 +147,7 @@ uint8_t cia1PORTB(void) {
 
 	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]) ;
 
-	if (cpu.swapJoysticks) {
+	if (!cpu.swapJoysticks) {
 		if (KeyPressed(KEY_A)) v &= 0xEF;
 		if (KeyPressed(KEY_UP)) v &= 0xFE;
 		if (KeyPressed(KEY_DOWN)) v &= 0xFD;
@@ -148,14 +155,13 @@ uint8_t cia1PORTB(void) {
 		if (KeyPressed(KEY_RIGHT)) v &= 0xF7;
 	}
 
-	if (kbdData.portA && !kbdData.portB && !kbdData.mods)
+	if (!kbdData.portA && !kbdData.portB && !kbdData.mods)
 		return v;
 
 	uint8_t filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
 
 	if (!filter)
 		return v;
-
 
 	if (kbdData.portA & filter)
 		v &= ~kbdData.portB;
@@ -201,7 +207,7 @@ void c64_Start(char * filename)
 }
 
 
-static const char * textload = "LOAD\"\"\r\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tRUN\r";
+static const char * textload = "\r\t\tLOAD\"\"\r\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tRUN\r";
 
 //#define DEBUG 1
 
@@ -215,11 +221,31 @@ void c64_Input()
 	static bool firsttime = true;
 	static bool toggle = true;
 	static const char * textseq = NULL;
+	static int osd_key_timeout = 0;
+
+	if (osd_key_timeout) {
+		osd_key_timeout--;
+		if (!osd_key_timeout)
+			unsetKey();
+		return;
+	}
+
+	if (osd_key_pending != CK_NOKEY) {
+		setKey(osd_key_pending, 0);
+		osd_key_timeout = 2;
+		osd_key_pending = CK_NOKEY;
+		return;
+	}
 
 	if (textseq) {
 		const char k = *textseq;
-		if (k != '\t')
-			setKey(ascii2scan[k], 0);
+		if (k != '\t') {
+			if (toggle) {
+				setKey(ascii2scan[k], 0);
+			} else {
+				unsetKey();
+			}
+		}
 		if (!toggle) {
 			textseq++;
 			if (!*textseq)
@@ -245,7 +271,7 @@ void c64_Input()
 		if (key_x && !key_x_last)
 			setKey(CK_A, 0);
 		else if (!key_x && key_x_last)
-			setKey(CK_NOKEY, false);
+			unsetKey();
 		key_x_last = key_x;
 		return;
 	}

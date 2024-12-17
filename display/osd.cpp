@@ -5,6 +5,7 @@
 #include "../pico64/cpu.h"
 
 bool osd_active = false;
+u8 osd_key_pending = CK_NOKEY;
 
 #define KEYS_ROW	17
 
@@ -78,7 +79,16 @@ static void osd_draw_kb(int row, int col)
 
 void stoprefresh(void);
 
-static void osd_start_kb(void)
+static u8 osd_kb_getcode(int row, int col)
+{
+	if (row == 4)
+		return CK_SPACE;
+	else
+		return kb_codes[row][col];
+}
+
+/* return true if osd should exit */
+static bool osd_start_kb(void)
 {
 	int row = 0;
 	int col = 0;
@@ -134,7 +144,10 @@ static void osd_start_kb(void)
 		case KEY_X:
 			SelFont8x8();
 //			stoprefresh();
-			return;
+			return false;
+		case KEY_A:
+			osd_key_pending = osd_kb_getcode(row, col);
+			return true;
 		default:
 			;
 		}
@@ -168,6 +181,13 @@ static void osd_draw_all(void)
 	osd_draw_joy();
 }
 
+static void osd_cleanup(void)
+{
+	KeyWaitNoPressed();
+	KeyFlush();
+	DrawClear();
+}
+
 void osd_start(void)
 {
 	osd_draw_all();
@@ -193,15 +213,16 @@ void osd_start(void)
 			osd_draw_joy();
 			break;
 		case KEY_X:
-			osd_start_kb();
+			if (osd_start_kb()) {
+				osd_cleanup();
+				return;
+			}
 			osd_draw_all();
 			break;
 		case KEY_B:
 			ResetToBootLoader();
 		case KEY_Y:
-			KeyWaitNoPressed();
-			KeyFlush();
-			DrawClear();
+			osd_cleanup();
 			return;
 		default:
 			;

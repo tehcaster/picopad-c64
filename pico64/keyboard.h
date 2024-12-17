@@ -60,7 +60,6 @@
 #define CK_CONTROL_PORTA	BIT(7)
 #define CK_CONTROL_PORTB	BIT(2)
 
-#define CK_NOKEY	(0)
 #define CK_DELETE	CK(0, 0)
 #define CK_RETURN	CK(0, 1)
 #define CK_CRSR_RT	CK(0, 2)
@@ -125,7 +124,11 @@
 #define CK_CMDR		CK(7, 5)
 #define CK_Q		CK(7, 6)
 #define CK_STOP		CK(7, 7)
-#define CK_RESTORE	BIT(7)
+
+// this can't be 0 as that's CK_DELETE
+#define CK_NOKEY	BIT(7)
+// this should be triggering NMI
+#define CK_RESTORE	(BIT(7)|BIT(0))
 
 void initKeyboard();
 void initJoysticks();
