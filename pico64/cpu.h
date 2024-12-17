@@ -90,7 +90,6 @@ struct tcpu {
   w_rarr_ptr_t plamap_w; //Memory-Mapping write
   uint8_t _exrom:1, _game:1;
   uint8_t nmiLine;
-  uint8_t swapJoysticks;
 
   tvic vic;
   tcia cia1;

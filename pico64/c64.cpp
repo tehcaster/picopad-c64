@@ -9,6 +9,8 @@ extern "C" {
 #include "../display/osd.h"
 }
 
+#include "c64.h"
+
 #include "Teensy64.h"
 //#include <string.h>
 
@@ -77,11 +79,13 @@ const u8 ascii2scan[] = {
    0,CKSH(CK_CRSR_DN),0,0,0,0,0,0,0,0,0,0,0,CKSH(CK_CRSR_RT),0,0   // 144-159
 };
 
-struct {
+static struct {
   u8 portA;
   u8 portB;
   u8 mods;
 } kbdData = {0, 0, 0};
+
+struct emu_config config = { };
 
 static void setKey(u8 ck, u8 mods)
 {
@@ -106,7 +110,7 @@ uint8_t cia1PORTA(void) {
 
 	v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
 
-	if (cpu.swapJoysticks) {
+	if (config.swap_joysticks) {
 		if (KeyPressed(KEY_A)) v &= 0xEF;
 		if (KeyPressed(KEY_UP)) v &= 0xFE;
 		if (KeyPressed(KEY_DOWN)) v &= 0xFD;
@@ -147,7 +151,7 @@ uint8_t cia1PORTB(void) {
 
 	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]) ;
 
-	if (!cpu.swapJoysticks) {
+	if (!config.swap_joysticks) {
 		if (KeyPressed(KEY_A)) v &= 0xEF;
 		if (KeyPressed(KEY_UP)) v &= 0xFE;
 		if (KeyPressed(KEY_DOWN)) v &= 0xFD;

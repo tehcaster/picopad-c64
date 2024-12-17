@@ -2,7 +2,8 @@
 
 #include "osd.h"
 #include "pico_dsp.h"
-#include "../pico64/cpu.h"
+#include "../pico64/keyboard.h"
+#include "../pico64/c64.h"
 
 bool osd_active = false;
 u8 osd_key_pending = CK_NOKEY;
@@ -232,7 +233,7 @@ static void osd_draw_joy(int row, int selrow)
 
 	osd_menu_name("JOYSTICK:", row, selrow);
 
-	snprintf(buf, sizeof(buf), "%d", cpu.swapJoysticks + 1);
+	snprintf(buf, sizeof(buf), "%d", config.swap_joysticks ? 2 : 1);
 	osd_menu_val(buf, row);
 }
 
@@ -240,7 +241,7 @@ static void osd_action(int row, u8 key)
 {
 	/* joystick */
 	if (row == 0) {
-		cpu.swapJoysticks = !cpu.swapJoysticks;
+		config.swap_joysticks = !config.swap_joysticks;
 		return;
 	}
 	/* volume */
