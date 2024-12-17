@@ -9,6 +9,7 @@ u8 osd_key_pending = CK_NOKEY;
 
 #define KEYS_ROW	17
 
+/*
 static const char * const kb_text[][KEYS_ROW] = {
 	{
 	"<-", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "+", "-", "Lb", "HOME", "DEL", "F1"
@@ -23,31 +24,44 @@ static const char * const kb_text[][KEYS_ROW] = {
 	"C=", "Sft", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "Sft", "DN", "RT", NULL, "F7"
 	},
 };
+*/
 
-static u8 kb_codes[][KEYS_ROW] = {
+static const u8 kb_codes[][KEYS_ROW] = {
 	{
 	CK_LEFTARR, CK_1, CK_2, CK_3, CK_4, CK_5, CK_6, CK_7, CK_8, CK_9,
 		CK_0, CK_PLUS, CK_MINUS, CK_POUND, CK_HOME, CK_DELETE, CK_F1
 	},
 	{
 	CK_CONTROL, CK_Q, CK_W, CK_E, CK_R, CK_T, CK_Y, CK_U, CK_I, CK_O, CK_P,
-		CK_AT, CK_ASTERISK, CK_CARET, CK_RESTORE, 0, CK_F3
+		CK_AT, CK_ASTERISK, CK_CARET, CK_RESTORE, CK_NOKEY, CK_F3
 	},
 	{
 	CK_STOP, CK_A, CK_S, CK_D, CK_F, CK_G, CK_H, CK_J, CK_L, CK_M, CK_COLON,
-		CK_SEMICOL, CK_EQUAL, CK_RETURN, 0, 0, CK_F5
+		CK_SEMICOL, CK_EQUAL, CK_RETURN, CK_NOKEY, CK_NOKEY, CK_F5
 	},
 	{
 	CK_CMDR, CK_LSHIFT, CK_Z, CK_X, CK_C, CK_V, CK_B, CK_N, CK_M, CK_COMMA,
-		CK_PERIOD, CK_SLASH, CK_RSHIFT, CK_CRSR_DN, CK_CRSR_RT, 0, CK_F7
+		CK_PERIOD, CK_SLASH, CK_RSHIFT, CK_CRSR_DN, CK_CRSR_RT, CK_NOKEY, CK_F7
 	},
+};
+
+/* indexed by CK_ codes */
+static const char * const kb_labels[CK_MAX] = {
+	"DEL", "RTRN", "RT", "F7", "F1", "F3", "F5", "DN",
+	"3", "w", "a", "4", "z", "s", "e", "Sft",
+	"5", "r", "d", "6", "c", "f", "t", "x",
+	"7", "y", "g", "8", "b", "h", "u", "v",
+	"9", "i", "j", "0", "m", "k", "o", "n",
+	"+", "p", "l", "-", ".", ":", "@", ",",
+	"Lb", "*", ";", "HOME", "Sft", "=", "^", "/",
+	"1", "<-", "CTRL", "2", "SPACE", "C=", "q", "RN/SP"
 };
 
 static NOINLINE void osd_draw_kb_space(bool selected)
 {
 	int y = 20 + 4 * 16  + 4;
 
-	DrawTextBg("SPACE", (320 - 5*8) / 2, y,
+	DrawTextBg(kb_labels[CK_SPACE], (320 - 5*8) / 2, y,
 //		   COL_WHITE, COL_BLACK);
 		   selected ? COL_BLACK : COL_WHITE,
 		   selected ? COL_LTGREEN : COL_BLACK);
@@ -59,12 +73,22 @@ static NOINLINE void osd_draw_kb_row(int row, int select)
 	int y = 20 + row * 16  + 4;
 
 	for (int key = 0; key < KEYS_ROW; key++) {
-		if (kb_text[row][key]) {
-			DrawTextBg(kb_text[row][key], x, y,
+		u8 ck = kb_codes[row][key];
+		if (ck != CK_NOKEY) {
+			const char *label;
+			if (ck < CK_MAX) {
+				label = kb_labels[ck];
+			} else if (ck == CK_RESTORE) {
+				label = "REST";
+			} else {
+				label = "??";
+			}
+			DrawTextBg(label, x, y,
 				   key == select ? COL_BLACK : COL_WHITE,
 				   key == select ? COL_LTGREEN : COL_BLACK);
-			x += strlen(kb_text[row][key]) * 8 + 4;
+			x += strlen(label) * 8 + 4;
 		}
+		/* right-align the Fx column */
 		if (key == KEYS_ROW - 2)
 			x = 320 - 20 - 2*8;
 	}
@@ -111,7 +135,7 @@ static bool osd_start_kb(void)
 			col++;
 			if (col == KEYS_ROW)
 				col = 0;
-			else if (!kb_text[row][col])
+			else if (kb_codes[row][col] == CK_NOKEY)
 				col = KEYS_ROW - 1;
 			break;
 		case KEY_LEFT:
@@ -120,7 +144,7 @@ static bool osd_start_kb(void)
 			col--;
 			if (col < 0)
 				col = KEYS_ROW - 1;
-			while (!kb_text[row][col])
+			while (kb_codes[row][col] == CK_NOKEY)
 				col--;
 			break;
 		case KEY_DOWN:
@@ -128,7 +152,7 @@ static bool osd_start_kb(void)
 			if (row > 4)
 				row = 0;
 			if (row < 4) {
-				while (!kb_text[row][col])
+				while (kb_codes[row][col] == CK_NOKEY)
 					col--;
 			}
 			break;
@@ -137,7 +161,7 @@ static bool osd_start_kb(void)
 			if (row < 0)
 				row = 4;
 			if (row < 4) {
-				while (!kb_text[row][col])
+				while (kb_codes[row][col] == CK_NOKEY)
 					col--;
 			}
 			break;

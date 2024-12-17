@@ -36,11 +36,12 @@
 #ifndef Teensy64_keyboard_h_
 #define Teensy64_keyboard_h_
 
-#define CK(port1, port2)	((port1) | (port2) << 3)
-#define CKSH(ck)	(BIT(6)|ck)
+#define CK(port1, port2)	((port2) | (port1) << 3)
+#define CKSH(ck)		(BIT(6)|ck)
+#define CK_MAX			64
 
-#define CK_GET_PORT_A(ck)	BIT((ck & 0x07))
-#define CK_GET_PORT_B(ck)	BIT(((ck >> 3) & 0x07))
+#define CK_GET_PORT_A(ck)	BIT(((ck >> 3) & 0x07))
+#define CK_GET_PORT_B(ck)	BIT((ck & 0x07))
 #define CK_HAS_SHIFT(ck)	(ck & BIT(6))
 
 #define CK_MOD_LSHIFT	BIT(0)
