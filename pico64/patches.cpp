@@ -40,7 +40,7 @@
 #include "../config/platform_config.h"
 
 
-#define DIRECTORY ROMSDIR + "/\0"
+#define DIRECTORY "C64/\0"
 
 static char buffer[2];
 
@@ -198,7 +198,9 @@ uint16_t addr,size;
   //emu_resetSD();
   tft.fillScreenNoDma( RGBVAL16(0x00,0x00,0x00) );
 #endif  
-	if (emu_FileOpen(FileSelTempBuf, "r+b") == 0) {
+	sFile file;
+	size = GetFileSize(FileSelTempBuf);
+	if (!FileOpen(&file, FileSelTempBuf)) {
 		//Serial.println("not found");
 		cpu.pc = 0xf530; //Jump to $F530
 #ifdef EXTERNAL_SD  
@@ -207,12 +209,10 @@ uint16_t addr,size;
 		return;
 	}
 
-	size = emu_FileSize(FileSelTempBuf);
-	int f = emu_FileOpen(FileSelTempBuf, "r+b");
-	emu_FileRead(buffer, 2, f);
+	FileRead(&file, buffer, 2);
 	addr = buffer[1] * 256 + buffer[0];
-	emu_FileRead((char*)&cpu.RAM[addr], size - 2, f);
-	emu_FileClose(f);
+	FileRead(&file, (char*)&cpu.RAM[addr], size - 2);
+	FileClose(&file);
 	DiskUnmount();
 
 	cpu.RAM[0xAF] = (addr + size - 2) & 0xff;
@@ -220,7 +220,7 @@ uint16_t addr,size;
 
 	cpu.y = 0x49; //Offset for "LOADING"
 	cpu.pc = 0xF12B; //Print and return
-	emu_printf("loaded");
+	printf("game loaded");
 #ifdef EXTERNAL_SD  
   tft.startDMA(); 
 #endif

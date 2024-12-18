@@ -40,12 +40,12 @@ int main(void) {
 //    set_sys_clock_khz(250000, true);  
     stdio_init_all();
 
-    emu_init();
+    tft.begin(MODE_TFT_320x240);
     FileSelInit("/C64", "Select game", "PRG", &FileSelColBlue);
     if (!FileSel())
 	    ResetToBootLoader();
-    emu_start();
-    emu_Init();
+    c64_Init();
+    tft.begin_audio();
     SelFont8x8();
     tft.startRefresh();
 
@@ -60,7 +60,7 @@ int main(void) {
     while (true) {
 	if (nFramesC64 == nFramesC64NextInput) {
 		nFramesC64NextInput = nFramesC64 + 1;
-		emu_Input();
+		c64_Input();
 	}
 
 	if (osd_active) {
@@ -74,7 +74,7 @@ int main(void) {
 		nFramesC64Last = nFramesC64;
 	}
 
-	emu_Step();
+	c64_Step();
 
 	if (Time() - fpsLast > 1000000) {
 		fpsLast = Time();
@@ -102,11 +102,4 @@ void stoprefresh(void)
 	tft.stopRefresh();
 }
 
-#ifdef HAS_SND
-
-void emu_sndInit() {
-  tft.begin_audio();
-}
-
-#endif
 

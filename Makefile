@@ -20,7 +20,6 @@ SRC += pico64/reSID.cpp
 SRC += pico64/pico64.cpp
 
 SRC += display/pico_dsp.cpp
-SRC += display/emuapi.cpp
 SRC += display/osd.cpp
 
 # Makefile includes

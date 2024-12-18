@@ -1602,8 +1602,8 @@ g-Zugriff
 
   }
 
-  emu_DrawLine16(&linebuffer[0], SCREEN_WIDTH, SCREEN_HEIGHT, (r - FIRSTDISPLAYLINE));
-  memset(&linebuffer[0],0,SCREEN_WIDTH*2);
+  memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
+  memset(&linebuffer[0], 0, SCREEN_WIDTH*2);
 
 
 

@@ -196,7 +196,6 @@ void c64_Init(void)
   cpu_reset();
 #ifdef HAS_SND  
   playSID.begin();  
-  emu_sndInit();
 #endif  
 }
 
@@ -286,8 +285,3 @@ void c64_Input()
 	}
 }
 
-void emu_KeyboardOnDown(int keymodifer, int key) {
-}
-
-void emu_KeyboardOnUp(int keymodifer, int key) {
-}
