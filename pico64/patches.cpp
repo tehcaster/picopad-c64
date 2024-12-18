@@ -190,6 +190,7 @@ uint16_t addr,size;
   //Serial.println("loading");
 	//printf("%s,%d,%d:", filename, device, secondaryAddress);
 	sFile file;
+	DiskAutoMount();
 	size = GetFileSize(FileSelTempBuf);
 	if (!FileOpen(&file, FileSelTempBuf)) {
 		//Serial.println("not found");

@@ -216,6 +216,11 @@ static void osd_menu_val(const char *text, int row)
 	DrawTextBg(text, 8*10, 16*(row+1), COL_WHITE, COL_BLACK);
 }
 
+static void osd_menu_val_char(char ch, int row)
+{
+	DrawCharBg(ch, 8*10, 16*(row+1), COL_WHITE, COL_BLACK);
+}
+
 static void osd_draw_vol(int row, int selrow)
 {
 	int vol = ConfigGetVolume();
@@ -229,12 +234,21 @@ static void osd_draw_vol(int row, int selrow)
 
 static void osd_draw_joy(int row, int selrow)
 {
-	char buf[50];
-
 	osd_menu_name("JOYSTICK:", row, selrow);
 
-	snprintf(buf, sizeof(buf), "%d", config.swap_joysticks ? 2 : 1);
-	osd_menu_val(buf, row);
+	osd_menu_val_char(config.swap_joysticks ? '2' : '1', row);
+}
+
+static void osd_draw_autorun(int row, int selrow)
+{
+	osd_menu_name("AUTORUN:", row, selrow);
+
+	osd_menu_val(config.autorun ? "ON" : "OFF", row);
+}
+
+static void osd_draw_save_global(int row, int selrow)
+{
+	osd_menu_name("SAVE GLOBAL CONFIG", row, selrow);
 }
 
 static void osd_action(int row, u8 key)
@@ -259,15 +273,27 @@ static void osd_action(int row, u8 key)
 		audio_vol_update();
 		return;
 	}
+	/* autorun */
+	if (row == 2) {
+		config.autorun = !config.autorun;
+		return;
+	}
+	/* save global config */
+	if (row == 3) {
+		config_global_save();
+		return;
+	}
 }
 
-#define OSD_MENU_MAXROW	1
+#define OSD_MENU_MAXROW	3
 static void osd_draw_all(int selrow)
 {
 	DrawClear();
 	DrawText("PAUSED: Y - back, X - kbd, B - reboot", 0, 0, COL_WHITE);
 	osd_draw_joy(0, selrow);
 	osd_draw_vol(1, selrow);
+	osd_draw_autorun(2, selrow);
+	osd_draw_save_global(3, selrow);
 }
 
 static void osd_cleanup(void)

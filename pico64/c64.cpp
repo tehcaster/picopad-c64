@@ -209,6 +209,12 @@ void c64_Input()
 	static const char * textseq = NULL;
 	static int osd_key_timeout = 0;
 
+	if (firsttime && config.autorun) {
+		firsttime = false;
+		textseq = textload;
+		return;
+	}
+
 	if (osd_key_timeout) {
 		osd_key_timeout--;
 		if (!osd_key_timeout)

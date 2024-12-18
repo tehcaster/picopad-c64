@@ -8,6 +8,10 @@ extern u32 timeSWISR;
 
 struct emu_config {
 	bool swap_joysticks;
+	bool autorun;
 };
 
 extern struct emu_config config;
+
+void config_global_save();
+
