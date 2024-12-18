@@ -291,10 +291,3 @@ void emu_KeyboardOnDown(int keymodifer, int key) {
 
 void emu_KeyboardOnUp(int keymodifer, int key) {
 }
-
-#ifdef HAS_SND      
-void  SND_Process( void * stream, int len )
-{
-    playSID.update(stream, len);
-}
-#endif  

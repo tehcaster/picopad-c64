@@ -23,7 +23,7 @@
 
 #include "pico_dsp.h"
 #include "font8x8.h"
-#include "include.h"
+#include "../pico64/output_dac.h"
 
 /* This file has own one so remove the one from picolibsdk */
 #undef B16
@@ -426,10 +426,10 @@ static int audio_vol = SNDINT;
 static void SOFTWARE_isr() {
   u32 start = Time();
   if (fillfirsthalf) {
-    SND_Process((short *)i2s_tx_buffer, AUDIO_SAMPLES);
+    playSID.update(i2s_tx_buffer, AUDIO_SAMPLES);
   }  
-  else { 
-    SND_Process((short *)&i2s_tx_buffer[AUDIO_SAMPLES/2], AUDIO_SAMPLES);
+  else {
+    playSID.update(&i2s_tx_buffer[AUDIO_SAMPLES/2], AUDIO_SAMPLES);
   }
   timeSWISR += Time() - start;
 }
