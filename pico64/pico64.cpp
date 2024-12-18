@@ -11,7 +11,6 @@ static u32 nFramesLast;
 static u32 nFramesC64Last;
 static u32 timeSWISRLast;
 static u32 nFramesC64NextInput;
-char fpsBuf[16];
 
 int main(void) {
 //	DrawPrintStart();
@@ -21,7 +20,7 @@ int main(void) {
 //    set_sys_clock_khz(250000, true);  
     stdio_init_all();
 
-    tft.begin(MODE_TFT_320x240);
+    tft.begin();
     FileSelInit("/C64", "Select game", "PRG", &FileSelColBlue);
     if (!FileSel())
 	    ResetToBootLoader();
@@ -58,6 +57,7 @@ int main(void) {
 	c64_Step();
 
 	if (Time() - fpsLast > 1000000) {
+		char fpsBuf[16];
 		fpsLast = Time();
 //		printf("display FPS: %u\n", nFrames - nFramesLast);
 		snprintf(fpsBuf, sizeof(fpsBuf), "LCD FPS: %3d", nFrames - nFramesLast);

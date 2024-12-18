@@ -30,8 +30,6 @@
 /* This file has own one so remove the one from picolibsdk */
 #undef B16
 
-static gfx_mode_t gfxmode = MODE_UNDEFINED;
-
 /* TFT structures / constants */
 #define digitalWrite(pin, val) gpio_put(pin, val)
 
@@ -100,16 +98,6 @@ uint32_t nFrames = 0;
 #define VGA_RGB(r,g,b)   ( (((r>>5)&0x07)<<5) | (((g>>5)&0x07)<<2) | (((b>>6)&0x3)<<0) )
 #endif
 
-// 8 bits 320x240 frame buffer => 64K
-static vga_pixel * visible_framebuffer = NULL;
-static vga_pixel * framebuffer = NULL;
-static vga_pixel * fb0 = NULL;
-static vga_pixel * fb1 = NULL;
-
-static int  fb_width;
-static int  fb_height;
-static int  fb_stride;
-
 static semaphore_t core1_initted;
 static void core1_func();
 static void core1_sio_irq();
@@ -118,41 +106,25 @@ static void core1_func()
 { }
 
 void PICO_DSP::setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2) {
-  int dx=0;
-  int dy=0;
-#ifdef ST7789
-  if (TFT_REALWIDTH == TFT_REALHEIGHT)
-  {
-#ifdef ROTATE_SCREEN
-    if (!flipped) {
-      dy += 80;    
-    }
-#else  
-    if (flipped) {
-      dx += 80;    
-    }
-#endif      
-  }
-#endif  
 
   digitalWrite(_dc, 0);
   SPItransfer(TFT_CASET);
   digitalWrite(_dc, 1);
-  SPItransfer16(x1+dx);
+  SPItransfer16(x1);
   digitalWrite(_dc, 1);
-  SPItransfer16(x2+dx);  
+  SPItransfer16(x2);
   digitalWrite(_dc, 0);
   SPItransfer(TFT_PASET);
   digitalWrite(_dc, 1);
-  SPItransfer16(y1+dy);
+  SPItransfer16(y1);
   digitalWrite(_dc, 1);
-  SPItransfer16(y2+dy);  
+  SPItransfer16(y2);
 
   digitalWrite(_dc, 0);
   SPItransfer(TFT_RAMWR);
   digitalWrite(_dc, 1);
- 
-  return; 
+
+  return;
 }
 
 
@@ -160,14 +132,8 @@ PICO_DSP::PICO_DSP()
 {
 }
 
-gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
+void PICO_DSP::begin()
 {
-  switch(mode) {
-    case MODE_TFT_320x240:
-      gfxmode = mode;
-      fb_width = TFT_WIDTH;
-      fb_height = TFT_HEIGHT;      
-      fb_stride = fb_width;    
       _cs   = TFT_CS;
       _dc   = TFT_DC;
       _rst  = TFT_RST;
@@ -176,27 +142,7 @@ gfx_error_t PICO_DSP::begin(gfx_mode_t mode)
       _bkl = TFT_BACKLIGHT;
 
       DispInit(1);
-      break;
-  }
-
-
-  return(GFX_OK);
 }
-
-void PICO_DSP::end()
-{
-}
-
-gfx_mode_t PICO_DSP::getMode(void)
-{
-  return gfxmode;
-}
-
-bool PICO_DSP::isflipped(void)
-{
-  return(flipped);
-}
-  
 
 /***********************************************************************************************
     DMA functions
@@ -238,28 +184,28 @@ static void setDmaStruct() {
   irq_set_exclusive_handler(DMA_IRQ_0, dma_isr);
   dma_channel_set_irq0_enabled(dma_tx, true);
   irq_set_enabled(DMA_IRQ_0, true);
-  dma_hw->ints0 = 1u << dma_tx;  
+  dma_hw->ints0 = 1u << dma_tx;
 }
 
 void PICO_DSP::startRefresh(void) {
-    rstop = 0;     
+    rstop = 0;
 #if 1
     digitalWrite(_cs, 1);
     setDmaStruct();
 #endif
-    fillScreen(RGBVAL16(0x00,0x00,0x00));
+    DrawClear();
 #if 1
     digitalWrite(_cs, 0);
-    setArea((TFT_REALWIDTH-TFT_WIDTH)/2, (TFT_REALHEIGHT-TFT_HEIGHT)/2, (TFT_REALWIDTH-TFT_WIDTH)/2 + TFT_WIDTH-1, (TFT_REALHEIGHT-TFT_HEIGHT)/2+TFT_HEIGHT-1);  
+    setArea(0, 0, TFT_WIDTH-1, TFT_HEIGHT-1);
     // we switch to 16bit mode!!
     spi_set_format(TFT_SPIREG, 16, SPI_CPOL_0, SPI_CPHA_0, SPI_MSB_FIRST);
-    dma_start_channel_mask(1u << dma_tx);    
+    dma_start_channel_mask(1u << dma_tx);
 #endif
 }
 
 void PICO_DSP::stopRefresh(void) {
     rstop = 1;
-    unsigned long m = time_us_32()*1000;   
+    unsigned long m = time_us_32()*1000;
     cancelled = true; 
     while (!rstop)  {
       if ((time_us_32()*1000 - m) > 100) break;
@@ -270,50 +216,16 @@ void PICO_DSP::stopRefresh(void) {
     sleep_ms(100);
     cancelled = false;  
     //dmatx.detachInterrupt();
-    fillScreen(RGBVAL16(0x00,0x00,0x00));
+    DrawClear();
     digitalWrite(_cs, 1);
     // we switch back to GFX mode!!
-    begin(gfxmode);
-    setArea(0, 0, TFT_REALWIDTH-1, TFT_REALHEIGHT-1);    
-}
-
-
-/***********************************************************************************************
-    GFX functions
- ***********************************************************************************************/
-// retrieve size of the frame buffer
-int PICO_DSP::get_frame_buffer_size(int *width, int *height)
-{
-  if (width != nullptr) *width = fb_width;
-  if (height != nullptr) *height = fb_height;
-  return fb_stride;
-}
-
-void PICO_DSP::waitSync()
-{
-}
-
-void PICO_DSP::waitLine(int line)
-{
-}
-
-
-/***********************************************************************************************
-    GFX functions
- ***********************************************************************************************/
-void PICO_DSP::fillScreen(dsp_pixel color) {
-  DrawClearCol(color);
-}
-
-void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
-    memcpy(&FrameBuf[y*TFT_WIDTH], buf, TFT_WIDTH*2);
+    begin();
+    setArea(0, 0, TFT_WIDTH-1, TFT_HEIGHT-1);
 }
 
 /*******************************************************************
  Experimental PWM interrupt based sound driver !!!
 *******************************************************************/
-//#include "hardware/irq.h"
-//#include "hardware/pwm.h"
 
 static bool fillfirsthalf = true;
 static uint16_t cnt = 0;
@@ -425,10 +337,8 @@ void PICO_DSP::begin_audio()
 
   gpio_set_function(AUDIO_PIN, GPIO_FUNC_PWM);
 
-  if (gfxmode == MODE_TFT_320x240) {
-    multicore_launch_core1(core1_func_tft);
-  }
-  
+  multicore_launch_core1(core1_func_tft);
+
   int audio_pin_slice = pwm_gpio_to_slice_num(AUDIO_PIN);
   // Setup PWM interrupt to fire when PWM cycle is complete
   pwm_clear_irq(audio_pin_slice);

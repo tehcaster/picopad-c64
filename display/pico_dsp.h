@@ -17,52 +17,17 @@
 
 #include "../include.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 extern uint32_t nFrames;
 extern bool audio_paused;
 void audio_vol_update();
 
-#ifdef LOHRES
-#define TFT_WIDTH      240 
-#define TFT_REALWIDTH  240
-#else
-#ifdef OVERRULE_WIDTH
-#define TFT_WIDTH      OVERRULE_WIDTH
-#else 
-#define TFT_WIDTH      320 
-#endif
-#define TFT_REALWIDTH  320
-#endif
-#ifdef OVERRULE_HEIGHT
-#define TFT_HEIGHT     OVERRULE_HEIGHT
-#else 
+#define TFT_WIDTH      320
 #define TFT_HEIGHT     240
-#endif
-#define TFT_REALHEIGHT 240
 
 #define AUDIO_SAMPLE_BUFFER_SIZE 256
-#define DEFAULT_VSYNC_PIN 8
 
-typedef uint8_t  vga_pixel;
 typedef uint16_t dsp_pixel;
 
-typedef enum gfx_mode_t
-{
-  MODE_UNDEFINED   = 0,
-  MODE_TFT_320x240 = 1,
-} gfx_mode_t;
-
-typedef enum vga_error_t
-{
-	GFX_OK = 0,
-	GFX_ERROR = -1
-} gfx_error_t;
-
-#ifdef __cplusplus
 class PICO_DSP
 {
 public:
@@ -70,46 +35,19 @@ public:
   PICO_DSP();
 
   // Initialization
-  gfx_error_t begin(gfx_mode_t mode);
-  gfx_mode_t getMode(void);
-  void end();
+  void begin();
   void startRefresh(void);
   void stopRefresh();
   void begin_audio();
   void end_audio();
 
-
   // framebuffer/screen operation
-  int get_frame_buffer_size(int *width, int *height);
   void setArea(uint16_t x1,uint16_t y1,uint16_t x2,uint16_t y2);
-  bool isflipped(void);
 
-  // wait next Vsync
-  void waitSync();
-  void waitLine(int line);
-
-  // =========================================================
-  // graphic primitives
-  // =========================================================
-
-  //dsp_pixel * getLineBuffer(int j);
-  void writeLine(int width, int height, int y, dsp_pixel *buf);
-
-  void fillScreen(dsp_pixel color);
-
-private:
-  static uint8_t _vsync_pin;
-
-protected:   
+protected:
   uint8_t _rst, _cs, _dc;
   uint8_t _miso, _mosi, _sclk, _bkl;
-  bool flipped=false;  
 };
-#endif
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 
