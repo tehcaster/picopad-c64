@@ -282,7 +282,7 @@ void osd_start(void)
 	int selrow = 0;
 	bool redraw = true;
 
-	SelFont8x8();
+	SelFont8x16();
 	osd_draw_all(selrow);
 
 	KeyWaitNoPressed();
@@ -308,7 +308,7 @@ void osd_start(void)
 		case KEY_X:
 			if (osd_start_kb()) {
 				osd_cleanup();
-				SelFont8x8();
+				SelFont8x16();
 				return;
 			}
 			break;
