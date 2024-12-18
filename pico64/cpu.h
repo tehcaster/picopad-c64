@@ -57,9 +57,8 @@
 #include "cia2.h"
 
 
-//#include <reSID.h>
-//extern AudioPlaySID  playSID;
-//extern AudioOutputAnalog audioout;
+#include "reSID.h"
+extern AudioPlaySID  playSID;
 
 #define BASE_STACK     0x100
 

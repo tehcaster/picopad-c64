@@ -1,11 +1,6 @@
 #include "../include.h"
-
-extern "C" {
 #include "../display/osd.h"
-}
-
 #include "c64.h"
-
 #include "Teensy64.h"
 
 #ifdef HAS_SND
@@ -14,12 +9,6 @@ AudioPlaySID playSID;
 #endif
 
 using namespace std;
-
-#ifndef PICOMPUTER
-/*
-static bool oskbActive=false;
-*/
-#endif
 
 /* IRAM_ATTR */
 static void oneRasterLine(void) {

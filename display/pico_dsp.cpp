@@ -14,7 +14,7 @@
 
 #include "pico_dsp.h"
 #include "font8x8.h"
-#include "../pico64/output_dac.h"
+#include "../pico64/cpu.h"
 
 #define AUDIO_PIN	15
 

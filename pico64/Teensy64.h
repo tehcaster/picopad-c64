@@ -101,6 +101,5 @@ digitalWriteFast(PIN_SERIAL_DATA, (~value & 0x20)); \ //PTA15 IEC DATA 5
 #define READ_CLK_DATA() (0)
 #endif
 
-#include "output_dac.h"
 #include "cpu.h"
 #endif
