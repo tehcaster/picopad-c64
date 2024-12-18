@@ -13,4 +13,5 @@
 
 #define HAS_SND        1
 
+#define RGBVAL16(r,g,b)  ( (((r>>3)&0x1f)<<11) | (((g>>2)&0x3f)<<5) | (((b>>3)&0x1f)<<0) )
 

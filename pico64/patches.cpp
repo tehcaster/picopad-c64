@@ -34,10 +34,7 @@
 */
 
 #include "../include.h"
-
 #include "patches.h"
-#include "../display/emuapi.h"
-
 
 #define DIRECTORY "C64/\0"
 
@@ -192,19 +189,11 @@ uint16_t addr,size;
 
   //Serial.println("loading");
 	//printf("%s,%d,%d:", filename, device, secondaryAddress);
-#ifdef EXTERNAL_SD  
-  tft.stopDMA();
-  //emu_resetSD();
-  tft.fillScreenNoDma( RGBVAL16(0x00,0x00,0x00) );
-#endif  
 	sFile file;
 	size = GetFileSize(FileSelTempBuf);
 	if (!FileOpen(&file, FileSelTempBuf)) {
 		//Serial.println("not found");
 		cpu.pc = 0xf530; //Jump to $F530
-#ifdef EXTERNAL_SD  
-    tft.startDMA(); 
-#endif  
 		return;
 	}
 
@@ -220,9 +209,6 @@ uint16_t addr,size;
 	cpu.y = 0x49; //Offset for "LOADING"
 	cpu.pc = 0xF12B; //Print and return
 	printf("game loaded");
-#ifdef EXTERNAL_SD  
-  tft.startDMA(); 
-#endif
 	return;
 }
 

@@ -22,8 +22,6 @@ extern "C"
 {
 #endif
 
-#include "../config/iopins.h"
-
 extern uint32_t nFrames;
 extern bool audio_paused;
 void audio_vol_update();
@@ -98,10 +96,6 @@ public:
   void writeLine(int width, int height, int y, dsp_pixel *buf);
 
   void fillScreen(dsp_pixel color);
-
-  // NoDMA functions
-  void fillScreenNoDma(dsp_pixel color);
-  void drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize);
 
 private:
   static uint8_t _vsync_pin;

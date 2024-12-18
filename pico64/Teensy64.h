@@ -35,12 +35,6 @@
 #ifndef Teensy64_h_
 #define Teensy64_h_
 
-//#include <stdint.h>
-//#include <stdio.h>
-//#include <string.h>
-
-//#include "pico/stdlib.h"
-
 #define F_CPU 140000000.0
 #define F_BUS 140000000.0
 
@@ -50,10 +44,6 @@
 #define VERSION "09"
 #define NTSC (!PAL)
 #define USBHOST (!PS2KEYBOARD)
-
-extern "C" {
-  #include "../display/emuapi.h"
-}
 
 inline unsigned long millis() {
     return (to_ms_since_boot(get_absolute_time ()));

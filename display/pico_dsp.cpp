@@ -12,18 +12,20 @@
 
 #include "../include.h"
 
-/*
-#include "pico/stdlib.h"
-#include "pico/multicore.h"
-#include "hardware/spi.h"
-#include "hardware/dma.h"
-#include "hardware/irq.h"
-#include <string.h>
-*/
-
 #include "pico_dsp.h"
 #include "font8x8.h"
 #include "../pico64/output_dac.h"
+
+#define AUDIO_PIN	15
+
+#define TFT_SPIREG      spi0
+#define TFT_SPIDREQ     DREQ_SPI0_TX
+#define TFT_SCLK        18
+#define TFT_MOSI        19
+#define TFT_DC          17
+#define TFT_RST         20
+#define TFT_CS          21
+#define TFT_BACKLIGHT   16
 
 /* This file has own one so remove the one from picolibsdk */
 #undef B16
@@ -305,85 +307,6 @@ void PICO_DSP::fillScreen(dsp_pixel color) {
 
 void PICO_DSP::writeLine(int width, int height, int y, dsp_pixel *buf) {
     memcpy(&FrameBuf[y*TFT_WIDTH], buf, TFT_WIDTH*2);
-}
-
-/***********************************************************************************************
-    No DMA functions
- ***********************************************************************************************/
-void PICO_DSP::fillScreenNoDma(dsp_pixel color) {
-    DispStartImg(0, TFT_REALWIDTH, 0, TFT_REALHEIGHT);
-    int i,j;
-    for (j=0; j<TFT_REALHEIGHT; j++)
-    {
-      for (i=0; i<TFT_REALWIDTH; i++) {
-	DispSendImg2(color);
-      }
-    }
-    DispStopImg();
-}
-
-void PICO_DSP::drawTextNoDma(int16_t x, int16_t y, const char * text, dsp_pixel fgcolor, dsp_pixel bgcolor, bool doublesize) {
-    uint16_t c;
-    while ((c = *text++)) {
-      const unsigned char * charpt=&font8x8[c][0];
-      DispStartImg(x,x+8,y,y+(doublesize?16:8));
-      for (int i=0;i<8;i++)
-      {
-        unsigned char bits;
-        if (doublesize) {
-          bits = *charpt;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);
-          bits = bits >> 1;     
-          if (bits&0x01) DispSendImg2(fgcolor);
-          else DispSendImg2(bgcolor);       
-        }
-        bits = *charpt++;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-        bits = bits >> 1;     
-        if (bits&0x01) DispSendImg2(fgcolor);
-        else DispSendImg2(bgcolor);
-      }
-      x +=8;
-      DispStopImg();
-    }
 }
 
 /*******************************************************************

@@ -1,17 +1,12 @@
 #include "../include.h"
-//#include "pico.h"
-//#include "pico/stdlib.h"
-//#include <stdio.h>
 
 extern "C" {
-#include "../display/emuapi.h"
 #include "../display/osd.h"
 }
 
 #include "c64.h"
 
 #include "Teensy64.h"
-//#include <string.h>
 
 #ifdef HAS_SND
 #include "reSID.h"

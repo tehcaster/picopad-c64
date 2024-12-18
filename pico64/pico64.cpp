@@ -1,22 +1,10 @@
-//#include "pico.h"
-//#include "pico/stdlib.h"
 
 #include "../include.h"
-
-extern "C" {
-  #include "../config/iopins.h"  
-  #include "../display/emuapi.h"
-}
 #include "../display/osd.h"
 #include "c64.h"
-
-//#include <stdio.h>
 #include "../display/pico_dsp.h"
 
 PICO_DSP tft;
-
-//#include "hardware/clocks.h"
-//#include "hardware/vreg.h"
 
 static u32 fpsLast;
 static u32 nFramesLast;
@@ -30,13 +18,6 @@ int main(void) {
 	UartPrintStart();
 	DrawPrintStop();
 //    vreg_set_voltage(VREG_VOLTAGE_1_05);
-//    set_sys_clock_khz(125000, true);    
-//    set_sys_clock_khz(150000, true);    
-//    set_sys_clock_khz(133000, true);    
-//    set_sys_clock_khz(200000, true);    
-//    set_sys_clock_khz(210000, true);    
-//    set_sys_clock_khz(230000, true);    
-//    set_sys_clock_khz(225000, true);    
 //    set_sys_clock_khz(250000, true);  
     stdio_init_all();
 
@@ -90,11 +71,6 @@ int main(void) {
 		timeSWISRLast = timeSWISR;
 	}
     }
-}
-
-void emu_DrawLine16(unsigned short * VBuf, int width, int height, int line)
-{
-    tft.writeLine(width,height,line, VBuf);
 }
 
 void stoprefresh(void)
