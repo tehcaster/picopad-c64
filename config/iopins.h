@@ -1,8 +1,7 @@
 #ifndef IOPINS_H
 #define IOPINS_H
 
-#include "platform_config.h"
-
+#define PICOPAD         1
 
 #ifdef MCUME_REV1
 

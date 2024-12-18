@@ -22,7 +22,6 @@ extern "C"
 {
 #endif
 
-#include "../config/platform_config.h"
 #include "../config/iopins.h"
 
 extern uint32_t nFrames;

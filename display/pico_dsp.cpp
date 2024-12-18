@@ -33,22 +33,6 @@ static gfx_mode_t gfxmode = MODE_UNDEFINED;
 /* TFT structures / constants */
 #define digitalWrite(pin, val) gpio_put(pin, val)
 
-#define SPICLOCK 60000000 
-#ifdef USE_VGA
-#define SPI_MODE SPI_CPOL_1 
-#else
-#ifdef ST7789
-#ifdef ST7789_POL
-#define SPI_MODE SPI_CPOL_0
-#else
-#define SPI_MODE SPI_CPOL_1
-#endif
-#endif
-#ifdef ILI9341
-#define SPI_MODE SPI_CPOL_0
-#endif
-#endif
-
 #define LINES_PER_BLOCK  64
 #define NR_OF_BLOCK      4
 

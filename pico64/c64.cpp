@@ -5,7 +5,6 @@
 
 extern "C" {
 #include "../display/emuapi.h"
-#include "../config/platform_config.h"
 #include "../display/osd.h"
 }
 

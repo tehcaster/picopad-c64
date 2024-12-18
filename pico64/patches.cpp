@@ -37,7 +37,6 @@
 
 #include "patches.h"
 #include "../display/emuapi.h"
-#include "../config/platform_config.h"
 
 
 #define DIRECTORY "C64/\0"
