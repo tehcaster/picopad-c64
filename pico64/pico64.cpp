@@ -8,7 +8,6 @@ extern "C" {
   #include "../display/emuapi.h"
 }
 #include "../display/osd.h"
-#include "keyboard_osd.h"
 #include "c64.h"
 
 //#include <stdio.h>
