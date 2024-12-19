@@ -126,6 +126,12 @@
 #define CK_Q		CK(7, 6)
 #define CK_STOP		CK(7, 7)
 
+#define CJ_UP		BIT(0)
+#define CJ_DOWN		BIT(1)
+#define CJ_LEFT		BIT(2)
+#define CJ_RIGHT	BIT(3)
+#define CJ_FIRE		BIT(4)
+
 // this can't be 0 as that's CK_DELETE
 #define CK_NOKEY	BIT(7)
 // this should be triggering NMI

@@ -87,27 +87,65 @@ static void unsetKey()
 	kbdData.mods = 0;
 }
 
+struct button_kbd_data {
+	bool joy;
+	union {
+		u8 portA;
+		u8 portJoy;
+	};
+	u8 portB;
+	u8 pico_key;
+};
+
+static struct button_kbd_data bkd[CONFIG_BTN_MAX];
+static u8 bkd_used = 0;
+
+static const u8 btn_idx_to_key[CONFIG_BTN_MAX] =
+	{ KEY_A, KEY_B, KEY_X };
+
+void apply_button_config() {
+	bkd_used = 0;
+	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
+		if (config.buttons[i].mode == CONFIG_BTN_MODE_OFF)
+			continue;
+
+		if (config.buttons[i].mode == CONFIG_BTN_MODE_JOY) {
+			bkd[bkd_used].joy = true;
+			bkd[bkd_used].portJoy = ~config.buttons[i].joy;
+		} else {
+			u8 ck = config.buttons[i].key;
+			bkd[bkd_used].joy = false;
+			bkd[bkd_used].portA = CK_GET_PORT_A(ck);
+			bkd[bkd_used].portB = CK_GET_PORT_A(ck);
+		}
+		bkd[bkd_used].pico_key = btn_idx_to_key[i];
+		bkd_used++;
+	}
+}
+
 uint8_t cia1PORTA(void) {
 
 	uint8_t v;
+	uint8_t filter;
 
 	v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
+	filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
 
 	if (config.swap_joysticks) {
-		if (KeyPressed(KEY_A)) v &= 0xEF;
-		if (KeyPressed(KEY_UP)) v &= 0xFE;
-		if (KeyPressed(KEY_DOWN)) v &= 0xFD;
-		if (KeyPressed(KEY_LEFT)) v &= 0xFB;
-		if (KeyPressed(KEY_RIGHT)) v &= 0xF7;
+		if (KeyPressed(KEY_UP)) v &= ~CJ_UP;
+		if (KeyPressed(KEY_DOWN)) v &= ~CJ_DOWN;
+		if (KeyPressed(KEY_LEFT)) v &= ~CJ_LEFT;
+		if (KeyPressed(KEY_RIGHT)) v &= ~CJ_RIGHT;
 	}
 
-	if (!kbdData.portA && !kbdData.portB && !kbdData.mods)
-		return v;
-
-	uint8_t filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
-
-	if (!filter)
-		return v;
+	for (int i = 0; i < bkd_used; i++) {
+		if (!KeyPressed(bkd[i].pico_key))
+			continue;
+		if (bkd[i].joy && config.swap_joysticks)
+			v &= bkd[i].portJoy;
+		if (bkd[i].portB & filter)
+			v &= ~bkd[i].portA;
+	}
 
 	if (kbdData.portB & filter)
 		v &= ~kbdData.portA;
@@ -131,24 +169,26 @@ uint8_t cia1PORTA(void) {
 uint8_t cia1PORTB(void) {
 
 	uint8_t v;
+	uint8_t filter;
 
-	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]) ;
+	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
+	filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
 
 	if (!config.swap_joysticks) {
-		if (KeyPressed(KEY_A)) v &= 0xEF;
-		if (KeyPressed(KEY_UP)) v &= 0xFE;
-		if (KeyPressed(KEY_DOWN)) v &= 0xFD;
-		if (KeyPressed(KEY_LEFT)) v &= 0xFB;
-		if (KeyPressed(KEY_RIGHT)) v &= 0xF7;
+		if (KeyPressed(KEY_UP)) v &= ~CJ_UP;
+		if (KeyPressed(KEY_DOWN)) v &= ~CJ_DOWN;
+		if (KeyPressed(KEY_LEFT)) v &= ~CJ_LEFT;
+		if (KeyPressed(KEY_RIGHT)) v &= ~CJ_RIGHT;
 	}
 
-	if (!kbdData.portA && !kbdData.portB && !kbdData.mods)
-		return v;
-
-	uint8_t filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
-
-	if (!filter)
-		return v;
+	for (int i = 0; i < bkd_used; i++) {
+		if (!KeyPressed(bkd[i].pico_key))
+			continue;
+		if (bkd[i].joy && !config.swap_joysticks)
+			v &= bkd[i].portJoy;
+		if (bkd[i].portA & filter)
+			v &= ~bkd[i].portB;
+	}
 
 	if (kbdData.portA & filter)
 		v &= ~kbdData.portB;

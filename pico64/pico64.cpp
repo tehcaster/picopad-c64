@@ -2,6 +2,7 @@
 #include "../include.h"
 #include "../display/osd.h"
 #include "c64.h"
+#include "keyboard.h"
 #include "../display/pico_dsp.h"
 #include <string.h>
 
@@ -232,7 +233,14 @@ out:
 	DiskUnmount();
 }
 
-
+static void config_init_defaults()
+{
+	config.buttons[CONFIG_BTN_A] = {
+		.mode = CONFIG_BTN_MODE_JOY,
+		.joy = CJ_FIRE,
+	};
+	apply_button_config();
+}
 
 int main(void) {
 //	DrawPrintStart();
@@ -241,6 +249,7 @@ int main(void) {
 //    vreg_set_voltage(VREG_VOLTAGE_1_05);
 //    set_sys_clock_khz(250000, true);  
     stdio_init_all();
+    config_init_defaults();
     config_global_load();
 
     tft.begin();
