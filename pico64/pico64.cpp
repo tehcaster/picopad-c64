@@ -15,6 +15,27 @@ static u32 nFramesC64NextInput;
 
 #define CONF_GLOB_PATH	"/C64/_GLOBAL.CFG"
 
+static bool FileRecreate(sFile *file, const char *path)
+{
+	if (FileExist(path)) {
+		if (!FileOpen(file, path)) {
+			printf("FileRecreate() failed to open %s\n", path);
+			return false;
+		}
+		if (!SetFileSize(file, 0)) {
+			printf("FileRecreate() failed to truncate %s\n", path);
+			FileClose(file);
+			return false;
+		}
+	} else {
+		if (!FileCreate(file, path)) {
+			printf("FileRecreate() failed to create %s\n", path);
+			return false;
+		}
+	}
+	return true;
+}
+
 static void config_global_load()
 {
 	char buf[1024];
@@ -59,22 +80,9 @@ void config_global_save()
 	sFile file;
 	DiskAutoMount();
 
-	if (FileExist(CONF_GLOB_PATH)) {
-		printf("global config exists, will overwrite\n");
-		if (!FileOpen(&file, CONF_GLOB_PATH)) {
-			printf("failed to open existing global config\n");
-			goto out;
-		}
-		if (!SetFileSize(&file, 0)) {
-			printf("failed to truncate existing global config\n");
-			goto out;
-		}
-	} else {
-		printf("creating new global config\n");
-		if (!FileCreate(&file, CONF_GLOB_PATH)) {
-			printf("failed to create new global config\n");
-			goto out;
-		}
+	if (!FileRecreate(&file, CONF_GLOB_PATH)) {
+		printf("failed to recreate global config\n");
+		goto out;
 	}
 
 	FilePrint(&file, "autorun=%d\n", config.autorun ? 1 : 0);
