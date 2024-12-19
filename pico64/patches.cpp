@@ -191,9 +191,11 @@ uint16_t addr,size;
 	//printf("%s,%d,%d:", filename, device, secondaryAddress);
 	sFile file;
 	DiskAutoMount();
+	SetDir(FileSelPath);
+	//printf("opening %s\n", FileSelTempBuf);
 	size = GetFileSize(FileSelTempBuf);
 	if (!FileOpen(&file, FileSelTempBuf)) {
-		//Serial.println("not found");
+		//printf("opening failed\n");
 		cpu.pc = 0xf530; //Jump to $F530
 		return;
 	}

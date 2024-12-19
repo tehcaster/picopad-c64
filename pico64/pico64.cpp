@@ -14,6 +14,8 @@ static u32 timeSWISRLast;
 static u32 nFramesC64NextInput;
 
 #define CONF_GLOB_PATH	"/C64/_GLOBAL.CFG"
+#define LAST_GAME_PATH	"/C64/_LAST.CFG"
+#define LAST_GAME_VER	100
 
 static bool FileRecreate(sFile *file, const char *path)
 {
@@ -96,6 +98,73 @@ out:
 	DiskUnmount();
 }
 
+static void last_game_save()
+{
+	sFile file;
+	DiskAutoMount();
+	u16 version = LAST_GAME_VER;
+
+	if (!FileRecreate(&file, LAST_GAME_PATH)) {
+		printf("failed to recreate last game config\n");
+		goto out;
+	}
+
+	FileWrite(&file, &version, sizeof(version));
+	FileWrite(&file, &FileSelPathLen, sizeof(FileSelPathLen));
+	FileWrite(&file, &FileSelPath[0], FileSelPathLen);
+	FileWrite(&file, &FileSelLastNameLen, sizeof(FileSelLastNameLen));
+	FileWrite(&file, &FileSelLastName[0], FileSelLastNameLen);
+	FileWrite(&file, &FileSelLastNameTop, sizeof(FileSelLastNameTop));
+	FileWrite(&file, &FileSelLastNameAttr, sizeof(FileSelLastNameAttr));
+	FileWrite(&file, &FileSelLastNameExt, sizeof(FileSelLastNameExt));
+
+out_close:
+	if (!FileClose(&file))
+		printf("failure closing last game save\n");
+
+out:
+	DiskFlush();
+	DiskUnmount();
+}
+
+static void last_game_load()
+{
+	sFile file;
+	u16 version = 0;
+	int read;
+
+	DiskAutoMount();
+	if (!FileOpen(&file, LAST_GAME_PATH)) {
+		printf("failed to open last game config\n");
+		goto out;
+	}
+
+	read = FileRead(&file, &version, sizeof(version));
+	if (read != sizeof(version)) {
+		printf("could not read last game config version\n");
+		goto out;
+	}
+	if (version != LAST_GAME_VER) {
+		printf("last game config version doesn't match, skipping\n");
+		goto out;
+	}
+	// YOLO
+	FileRead(&file, &FileSelPathLen, sizeof(FileSelPathLen));
+	FileRead(&file, &FileSelPath[0], FileSelPathLen);
+	FileRead(&file, &FileSelLastNameLen, sizeof(FileSelLastNameLen));
+	FileRead(&file, &FileSelLastName[0], FileSelLastNameLen);
+	FileRead(&file, &FileSelLastNameTop, sizeof(FileSelLastNameTop));
+	FileRead(&file, &FileSelLastNameAttr, sizeof(FileSelLastNameAttr));
+	FileRead(&file, &FileSelLastNameExt, sizeof(FileSelLastNameExt));
+
+out:
+	FileClose(&file);
+	DiskFlush();
+	DiskUnmount();
+}
+
+
+
 int main(void) {
 //	DrawPrintStart();
 	UartPrintStart();
@@ -106,9 +175,13 @@ int main(void) {
     config_global_load();
 
     tft.begin();
+
     FileSelInit("/C64", "Select game", "PRG", &FileSelColBlue);
+    last_game_load();
     if (!FileSel())
 	    ResetToBootLoader();
+    last_game_save();
+
     c64_Init();
     tft.begin_audio();
     SelFont8x8();
