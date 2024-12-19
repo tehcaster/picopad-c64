@@ -211,7 +211,7 @@ uint16_t addr,size;
 
 	cpu.y = 0x49; //Offset for "LOADING"
 	cpu.pc = 0xF12B; //Print and return
-	printf("game loaded");
+	printf("game loaded\n");
 	return;
 }
 

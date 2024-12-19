@@ -14,4 +14,5 @@ struct emu_config {
 extern struct emu_config config;
 
 void config_global_save();
+void config_game_save();
 

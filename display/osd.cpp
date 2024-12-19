@@ -246,7 +246,12 @@ static void osd_draw_autorun(int row, int selrow)
 	osd_menu_val(config.autorun ? "ON" : "OFF", row);
 }
 
-static void osd_draw_save_global(int row, int selrow)
+static void osd_draw_save_config_game(int row, int selrow)
+{
+	osd_menu_name("SAVE PER-GAME CONFIG", row, selrow);
+}
+
+static void osd_draw_save_config_global(int row, int selrow)
 {
 	osd_menu_name("SAVE GLOBAL CONFIG", row, selrow);
 }
@@ -278,14 +283,19 @@ static void osd_action(int row, u8 key)
 		config.autorun = !config.autorun;
 		return;
 	}
-	/* save global config */
+	/* save game config */
 	if (row == 3) {
+		config_game_save();
+		return;
+	}
+	/* save global config */
+	if (row == 4) {
 		config_global_save();
 		return;
 	}
 }
 
-#define OSD_MENU_MAXROW	3
+#define OSD_MENU_MAXROW	4
 static void osd_draw_all(int selrow)
 {
 	DrawClear();
@@ -293,7 +303,8 @@ static void osd_draw_all(int selrow)
 	osd_draw_joy(0, selrow);
 	osd_draw_vol(1, selrow);
 	osd_draw_autorun(2, selrow);
-	osd_draw_save_global(3, selrow);
+	osd_draw_save_config_game(3, selrow);
+	osd_draw_save_config_global(4, selrow);
 }
 
 static void osd_cleanup(void)

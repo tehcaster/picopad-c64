@@ -98,6 +98,75 @@ out:
 	DiskUnmount();
 }
 
+static void config_game_load()
+{
+	char buf[1024];
+	int read;
+	sFile file;
+	char *name;
+
+	snprintf(buf, sizeof(buf), "%s.%s", FileSelLastName, "CFG");
+	printf("loading per-game config %s\n", buf);
+
+	DiskAutoMount();
+	SetDir(FileSelPath);
+	if (!FileOpen(&file, buf)) {
+		printf("could not open per-game config file\n");
+		goto out;
+	}
+
+	read = FileRead(&file, buf, 1024);
+	buf[read] = 0;
+	name = strtok(buf, "=");
+	while (name) {
+		char *value = strtok(NULL, "\n");
+		if (!value) {
+			printf("per-game config option '%s' has no value\n", name);
+			goto out;
+		}
+		printf("per-game config read name '%s' value '%s'\n", name, value);
+
+		if (!strcmp(name, "joyswap")) {
+			config.swap_joysticks = *value == '1' ? 1 : 0;
+		} else {
+			printf("per-game config unknown name '%s'\n", name);
+		}
+
+		name = strtok(NULL, "=");
+	}
+
+out:
+	FileClose(&file);
+	DiskFlush();
+	DiskUnmount();
+}
+
+void config_game_save()
+{
+	char namebuf[8+1+3+1];
+	sFile file;
+	DiskAutoMount();
+	SetDir(FileSelPath);
+
+	snprintf(namebuf, sizeof(namebuf), "%s.%s", FileSelLastName, "CFG");
+	printf("saving per-game config %s\n", namebuf);
+
+	if (!FileRecreate(&file, namebuf)) {
+		printf("failed to recreate per-game config\n");
+		goto out;
+	}
+
+	FilePrint(&file, "joyswap=%d\n", config.swap_joysticks ? 1 : 0);
+
+out_close:
+	if (!FileClose(&file))
+		printf("failure closing per-game config file\n");
+
+out:
+	DiskFlush();
+	DiskUnmount();
+}
+
 static void last_game_save()
 {
 	sFile file;
@@ -181,6 +250,8 @@ int main(void) {
     if (!FileSel())
 	    ResetToBootLoader();
     last_game_save();
+
+    config_game_load();
 
     c64_Init();
     tft.begin_audio();
