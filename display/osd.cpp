@@ -53,10 +53,20 @@ static const char * const kb_labels[2*CK_MAX+2] = {
 	0, "REST",
 };
 
+/* indexed by CJ_ codes */
+static const char * const joy_labels[CJ_MAX] = {
+	"UP", "DOWN", "LEFT", "RIGHT", "FIRE"
+};
+
+static const char btn_labels[CONFIG_BTN_MAX] = {
+	'A', 'B', 'X'
+};
+
 struct kb_state {
 	int row;
 	int col;
 	u8 mods;
+	bool with_mods;
 };
 
 static void osd_draw_kb_space(struct kb_state *kbs)
@@ -132,10 +142,12 @@ static void osd_kb_fixup_col(struct kb_state *kbs)
 		kbs->col--;
 }
 
-/* return true if osd should exit */
-static bool osd_start_kb(void)
+/* return true if key was selected */
+static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 {
-	struct kb_state kbs = { };
+	struct kb_state kbs = {
+		.with_mods = with_mods,
+	};
 	bool redraw = true;
 	SelFont8x16();
 	DrawClear();
@@ -181,27 +193,87 @@ static bool osd_start_kb(void)
 			return false;
 		case KEY_A:
 			kc = osd_kb_get_code(&kbs);
-			if (kc == CK_LSHIFT) {
-				kbs.mods ^= CK_MOD_LSHIFT;
-				break;
-			} else if (kc == CK_RSHIFT) {
-				kbs.mods ^= CK_MOD_RSHIFT;
-				break;
-			} else if (kc == CK_CMDR) {
-				kbs.mods ^= CK_MOD_CMDR;
-				break;
-			} else if (kc == CK_CONTROL) {
-				kbs.mods ^= CK_MOD_CONTROL;
-				break;
+			if (with_mods) {
+				if (kc == CK_LSHIFT) {
+					kbs.mods ^= CK_MOD_LSHIFT;
+					break;
+				} else if (kc == CK_RSHIFT) {
+					kbs.mods ^= CK_MOD_RSHIFT;
+					break;
+				} else if (kc == CK_CMDR) {
+					kbs.mods ^= CK_MOD_CMDR;
+					break;
+				} else if (kc == CK_CONTROL) {
+					kbs.mods ^= CK_MOD_CONTROL;
+					break;
+				}
 			}
 
-			osd_key_pending = kc;
-			osd_mods_pending = kbs.mods;
+			*ret_kc = kc;
+			*ret_mods = kbs.mods;
 			return true;
 		default:
 			;
 		}
 	}
+}
+
+static void osd_config_button(u8 btn)
+{
+	struct button_config *cfg = &config.buttons[btn];
+	char buf[50];
+	u8 key;
+	u8 kc, mods;
+
+	snprintf(buf, sizeof(buf), "Reassigning button %c", btn_labels[btn]);
+	DrawClear();
+	DrawText(buf, 0, 0, COL_WHITE);
+	DrawText("Press:", 0, 16, COL_WHITE);
+	DrawText("UP/DOWN/LEFT/RIGHT for joystick direction", 0, 32, COL_WHITE);
+	DrawText("A for joystick FIRE", 0, 48, COL_WHITE);
+	DrawText("B for no action", 0, 64, COL_WHITE);
+	DrawText("X for keyboard key", 0, 80, COL_WHITE);
+	DrawText("Y to cancel", 0, 96, COL_WHITE);
+
+	KeyWaitNoPressed();
+	KeyFlush();
+
+	while((key = KeyGet()) == NOKEY);
+
+	switch (key) {
+	case KEY_Y:
+		return;
+	case KEY_B:
+		cfg->mode = CONFIG_BTN_MODE_OFF;
+		break;
+	case KEY_A:
+		cfg->mode = CONFIG_BTN_MODE_JOY;
+		cfg->joy = CJ_FIRE;
+		break;
+	case KEY_UP:
+		cfg->mode = CONFIG_BTN_MODE_JOY;
+		cfg->joy = CJ_UP;
+		break;
+	case KEY_DOWN:
+		cfg->mode = CONFIG_BTN_MODE_JOY;
+		cfg->joy = CJ_DOWN;
+		break;
+	case KEY_LEFT:
+		cfg->mode = CONFIG_BTN_MODE_JOY;
+		cfg->joy = CJ_LEFT;
+		break;
+	case KEY_RIGHT:
+		cfg->mode = CONFIG_BTN_MODE_JOY;
+		cfg->joy = CJ_RIGHT;
+		break;
+	case KEY_X:
+		if (osd_start_kb(false, &kc, &mods)) {
+			cfg->mode = CONFIG_BTN_MODE_KEY;
+			cfg->key = kc;
+		}
+		break;
+	}
+	apply_button_config();
 }
 
 static void osd_menu_name(const char *text, int row, int selrow)
@@ -239,6 +311,25 @@ static void osd_draw_joy(int row, int selrow)
 	osd_menu_val_char(config.swap_joysticks ? '2' : '1', row);
 }
 
+static void osd_draw_button(int row, int selrow, u8 btn)
+{
+	struct button_config *cfg = &config.buttons[btn];
+	char buf[50];
+
+	snprintf(buf, sizeof(buf), "BUTTON %c:", btn_labels[btn]);
+	osd_menu_name(buf, row, selrow);
+
+	if (cfg->mode == CONFIG_BTN_MODE_OFF) {
+		osd_menu_val("NO ACTION", row);
+	} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
+		snprintf(buf, sizeof(buf), "KEY %s", kb_labels[cfg->key]);
+		osd_menu_val(buf, row);
+	} else {
+		snprintf(buf, sizeof(buf), "JOY %s", joy_labels[cfg->key]);
+		osd_menu_val(buf, row);
+	}
+}
+
 static void osd_draw_autorun(int row, int selrow)
 {
 	osd_menu_name("AUTORUN:", row, selrow);
@@ -255,6 +346,7 @@ static void osd_draw_save_config_global(int row, int selrow)
 {
 	osd_menu_name("SAVE GLOBAL CONFIG", row, selrow);
 }
+
 
 static void osd_action(int row, u8 key)
 {
@@ -278,33 +370,40 @@ static void osd_action(int row, u8 key)
 		audio_vol_update();
 		return;
 	}
+	if (row < 5) {
+		osd_config_button(row - 2);
+		return;
+	}
 	/* autorun */
-	if (row == 2) {
+	if (row == 5) {
 		config.autorun = !config.autorun;
 		return;
 	}
 	/* save game config */
-	if (row == 3) {
+	if (row == 6) {
 		config_game_save();
 		return;
 	}
 	/* save global config */
-	if (row == 4) {
+	if (row == 7) {
 		config_global_save();
 		return;
 	}
 }
 
-#define OSD_MENU_MAXROW	4
+#define OSD_MENU_MAXROW	7
 static void osd_draw_all(int selrow)
 {
 	DrawClear();
 	DrawText("PAUSED: Y - back, X - kbd, B - reboot", 0, 0, COL_WHITE);
 	osd_draw_joy(0, selrow);
 	osd_draw_vol(1, selrow);
-	osd_draw_autorun(2, selrow);
-	osd_draw_save_config_game(3, selrow);
-	osd_draw_save_config_global(4, selrow);
+	for (int i = 0; i < CONFIG_BTN_MAX; i++)
+		osd_draw_button(2+i, selrow, i);
+	osd_draw_autorun(5, selrow);
+	osd_draw_save_config_game(6, selrow);
+	osd_draw_save_config_global(7, selrow);
+
 }
 
 static void osd_cleanup(void)
@@ -343,7 +442,8 @@ void osd_start(void)
 				selrow++;
 			break;
 		case KEY_X:
-			if (osd_start_kb()) {
+			if (osd_start_kb(true, &osd_key_pending,
+						&osd_mods_pending)) {
 				osd_cleanup();
 				SelFont8x16();
 				return;

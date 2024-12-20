@@ -106,17 +106,19 @@ static const u8 btn_idx_to_key[CONFIG_BTN_MAX] =
 void apply_button_config() {
 	bkd_used = 0;
 	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
-		if (config.buttons[i].mode == CONFIG_BTN_MODE_OFF)
+		struct button_config *cfg = &config.buttons[i];
+
+		if (cfg->mode == CONFIG_BTN_MODE_OFF)
 			continue;
 
-		if (config.buttons[i].mode == CONFIG_BTN_MODE_JOY) {
+		if (cfg->mode == CONFIG_BTN_MODE_JOY) {
 			bkd[bkd_used].joy = true;
-			bkd[bkd_used].portJoy = ~config.buttons[i].joy;
+			bkd[bkd_used].portJoy = ~CJ_GET_PORT(cfg->joy);
 		} else {
-			u8 ck = config.buttons[i].key;
+			u8 ck = cfg->key;
 			bkd[bkd_used].joy = false;
 			bkd[bkd_used].portA = CK_GET_PORT_A(ck);
-			bkd[bkd_used].portB = CK_GET_PORT_A(ck);
+			bkd[bkd_used].portB = CK_GET_PORT_B(ck);
 		}
 		bkd[bkd_used].pico_key = btn_idx_to_key[i];
 		bkd_used++;
@@ -132,19 +134,23 @@ uint8_t cia1PORTA(void) {
 	filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
 
 	if (config.swap_joysticks) {
-		if (KeyPressed(KEY_UP)) v &= ~CJ_UP;
-		if (KeyPressed(KEY_DOWN)) v &= ~CJ_DOWN;
-		if (KeyPressed(KEY_LEFT)) v &= ~CJ_LEFT;
-		if (KeyPressed(KEY_RIGHT)) v &= ~CJ_RIGHT;
+		if (KeyPressed(KEY_UP)) v &= ~CJ_GET_PORT(CJ_UP);
+		if (KeyPressed(KEY_DOWN)) v &= ~CJ_GET_PORT(CJ_DOWN);
+		if (KeyPressed(KEY_LEFT)) v &= ~CJ_GET_PORT(CJ_LEFT);
+		if (KeyPressed(KEY_RIGHT)) v &= ~CJ_GET_PORT(CJ_RIGHT);
 	}
 
 	for (int i = 0; i < bkd_used; i++) {
 		if (!KeyPressed(bkd[i].pico_key))
 			continue;
-		if (bkd[i].joy && config.swap_joysticks)
-			v &= bkd[i].portJoy;
-		if (bkd[i].portB & filter)
+
+		if (bkd[i].joy) {
+			if (config.swap_joysticks) {
+				v &= bkd[i].portJoy;
+			}
+		} else if (bkd[i].portB & filter) {
 			v &= ~bkd[i].portA;
+		}
 	}
 
 	if (kbdData.portB & filter)
@@ -175,19 +181,23 @@ uint8_t cia1PORTB(void) {
 	filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
 
 	if (!config.swap_joysticks) {
-		if (KeyPressed(KEY_UP)) v &= ~CJ_UP;
-		if (KeyPressed(KEY_DOWN)) v &= ~CJ_DOWN;
-		if (KeyPressed(KEY_LEFT)) v &= ~CJ_LEFT;
-		if (KeyPressed(KEY_RIGHT)) v &= ~CJ_RIGHT;
+		if (KeyPressed(KEY_UP)) v &= ~CJ_GET_PORT(CJ_UP);
+		if (KeyPressed(KEY_DOWN)) v &= ~CJ_GET_PORT(CJ_DOWN);
+		if (KeyPressed(KEY_LEFT)) v &= ~CJ_GET_PORT(CJ_LEFT);
+		if (KeyPressed(KEY_RIGHT)) v &= ~CJ_GET_PORT(CJ_RIGHT);
 	}
 
 	for (int i = 0; i < bkd_used; i++) {
 		if (!KeyPressed(bkd[i].pico_key))
 			continue;
-		if (bkd[i].joy && !config.swap_joysticks)
-			v &= bkd[i].portJoy;
-		if (bkd[i].portA & filter)
+
+		if (bkd[i].joy) {
+			if (!config.swap_joysticks) {
+				v &= bkd[i].portJoy;
+			}
+		} else if (bkd[i].portA & filter) {
 			v &= ~bkd[i].portB;
+		}
 	}
 
 	if (kbdData.portA & filter)
