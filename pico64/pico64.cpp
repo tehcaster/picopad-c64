@@ -99,6 +99,41 @@ out:
 	DiskUnmount();
 }
 
+static void config_load_button(char *val)
+{
+	char *saveptr;
+	u8 idx, mode, key;
+	char *p;
+
+
+	p = strtok_r(val, ",", &saveptr);
+	if (!p)
+		return;
+	idx = atoi(p);
+	if (idx >= CONFIG_BTN_MAX)
+		return;
+
+	p = strtok_r(NULL, ",", &saveptr);
+	if (!p)
+		return;
+	mode = atoi(p);
+	if (mode >= CONFIG_BTN_MODE_MAX)
+		return;
+
+	p = strtok_r(NULL, ",", &saveptr);
+	if (!p)
+		return;
+	key = atoi(p);
+
+	struct button_config *btn = &config.buttons[idx];
+
+	btn->mode = mode;
+	if (mode == CONFIG_BTN_MODE_KEY)
+		btn->key = key;
+	else if (mode == CONFIG_BTN_MODE_JOY)
+		btn->joy = key;
+}
+
 static void config_game_load()
 {
 	char buf[1024];
@@ -129,12 +164,16 @@ static void config_game_load()
 
 		if (!strcmp(name, "joyswap")) {
 			config.swap_joysticks = *value == '1' ? 1 : 0;
+		} else if (!strcmp(name, "button")) {
+			config_load_button(value);
 		} else {
 			printf("per-game config unknown name '%s'\n", name);
 		}
 
 		name = strtok(NULL, "=");
 	}
+
+	apply_button_config();
 
 out:
 	FileClose(&file);
@@ -158,6 +197,17 @@ void config_game_save()
 	}
 
 	FilePrint(&file, "joyswap=%d\n", config.swap_joysticks ? 1 : 0);
+	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
+		struct button_config *btn = &config.buttons[i];
+		u8 val = 0;
+
+		if (btn->mode == CONFIG_BTN_MODE_KEY)
+			val = btn->key;
+		else if (btn->mode == CONFIG_BTN_MODE_JOY)
+			val = btn->joy;
+
+		FilePrint(&file, "button=%d,%d,%d\n", i, btn->mode, val);
+	}
 
 out_close:
 	if (!FileClose(&file))

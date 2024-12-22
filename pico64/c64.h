@@ -18,6 +18,7 @@ extern u32 timeSWISR;
 #define CONFIG_BTN_MODE_OFF	0
 #define CONFIG_BTN_MODE_KEY	1
 #define CONFIG_BTN_MODE_JOY	2
+#define CONFIG_BTN_MODE_MAX	3
 
 struct button_config {
 	u8 mode;
