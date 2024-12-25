@@ -1,3 +1,4 @@
+// vim: set shiftwidth=2 smarttab expandtab:
 /*
   Copyright Frank Bösing, 2017
 
