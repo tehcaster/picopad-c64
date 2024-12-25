@@ -331,6 +331,18 @@ int main(void) {
 		c64_Input();
 	}
 
+	if (config.single_frame_mode && nFramesC64Last != nFramesC64) {
+		char key;
+
+		audio_paused = true;
+		KeyWaitNoPressed();
+		KeyFlush();
+		while ((key = KeyGet()) == NOKEY);
+		if (key == KEY_Y)
+			osd_active = true;
+		nFramesC64Last = nFramesC64;
+	}
+
 	if (osd_active) {
 		audio_paused = true;
 		osd_start();

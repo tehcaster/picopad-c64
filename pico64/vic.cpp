@@ -1310,9 +1310,13 @@ void vic_do(void) {
       //emu_DrawVsync();
     //}
 
-    nFramesC64++;
+  } else {
+    cpu.vic.rasterLine++;
+    if (cpu.vic.rasterLine >= LINECNT) 
+      nFramesC64++;
+  }
 
-  } else  cpu.vic.rasterLine++;
+
 
   int r = cpu.vic.rasterLine;
 
@@ -1898,9 +1902,11 @@ if ( cpu.vic.rasterLine >= LINECNT ) {
     nFramesC64++;
 
   } else  {
-	  cpu.vic.rasterLine++;
-	  cpu_clock(1);
-	  cycles += 1;
+    cpu.vic.rasterLine++;
+    if (cpu.vic.rasterLine >= LINECNT) 
+      nFramesC64++;
+    cpu_clock(1);
+    cycles += 1;
   }
 
   int r = cpu.vic.rasterLine;

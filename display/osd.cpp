@@ -347,6 +347,12 @@ static void osd_draw_save_config_global(int row, int selrow)
 	osd_menu_name("SAVE GLOBAL CONFIG", row, selrow);
 }
 
+static void osd_draw_single_frame_mode(int row, int selrow)
+{
+	osd_menu_name("FRM STEP", row, selrow);
+
+	osd_menu_val_char(config.single_frame_mode ? '1' : '0', row);
+}
 
 static void osd_action(int row, u8 key)
 {
@@ -389,9 +395,13 @@ static void osd_action(int row, u8 key)
 		config_global_save();
 		return;
 	}
+	if (row == 8) {
+		config.single_frame_mode = !config.single_frame_mode;
+		return;
+	}
 }
 
-#define OSD_MENU_MAXROW	7
+#define OSD_MENU_MAXROW	8
 static void osd_draw_all(int selrow)
 {
 	DrawClear();
@@ -403,7 +413,7 @@ static void osd_draw_all(int selrow)
 	osd_draw_autorun(5, selrow);
 	osd_draw_save_config_game(6, selrow);
 	osd_draw_save_config_global(7, selrow);
-
+	osd_draw_single_frame_mode(8, selrow);
 }
 
 static void osd_cleanup(void)
