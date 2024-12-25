@@ -40,7 +40,8 @@
 #include "IntervalTimer.h"
 
 
-
+// TODO: is it really limited like this for collision detection purposes?
+// from reading VIC-Article.txt I think maybe not?
 #define SPRITE_MAX_X (320 + 24)
 
 /* for later use
