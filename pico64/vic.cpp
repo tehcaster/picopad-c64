@@ -88,6 +88,8 @@ inline __attribute__((always_inline))
 void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, uint16_t * spl);
 inline __attribute__((always_inline))
 void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col);
+inline __attribute__((always_inline))
+void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
 
 
 /*****************************************************************************************************/
@@ -1408,8 +1410,13 @@ void vic_do(void) {
   spl = &cpu.vic.spriteLine[24];
   cpu_clock(6);
 
-
-  if (cpu.vic.borderFlag) {
+  /*
+   * For many YSCROLL values the bad line can occur in the top border so we must
+   * perform the full modeX emulation for timing and initializing the
+   * character/bitmap data for the following lines. We will however ignore both
+   * the calculated pixels and fgcollision at the end.
+   */
+  if (cpu.vic.borderFlag && !cpu.vic.badline) {
 	cpu_clock(5);
     fastFillLineNoSprites(p, pe + BORDER_RIGHT, cpu.vic.colors[0]);
     goto noDisplayIncRC ;
@@ -1546,14 +1553,19 @@ g-Zugriff
   }
 
   /*
+   * In the top/bottom border, sprite-data collisions are not detected and also
+   * discard the graphics we just generated (only to emulate the bad line).
+   */
+  if (cpu.vic.borderFlag) {
+    fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
+  /*
     Bei den MBC- und MMC-Interrupts löst jeweils nur die erste Kollision einen
     Interrupt aus (d.h. wenn die Kollisionsregister $d01e bzw. $d01f vor der
     Kollision den Inhalt Null hatten). Um nach einer Kollision weitere
     Interrupts auszulösen, muß das betreffende Register erst durch Auslesen
     gelöscht werden.
   */
-
-  if (cpu.vic.fgcollision) {
+  } else if (cpu.vic.fgcollision) {
     if (cpu.vic.MD == 0) {
       cpu.vic.R[0x19] |= 2 | ( (cpu.vic.R[0x1a] & 2) << 6);
     }
@@ -1844,6 +1856,12 @@ noDisplayIncRC:
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 /*****************************************************************************************************/
+void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col)
+{
+  while (p < pe)
+    *p++ = col;
+}
+
 void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col) {
   int i = 0;
 
