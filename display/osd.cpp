@@ -74,7 +74,7 @@ static void osd_draw_kb_space(struct kb_state *kbs)
 	int y = 20 + 4 * 16  + 4;
 	bool selected = (kbs->row == 4);
 
-	DrawTextBg(kb_labels[CK_SPACE], (320 - 5*8) / 2, y,
+	DrawTextBg(kb_labels[CK_SPACE], 120, y,
 		   selected ? COL_BLACK : COL_WHITE,
 		   selected ? COL_LTGREEN : COL_BLACK);
 }
@@ -98,12 +98,12 @@ static void osd_draw_kb_row(int row, struct kb_state *kbs)
 			    (ck == CK_CONTROL && kbs->mods & CK_MOD_CONTROL))
 				mod_active = true;
 
-			fg = selected ? COL_BLACK : COL_WHITE;
-			bg = selected ? COL_LTGREEN : COL_BLACK;
 			if (mod_active) {
-				COLTYPE tmp = fg;
-				fg = bg;
-				bg = tmp;
+				fg = selected ? COL_WHITE : COL_BLACK;
+				bg = selected ? COL_LTGREEN : COL_WHITE;
+			} else {
+				fg = selected ? COL_BLACK : COL_WHITE;
+				bg = selected ? COL_LTGREEN : COL_BLACK;
 			}
 
 			if (ck < CK_MAX && kbs->mods & (CK_MOD_LSHIFT | CK_MOD_RSHIFT))
