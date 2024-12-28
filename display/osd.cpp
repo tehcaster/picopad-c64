@@ -74,19 +74,29 @@ struct kb_state {
 
 static void osd_draw_kb_space(struct kb_state *kbs)
 {
-	int y = 20 + 4 * 16  + 4;
+	int x = 120;
+	int endx;
+	int y = 20 + 4 * 17;
 	bool selected = (kbs->row == 4);
 
-	DrawTextBg(kb_labels[CK_SPACE], 120, y,
+	DrawRect(x - 3, y, 1, 16, COL_LTGRAY);
+
+	DrawTextBg(kb_labels[CK_SPACE], x, y,
 		   selected ? COL_BLACK : COL_WHITE,
 		   selected ? COL_LTGREEN : COL_BLACK);
+
+	endx = x + strlen(kb_labels[CK_SPACE]) * 8;
+	DrawRect(endx + 3, y, 1, 16, COL_LTGRAY);
+	DrawRect(x - 3, y + 16, endx + 3 - (x - 3) + 1, 1, COL_LTGRAY);
+
 }
 
 static void osd_draw_kb_row(int row, struct kb_state *kbs)
 {
-	int x = 20;
-	int y = 20 + row * 16  + 4;
+	int x = 15;
+	int y = 20 + row * 17;
 
+	DrawRect(x - 3, y, 1, 16, COL_LTGRAY);
 	for (int col = 0; col < KEYS_ROW; col++) {
 		u8 ck = kb_codes[row][col];
 		if (ck != CK_NOKEY) {
@@ -115,11 +125,26 @@ static void osd_draw_kb_row(int row, struct kb_state *kbs)
 				label = kb_labels[ck];
 
 			DrawTextBg(label, x, y, fg, bg);
-			x += strlen(label) * 8 + 4;
+			x += strlen(label) * 8 + 2;
+			/* line right of key */
+			DrawRect(x, y, 1, 16, COL_LTGRAY);
+			x += 3;
 		}
 		/* right-align the Fx column */
 		if (col == KEYS_ROW - 2) {
-			x = 320 - 20 - 2*8;
+			/* line under the row */
+			DrawRect(15 - 3, y + 16, x - 2 - (15 - 3), 1, COL_LTGRAY);
+			/* line above the row */
+			DrawRect(15 - 3, y - 1, x - 2 - (15 - 3), 1, COL_LTGRAY);
+
+			x = 320 - 15 - 2*8;
+			/* line under the Fx */
+			DrawRect(x - 3, y + 16, 2*8 + 2*3, 1, COL_LTGRAY);
+			/* line above F1 */
+			if (row == 0)
+				DrawRect(x - 3, y - 1, 2*8 + 2*3, 1, COL_LTGRAY);
+			/* line left of the Fx */
+			DrawRect(x - 3, y, 1, 16, COL_LTGRAY);
 		}
 	}
 }
@@ -156,7 +181,7 @@ static void osd_kb_fixup_col(struct kb_state *kbs, int prev_row)
 		ck = kb_codes[prev_row][col];
 		label = kb_labels[ck];
 
-		x_prev += strlen(label) * 8 + 4;
+		x_prev += strlen(label) * 8 + 5;
 	}
 
 	ck = kb_codes[prev_row][kbs->col];
@@ -171,7 +196,7 @@ static void osd_kb_fixup_col(struct kb_state *kbs, int prev_row)
 			kbs->col = col;
 			break;
 		}
-		x += 2;
+		x += 3;
 	}
 out:
 	while (kb_codes[kbs->row][kbs->col] == CK_NOKEY)
