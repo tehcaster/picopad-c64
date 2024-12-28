@@ -139,8 +139,41 @@ static u8 osd_kb_get_code(struct kb_state *kbs)
 		return kb_codes[kbs->row][kbs->col];
 }
 
-static void osd_kb_fixup_col(struct kb_state *kbs)
+static void osd_kb_fixup_col(struct kb_state *kbs, int prev_row)
 {
+	int x = 0, x_prev = 0;
+	u8 ck;
+	const char *label;
+
+	if (prev_row == kbs->row || prev_row == 4 || kbs->col == KEYS_ROW - 1)
+		goto out;
+
+	/*
+	 * ideally we'd have this pre-computed, but it would have to be
+	 * compile-time to be in flash, otherwise let's not waste RAM
+	 */
+	for (int col = 0; col < kbs->col; col++) {
+		ck = kb_codes[prev_row][col];
+		label = kb_labels[ck];
+
+		x_prev += strlen(label) * 8 + 4;
+	}
+
+	ck = kb_codes[prev_row][kbs->col];
+	label = kb_labels[ck];
+	x_prev += strlen(label) * 8 / 2;
+
+	for (int col = 0; col < KEYS_ROW - 1; col++) {
+		ck = kb_codes[kbs->row][col];
+		label = kb_labels[ck];
+		x += strlen(label) * 8 + 2;
+		if (x >= x_prev) {
+			kbs->col = col;
+			break;
+		}
+		x += 2;
+	}
+out:
 	while (kb_codes[kbs->row][kbs->col] == CK_NOKEY)
 		kbs->col--;
 }
@@ -156,6 +189,7 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 	bool redraw = true;
 	SelFont8x16();
 	DrawClear();
+	int prev_row = kbs.row;
 	while(true) {
 		if (redraw)
 			osd_draw_kb(&kbs);
@@ -163,6 +197,8 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 
 		char key = KeyGet();
 		u8 kc;
+		if (kbs.row != 4)
+			prev_row = kbs.row;
 		switch(key) {
 		case NOKEY:
 			redraw = false;
@@ -180,19 +216,19 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 				break;
 			if (--kbs.col < 0)
 				kbs.col = KEYS_ROW - 1;
-			osd_kb_fixup_col(&kbs);
+			osd_kb_fixup_col(&kbs, kbs.row);
 			break;
 		case KEY_DOWN:
 			if (++kbs.row > 4)
 				kbs.row = 0;
 			if (kbs.row < 4)
-				osd_kb_fixup_col(&kbs);
+				osd_kb_fixup_col(&kbs, prev_row);
 			break;
 		case KEY_UP:
 			if (--kbs.row < 0)
 				kbs.row = 4;
 			if (kbs.row < 4)
-				osd_kb_fixup_col(&kbs);
+				osd_kb_fixup_col(&kbs, prev_row);
 			break;
 		case KEY_X:
 			return false;
