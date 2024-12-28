@@ -11,6 +11,9 @@ u8 osd_mods_pending = 0;
 
 #define KEYS_ROW	17
 
+static int kb_last_row = 4;
+static int kb_last_col = 8;
+
 static const u8 kb_codes[][KEYS_ROW] = {
 	{
 	CK_LEFTARR, CK_1, CK_2, CK_3, CK_4, CK_5, CK_6, CK_7, CK_8, CK_9,
@@ -146,6 +149,8 @@ static void osd_kb_fixup_col(struct kb_state *kbs)
 static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 {
 	struct kb_state kbs = {
+		.row = kb_last_row,
+		.col = kb_last_col,
 		.with_mods = with_mods,
 	};
 	bool redraw = true;
@@ -211,6 +216,8 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 
 			*ret_kc = kc;
 			*ret_mods = kbs.mods;
+			kb_last_row = kbs.row;
+			kb_last_col = kbs.col;
 			return true;
 		default:
 			;
