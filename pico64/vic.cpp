@@ -1319,6 +1319,7 @@ void vic_do(void) {
   }
 
 
+  cpu.vic.badlineLate = false;
 
   int r = cpu.vic.rasterLine;
 
@@ -1646,6 +1647,12 @@ noDisplayIncRC:
     cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
   }
 
+  /*
+   * If we went idle, a bad line condition becoming true due to YSCROLL write
+   * at this point will not make us active again. Unsure if this is correct
+   * but helped against River Raid bottom HUD glitching.
+   */
+  cpu.vic.badlineLate = true;
 
   /*****************************************************************************************************/
   /* Sprites *******************************************************************************************/
@@ -2037,7 +2044,7 @@ void vic_write(uint32_t address, uint8_t value) {
 
       cpu.vic.badline = (cpu.vic.denLatch && (cpu.vic.rasterLine >= 0x30) && (cpu.vic.rasterLine <= 0xf7) && ( (cpu.vic.rasterLine & 0x07) == (value & 0x07)));
 
-    if (cpu.vic.badline) {
+    if (cpu.vic.badline && !cpu.vic.badlineLate) {
     cpu.vic.idle = 0;
     }
 

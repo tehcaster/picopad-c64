@@ -65,6 +65,7 @@ struct tvic {
   uint8_t idle;
   uint8_t denLatch;
   uint8_t badline;
+  bool badlineLate;
   uint8_t BAsignal;
   uint8_t lineHasSprites;
   int8_t spriteCycles0_2;
