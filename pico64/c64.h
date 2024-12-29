@@ -30,6 +30,8 @@ struct button_config {
 
 struct emu_config {
 	bool swap_joysticks;
+	bool show_fps;
+	bool show_keys;
 	bool autorun;
 	button_config buttons[CONFIG_BTN_MAX];
 	bool single_frame_mode;

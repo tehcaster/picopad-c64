@@ -65,6 +65,10 @@ static void config_global_load()
 
 		if (!strcmp(name, "autorun")) {
 			config.autorun = *value == '1' ? 1 : 0;
+		} else if (!strcmp(name, "show_fps")) {
+			config.show_fps = *value == '1' ? 1 : 0;
+		} else if (!strcmp(name, "show_keys")) {
+			config.show_keys = *value == '1' ? 1 : 0;
 		} else {
 			printf("global config unknown name '%s'\n", name);
 		}
@@ -89,6 +93,8 @@ void config_global_save()
 	}
 
 	FilePrint(&file, "autorun=%d\n", config.autorun ? 1 : 0);
+	FilePrint(&file, "show_fps=%d\n", config.show_fps ? 1 : 0);
+	FilePrint(&file, "show_keys=%d\n", config.show_keys ? 1 : 0);
 
 out_close:
 	if (!FileClose(&file))
@@ -325,6 +331,8 @@ int main(void) {
     nFramesC64Last = nFramesC64;
     nFramesC64NextInput = nFramesC64 + 100;
 
+    draw_key_hints();
+
     while (true) {
 	if (nFramesC64 == nFramesC64NextInput) {
 		nFramesC64NextInput = nFramesC64 + 1;
@@ -352,21 +360,20 @@ int main(void) {
 		fpsLast = Time();
 		nFramesLast = nFrames;
 		nFramesC64Last = nFramesC64;
+		draw_key_hints();
 	}
 
 	c64_Step();
 
 	if (Time() - fpsLast > 1000000) {
-		char fpsBuf[16];
 		fpsLast = Time();
-//		printf("display FPS: %u\n", nFrames - nFramesLast);
-		snprintf(fpsBuf, sizeof(fpsBuf), "LCD FPS: %3d", nFrames - nFramesLast);
-		DrawTextBg(fpsBuf, 0, 0, COL_GRAY, COL_BLACK);
+
+		if (config.show_fps)
+			draw_fps(nFrames - nFramesLast, nFramesC64 - nFramesC64Last);
+
 		nFramesLast = nFrames;
-//		printf("c64 FPS: %u\n", nFramesC64 - nFramesC64Last);
-		snprintf(fpsBuf, sizeof(fpsBuf), "C64 FPS: %3d", nFramesC64 - nFramesC64Last);
-		DrawTextBg(fpsBuf, 320-12*8, 0, COL_GRAY, COL_BLACK);
 		nFramesC64Last = nFramesC64;
+
 //		printf("SWISR: %u ms\n", (timeSWISR - timeSWISRLast) / 1024);
 		timeSWISRLast = timeSWISR;
 	}

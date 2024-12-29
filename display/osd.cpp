@@ -72,6 +72,52 @@ struct kb_state {
 	bool with_mods;
 };
 
+void draw_key_hints()
+{
+	int x = 0;
+	int y = 240 - 8;
+
+	if (!config.show_keys)
+		return;
+
+	SelFont8x8();
+	DrawRect(0, y, 320, 8, COL_BLACK);
+
+	for (int btn = 0; btn < CONFIG_BTN_MAX; btn++) {
+		int x2 = x;
+
+		DrawChar(btn_labels[btn], x2, y, COL_GRAY);
+		DrawChar(':', x2 + 8, y, COL_GRAY);
+		x2 += 3*8;
+
+		struct button_config *cfg = &config.buttons[btn];
+		if (cfg->mode == CONFIG_BTN_MODE_OFF) {
+			DrawText("NONE", x2, y, COL_GRAY);
+		} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
+			DrawText(kb_labels[cfg->key], x2, y, COL_GRAY);
+		} else {
+			DrawText("J.", x2, y, COL_GRAY);
+			DrawText(joy_labels[cfg->key], x2 + 2*8, y, COL_GRAY);
+		}
+
+		x += 107;
+	}
+}
+
+void draw_fps(u32 lcd, u32 c64)
+{
+	char buf[50];
+
+	SelFont8x8();
+	DrawRect(0, 0, 320, 8, COL_BLACK);
+
+	snprintf(buf, sizeof(buf), "LCD FPS: %3d", lcd);
+	DrawText(buf, 0, 0, COL_GRAY);
+
+	snprintf(buf, sizeof(buf), "C64 FPS: %3d", c64);
+	DrawText(buf, 320-12*8, 0, COL_GRAY);
+}
+
 static void osd_draw_kb_space(struct kb_state *kbs)
 {
 	int x = 120;
@@ -353,12 +399,12 @@ static void osd_menu_name(const char *text, int row, int selrow)
 
 static void osd_menu_val(const char *text, int row)
 {
-	DrawTextBg(text, 8*10, 16*(row+1), COL_WHITE, COL_BLACK);
+	DrawTextBg(text, 8*12, 16*(row+1), COL_WHITE, COL_BLACK);
 }
 
 static void osd_menu_val_char(char ch, int row)
 {
-	DrawCharBg(ch, 8*10, 16*(row+1), COL_WHITE, COL_BLACK);
+	DrawCharBg(ch, 8*12, 16*(row+1), COL_WHITE, COL_BLACK);
 }
 
 static void osd_draw_vol(int row, int selrow)
@@ -398,39 +444,20 @@ static void osd_draw_button(int row, int selrow, u8 btn)
 	}
 }
 
-static void osd_draw_autorun(int row, int selrow)
+static void osd_draw_bool(int row, int selrow, const char *name, bool *val)
 {
-	osd_menu_name("AUTORUN:", row, selrow);
+	osd_menu_name(name, row, selrow);
 
-	osd_menu_val(config.autorun ? "ON" : "OFF", row);
-}
-
-static void osd_draw_save_config_game(int row, int selrow)
-{
-	osd_menu_name("SAVE PER-GAME CONFIG", row, selrow);
-}
-
-static void osd_draw_save_config_global(int row, int selrow)
-{
-	osd_menu_name("SAVE GLOBAL CONFIG", row, selrow);
-}
-
-static void osd_draw_single_frame_mode(int row, int selrow)
-{
-	osd_menu_name("FRM STEP", row, selrow);
-
-	osd_menu_val_char(config.single_frame_mode ? '1' : '0', row);
+	osd_menu_val(*val ? "ON" : "OFF", row);
 }
 
 static void osd_action(int row, u8 key)
 {
-	/* joystick */
-	if (row == 0) {
+	switch (row) {
+	case 0: /* joystick */
 		config.swap_joysticks = !config.swap_joysticks;
-		return;
-	}
-	/* volume */
-	if (row == 1) {
+		break;
+	case 1: /* volume */
 		if (key == KEY_LEFT)
 			ConfigDecVolume();
 		else if (key == KEY_RIGHT)
@@ -442,34 +469,36 @@ static void osd_action(int row, u8 key)
 				ConfigSetVolume(CONFIG_VOLUME_FULL);
 		}
 		audio_vol_update();
-		return;
-	}
-	if (row < 5) {
+		break;
+	case 2: /* buttons */
+	case 3:
+	case 4:
 		osd_config_button(row - 2);
-		return;
-	}
-	/* autorun */
-	if (row == 5) {
+		break;
+	case 5: /* autorun */
 		config.autorun = !config.autorun;
-		return;
-	}
-	/* save game config */
-	if (row == 6) {
+		break;
+	case 6: /* fps */
+		config.show_fps = !config.show_fps;
+		break;
+	case 7: /* key hints */
+		config.show_keys = !config.show_keys;
+		break;
+	case 8:
 		config_game_save();
-		return;
-	}
-	/* save global config */
-	if (row == 7) {
+		break;
+	case 9:
 		config_global_save();
-		return;
-	}
-	if (row == 8) {
+		break;
+	case 10:
 		config.single_frame_mode = !config.single_frame_mode;
-		return;
+		break;
+	default:
+		break;
 	}
 }
 
-#define OSD_MENU_MAXROW	8
+#define OSD_MENU_MAXROW	10
 static void osd_draw_all(int selrow)
 {
 	DrawClear();
@@ -478,10 +507,12 @@ static void osd_draw_all(int selrow)
 	osd_draw_vol(1, selrow);
 	for (int i = 0; i < CONFIG_BTN_MAX; i++)
 		osd_draw_button(2+i, selrow, i);
-	osd_draw_autorun(5, selrow);
-	osd_draw_save_config_game(6, selrow);
-	osd_draw_save_config_global(7, selrow);
-	osd_draw_single_frame_mode(8, selrow);
+	osd_draw_bool(5, selrow, "AUTORUN:", &config.autorun);
+	osd_draw_bool(6, selrow, "SHOW FPS:", &config.show_fps);
+	osd_draw_bool(7, selrow, "BTN HINTS:", &config.show_keys);
+	osd_menu_name("SAVE PER-GAME CONFIG", 8, selrow);
+	osd_menu_name("SAVE GLOBAL CONFIG", 9, selrow);
+	osd_draw_bool(10, selrow, "FRM STEP:", &config.single_frame_mode);
 }
 
 static void osd_cleanup(void)
