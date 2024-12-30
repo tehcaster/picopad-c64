@@ -468,23 +468,33 @@ static void osd_draw_bool(int row, int selrow, const char *name, bool *val)
 	osd_menu_val(*val ? "ON" : "OFF", row);
 }
 
-#define OSD_MENU_BTN_MAXROW	CONFIG_BTN_MAX - 1
-static void osd_draw_btn_layout_all(int selrow)
+#define OSD_MENU_BTN_MAXROW	CONFIG_BTN_MAX
+static void osd_draw_btn_layout_all(int selrow, int layout)
 {
 	char buf[50];
+	bool initial;
 
 	DrawClear();
-	snprintf(buf, sizeof(buf), "EDITING LAYOUT %d: Y - back",
-			config.button_layout + 1);
+	snprintf(buf, sizeof(buf), "EDITING LAYOUT %d (L/R: switch, Y: back)",
+			layout + 1);
 
 	DrawText(buf, 0, 0, COL_WHITE);
 	for (int i = 0; i < CONFIG_BTN_MAX; i++)
 		osd_draw_button(i, selrow, i);
+
+	osd_menu_name("MAKE THIS LAYOUT INITIAL (IN GAME CFG)", CONFIG_BTN_MAX, selrow);
+	osd_menu_name("CURRENT:", CONFIG_BTN_MAX + 1, selrow);
+	snprintf(buf, sizeof(buf), "%d", config.initial_layout + 1);
+	osd_menu_val(buf, CONFIG_BTN_MAX + 1);
 }
 
-static void osd_btn_layout_action(int row, u8 key)
+static void osd_btn_layout_action(int row, u8 key, int layout)
 {
-	osd_config_button(row);
+	if (row < CONFIG_BTN_MAX) {
+		osd_config_button(row);
+	} else {
+		config.initial_layout = layout;
+	}
 }
 
 static void osd_cleanup(void)
@@ -498,9 +508,10 @@ static void osd_start_btn_layout()
 {
 	int selrow = 0;
 	bool redraw = true;
+	int layout = config.button_layout;
 
 	SelFont8x16();
-	osd_draw_btn_layout_all(selrow);
+	osd_draw_btn_layout_all(selrow, layout);
 
 	KeyWaitNoPressed();
 	KeyFlush();
@@ -508,7 +519,7 @@ static void osd_start_btn_layout()
 	while(true) {
 		char key;
 		if (redraw)
-			osd_draw_btn_layout_all(selrow);
+			osd_draw_btn_layout_all(selrow, layout);
 
 		redraw = true;
 		key = KeyGet();
@@ -525,10 +536,20 @@ static void osd_start_btn_layout()
 		case KEY_Y:
 			osd_cleanup();
 			return;
-		case KEY_A:
 		case KEY_LEFT:
+			if (layout == 0)
+				layout = CONFIG_BTN_LAYOUT_MAX - 1;
+			else
+				layout--;
+			break;
 		case KEY_RIGHT:
-			osd_btn_layout_action(selrow, key);
+			if (layout == CONFIG_BTN_LAYOUT_MAX - 1)
+				layout = 0;
+			else
+				layout++;
+			break;
+		case KEY_A:
+			osd_btn_layout_action(selrow, key, layout);
 			break;
 		default:
 			redraw = false;

@@ -193,6 +193,12 @@ restart:
 
 		if (!strcmp(name, "joyswap")) {
 			config.swap_joysticks = *value == '1' ? 1 : 0;
+		} else if (!strcmp(name, "initial_layout")) {
+			int ilayout = atoi(value);
+			if (ilayout >= 0 && ilayout < CONFIG_BTN_LAYOUT_MAX) {
+				config.initial_layout = ilayout;
+				config.button_layout = ilayout;
+			}
 		} else if (!strcmp(name, "layout_buttons")) {
 			layout = atoi(value);
 			if (layout < 0 || layout >= CONFIG_BTN_LAYOUT_MAX)
@@ -230,6 +236,7 @@ void config_game_save()
 	}
 
 	FilePrint(&file, "joyswap=%d\n", config.swap_joysticks ? 1 : 0);
+	FilePrint(&file, "initial_layout=%d\n", config.initial_layout);
 	for (int lay = 0; lay < CONFIG_BTN_LAYOUT_MAX; lay++) {
 		struct button_layout *layout = &config.layouts[lay];
 		bool all_default = true;
