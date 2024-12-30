@@ -105,12 +105,11 @@ out:
 	DiskUnmount();
 }
 
-static void config_load_button(char *val)
+static void config_load_button(u8 layout, char *val)
 {
 	char *saveptr;
 	u8 idx, mode, key;
 	char *p;
-
 
 	p = strtok_r(val, ",", &saveptr);
 	if (!p)
@@ -131,7 +130,7 @@ static void config_load_button(char *val)
 		return;
 	key = atoi(p);
 
-	struct button_config *btn = &config.buttons[idx];
+	struct button_config *btn = &config.layouts[layout].buttons[idx];
 
 	btn->mode = mode;
 	if (mode == CONFIG_BTN_MODE_KEY)
@@ -146,6 +145,9 @@ static void config_game_load()
 	int read;
 	sFile file;
 	char *name;
+	int layout = 0;
+	u32 off = 0;
+	bool read_all;
 
 	snprintf(buf, sizeof(buf), "%s.%s", FileSelLastName, "CFG");
 	printf("loading per-game config %s\n", buf);
@@ -157,10 +159,31 @@ static void config_game_load()
 		goto out;
 	}
 
-	read = FileRead(&file, buf, 1024);
+restart:
+	read = FileRead(&file, buf, 1023);
 	buf[read] = 0;
+	if (read == 1023)
+		read_all = false;
+	else
+		read_all = true;
 	name = strtok(buf, "=");
 	while (name) {
+
+		if (!read_all) {
+			u32 pos = name - &buf[0];
+
+			if (pos > 512) {
+				printf("seeking to restart at pos %u off %u\n", pos, off + pos);
+
+				off = off + pos;
+				if (!FileSeek(&file, off)) {
+					printf("seek failed");
+					goto out;
+				}
+				goto restart;
+			}
+		}
+
 		char *value = strtok(NULL, "\n");
 		if (!value) {
 			printf("per-game config option '%s' has no value\n", name);
@@ -170,8 +193,12 @@ static void config_game_load()
 
 		if (!strcmp(name, "joyswap")) {
 			config.swap_joysticks = *value == '1' ? 1 : 0;
+		} else if (!strcmp(name, "layout_buttons")) {
+			layout = atoi(value);
+			if (layout < 0 || layout >= CONFIG_BTN_LAYOUT_MAX)
+				layout = 0;
 		} else if (!strcmp(name, "button")) {
-			config_load_button(value);
+			config_load_button(layout, value);
 		} else {
 			printf("per-game config unknown name '%s'\n", name);
 		}
@@ -203,16 +230,38 @@ void config_game_save()
 	}
 
 	FilePrint(&file, "joyswap=%d\n", config.swap_joysticks ? 1 : 0);
-	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
-		struct button_config *btn = &config.buttons[i];
-		u8 val = 0;
+	for (int lay = 0; lay < CONFIG_BTN_LAYOUT_MAX; lay++) {
+		struct button_layout *layout = &config.layouts[lay];
+		bool all_default = true;
 
-		if (btn->mode == CONFIG_BTN_MODE_KEY)
-			val = btn->key;
-		else if (btn->mode == CONFIG_BTN_MODE_JOY)
-			val = btn->joy;
+		for (int i = 0; i < CONFIG_BTN_MAX; i++) {
+			if (layout->buttons[i] != default_button_layout.buttons[i]) {
+				all_default = false;
+				break;
+			}
+		}
 
-		FilePrint(&file, "button=%d,%d,%d\n", i, btn->mode, val);
+		if (all_default)
+			continue;
+
+		printf("layout_buttons=%d\n", lay);
+		FilePrint(&file, "layout_buttons=%d\n", lay);
+
+		for (int i = 0; i < CONFIG_BTN_MAX; i++) {
+			struct button_config *btn = &layout->buttons[i];
+			u8 val = 0;
+
+			if (*btn == default_button_layout.buttons[i])
+				continue;
+
+			if (btn->mode == CONFIG_BTN_MODE_KEY)
+				val = btn->key;
+			else if (btn->mode == CONFIG_BTN_MODE_JOY)
+				val = btn->joy;
+
+			printf("button=%d,%d,%d\n", i, btn->mode, val);
+			FilePrint(&file, "button=%d,%d,%d\n", i, btn->mode, val);
+		}
 	}
 
 out_close:
@@ -291,26 +340,8 @@ out:
 
 static void config_init_defaults()
 {
-	config.buttons[CONFIG_BTN_A] = {
-		.mode = CONFIG_BTN_MODE_JOY,
-		.joy = CJ_FIRE,
-	};
-	config.buttons[CONFIG_BTN_UP] = {
-		.mode = CONFIG_BTN_MODE_JOY,
-		.joy = CJ_UP,
-	};
-	config.buttons[CONFIG_BTN_LEFT] = {
-		.mode = CONFIG_BTN_MODE_JOY,
-		.joy = CJ_LEFT,
-	};
-	config.buttons[CONFIG_BTN_RIGHT] = {
-		.mode = CONFIG_BTN_MODE_JOY,
-		.joy = CJ_RIGHT,
-	};
-	config.buttons[CONFIG_BTN_DOWN] = {
-		.mode = CONFIG_BTN_MODE_JOY,
-		.joy = CJ_DOWN,
-	};
+	for (int i = 0; i < CONFIG_BTN_LAYOUT_MAX; i++)
+		config.layouts[i] = default_button_layout;
 	apply_button_config();
 }
 

@@ -68,6 +68,38 @@ static struct {
   u8 mods;
 } kbdData = {0, 0, 0};
 
+const struct button_layout default_button_layout = {
+	.buttons = {
+		{
+			.mode = CONFIG_BTN_MODE_JOY,
+			.joy = CJ_FIRE,
+		},
+		{
+			.mode = CONFIG_BTN_MODE_KEY,
+			.key = CK_SPACE,
+		},
+		{
+			.mode = CONFIG_BTN_MODE_OFF
+		},
+		{
+			.mode = CONFIG_BTN_MODE_JOY,
+			.joy = CJ_UP,
+		},
+		{
+			.mode = CONFIG_BTN_MODE_JOY,
+			.joy = CJ_LEFT,
+		},
+		{
+			.mode = CONFIG_BTN_MODE_JOY,
+			.joy = CJ_RIGHT,
+		},
+		{
+			.mode = CONFIG_BTN_MODE_JOY,
+			.joy = CJ_DOWN,
+		},
+	},
+};
+
 struct emu_config config = { };
 
 static void setKey(u8 ck, u8 mods)
@@ -118,10 +150,13 @@ static const u8 btn_idx_to_gpio[CONFIG_BTN_MAX] =
 	  BTN_RIGHT_PIN, BTN_DOWN_PIN };
 
 void apply_button_config() {
+	struct button_layout *layout = &config.layouts[config.button_layout];
+
 	bkd_used = 0;
 	bjd_used = 0;
+
 	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
-		struct button_config *cfg = &config.buttons[i];
+		struct button_config *cfg = &layout->buttons[i];
 
 		if (cfg->mode == CONFIG_BTN_MODE_OFF)
 			continue;

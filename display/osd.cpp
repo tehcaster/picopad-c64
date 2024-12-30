@@ -76,12 +76,15 @@ void draw_key_hints()
 {
 	int x = 0;
 	int y = 240 - 8;
+	struct button_layout *layout;
 
 	if (!config.show_keys)
 		return;
 
 	SelFont8x8();
 	DrawRect(0, y, 320, 8, COL_BLACK);
+
+	layout = &config.layouts[config.button_layout];
 
 	for (int btn = 0; btn < CONFIG_BTN_MAX; btn++) {
 		int x2 = x;
@@ -90,7 +93,7 @@ void draw_key_hints()
 		DrawChar(':', x2 + 8, y, COL_GRAY);
 		x2 += 3*8;
 
-		struct button_config *cfg = &config.buttons[btn];
+		struct button_config *cfg = &layout->buttons[btn];
 		if (cfg->mode == CONFIG_BTN_MODE_OFF) {
 			DrawText("NONE", x2, y, COL_GRAY);
 		} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
@@ -334,7 +337,8 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 
 static void osd_config_button(u8 btn)
 {
-	struct button_config *cfg = &config.buttons[btn];
+	struct button_layout *layout = &config.layouts[config.button_layout];
+	struct button_config *cfg = &layout->buttons[btn];
 	char buf[50];
 	u8 key;
 	u8 kc, mods;
@@ -439,7 +443,8 @@ static void osd_draw_btn_layout(int row, int selrow)
 
 static void osd_draw_button(int row, int selrow, u8 btn)
 {
-	struct button_config *cfg = &config.buttons[btn];
+	struct button_layout *layout = &config.layouts[config.button_layout];
+	struct button_config *cfg = &layout->buttons[btn];
 	char buf[50];
 
 	snprintf(buf, sizeof(buf), "BUTTON %c:", btn_labels[btn]);
@@ -566,22 +571,22 @@ static void osd_action(int row, u8 key)
 		}
 		apply_button_config();
 		break;
-	case 5: /* autorun */
+	case 3: /* autorun */
 		config.autorun = !config.autorun;
 		break;
-	case 6: /* fps */
+	case 4: /* fps */
 		config.show_fps = !config.show_fps;
 		break;
-	case 7: /* key hints */
+	case 5: /* key hints */
 		config.show_keys = !config.show_keys;
 		break;
-	case 8:
+	case 6:
 		config_game_save();
 		break;
-	case 9:
+	case 7:
 		config_global_save();
 		break;
-	case 10:
+	case 8:
 		config.single_frame_mode = !config.single_frame_mode;
 		break;
 	default:

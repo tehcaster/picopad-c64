@@ -32,6 +32,25 @@ struct button_config {
 		u8 key;
 		u8 joy;
 	};
+
+	bool operator!=(const button_config &a) {
+		if (mode != a.mode)
+			return true;
+		if (mode == CONFIG_BTN_MODE_KEY && key != a.key)
+			return true;
+		if (mode == CONFIG_BTN_MODE_JOY && joy != a.joy)
+			return true;
+		return false;
+	}
+
+	bool operator==(const button_config &a) {
+		return !(*this != a);
+	}
+
+};
+
+struct button_layout {
+	button_config buttons[CONFIG_BTN_MAX];
 };
 
 struct emu_config {
@@ -39,11 +58,12 @@ struct emu_config {
 	bool show_fps;
 	bool show_keys;
 	bool autorun;
-	u8 button_layout;
-	button_config buttons[CONFIG_BTN_MAX];
 	bool single_frame_mode;
+	u8 button_layout;
+	struct button_layout layouts[CONFIG_BTN_LAYOUT_MAX];
 };
 
+extern const struct button_layout default_button_layout;
 extern struct emu_config config;
 
 void apply_button_config();
