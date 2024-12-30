@@ -74,36 +74,49 @@ struct kb_state {
 
 void draw_key_hints()
 {
-	int x = 0;
-	int y = 240 - 8;
+	int x1 = 0;
+	int x2 = 0;
+	int y1 = 240 - 18;
+	int y2 = 240 - 8;
+
 	struct button_layout *layout;
 
 	if (!config.show_keys)
 		return;
 
 	SelFont8x8();
-	DrawRect(0, y, 320, 8, COL_BLACK);
+	DrawRect(0, y1, 320, 18, COL_BLACK);
 
 	layout = &config.layouts[config.button_layout];
 
 	for (int btn = 0; btn < CONFIG_BTN_MAX; btn++) {
-		int x2 = x;
-
-		DrawChar(btn_labels[btn], x2, y, COL_GRAY);
-		DrawChar(':', x2 + 8, y, COL_GRAY);
-		x2 += 3*8;
-
 		struct button_config *cfg = &layout->buttons[btn];
-		if (cfg->mode == CONFIG_BTN_MODE_OFF) {
-			DrawText("NONE", x2, y, COL_GRAY);
-		} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
-			DrawText(kb_labels[cfg->key], x2, y, COL_GRAY);
+		int x, y;
+
+		if (btn <= CONFIG_BTN_X) {
+			x = x2;
+			y = y2;
+			x2 += 320/3;
 		} else {
-			DrawText("J.", x2, y, COL_GRAY);
-			DrawText(joy_labels[cfg->key], x2 + 2*8, y, COL_GRAY);
+			if (*cfg == default_button_layout.buttons[btn])
+				continue;
+			x = x1;
+			y = y1;
+			x1 += 320/4;
 		}
 
-		x += 107;
+		DrawChar(btn_labels[btn], x, y, COL_GRAY);
+		DrawChar(':', x + 8, y, COL_GRAY);
+		x += 3*8;
+
+		if (cfg->mode == CONFIG_BTN_MODE_OFF) {
+			DrawText("NONE", x, y, COL_GRAY);
+		} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
+			DrawText(kb_labels[cfg->key], x, y, COL_GRAY);
+		} else {
+			DrawText("J.", x, y, COL_GRAY);
+			DrawText(joy_labels[cfg->key], x + 2*8, y, COL_GRAY);
+		}
 	}
 }
 
