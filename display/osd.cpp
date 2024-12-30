@@ -454,9 +454,9 @@ static void osd_draw_btn_layout(int row, int selrow)
 	osd_menu_val(buf, row);
 }
 
-static void osd_draw_button(int row, int selrow, u8 btn)
+static void osd_draw_button(int row, int selrow, int lay, u8 btn)
 {
-	struct button_layout *layout = &config.layouts[config.button_layout];
+	struct button_layout *layout = &config.layouts[lay];
 	struct button_config *cfg = &layout->buttons[btn];
 	char buf[50];
 
@@ -493,7 +493,7 @@ static void osd_draw_btn_layout_all(int selrow, int layout)
 
 	DrawText(buf, 0, 0, COL_WHITE);
 	for (int i = 0; i < CONFIG_BTN_MAX; i++)
-		osd_draw_button(i, selrow, i);
+		osd_draw_button(i, selrow, layout, i);
 
 	osd_menu_name("MAKE THIS LAYOUT INITIAL (IN GAME CFG)", CONFIG_BTN_MAX, selrow);
 	osd_menu_name("CURRENT:", CONFIG_BTN_MAX + 1, selrow);
