@@ -10,10 +10,16 @@ extern void c64_Input();
 extern u32 nFramesC64;
 extern u32 timeSWISR;
 
-#define CONFIG_BTN_A	0
-#define CONFIG_BTN_B	1
-#define CONFIG_BTN_X	2
-#define CONFIG_BTN_MAX	3
+#define CONFIG_BTN_LAYOUT_MAX	10
+
+#define CONFIG_BTN_A		0
+#define CONFIG_BTN_B		1
+#define CONFIG_BTN_X		2
+#define CONFIG_BTN_UP		3
+#define CONFIG_BTN_LEFT		4
+#define CONFIG_BTN_RIGHT	5
+#define CONFIG_BTN_DOWN		6
+#define CONFIG_BTN_MAX		7
 
 #define CONFIG_BTN_MODE_OFF	0
 #define CONFIG_BTN_MODE_KEY	1
@@ -33,6 +39,7 @@ struct emu_config {
 	bool show_fps;
 	bool show_keys;
 	bool autorun;
+	u8 button_layout;
 	button_config buttons[CONFIG_BTN_MAX];
 	bool single_frame_mode;
 };

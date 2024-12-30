@@ -98,17 +98,28 @@ struct button_kbd_data {
 	u8 pico_gpio;
 };
 
+struct button_joy_data {
+	u8 portJoy;
+	u8 pico_key;
+	u8 pico_gpio;
+};
+
 static struct button_kbd_data bkd[CONFIG_BTN_MAX];
 static u8 bkd_used = 0;
 
+static struct button_kbd_data bjd[CONFIG_BTN_MAX];
+static u8 bjd_used = 0;
+
 static const u8 btn_idx_to_key[CONFIG_BTN_MAX] =
-	{ KEY_A, KEY_B, KEY_X };
+	{ KEY_A, KEY_B, KEY_X, KEY_UP, KEY_LEFT, KEY_RIGHT, KEY_DOWN};
 
 static const u8 btn_idx_to_gpio[CONFIG_BTN_MAX] =
-	{ BTN_A_PIN, BTN_B_PIN, BTN_X_PIN };
+	{ BTN_A_PIN, BTN_B_PIN, BTN_X_PIN, BTN_UP_PIN, BTN_LEFT_PIN,
+	  BTN_RIGHT_PIN, BTN_DOWN_PIN };
 
 void apply_button_config() {
 	bkd_used = 0;
+	bjd_used = 0;
 	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
 		struct button_config *cfg = &config.buttons[i];
 
@@ -116,17 +127,18 @@ void apply_button_config() {
 			continue;
 
 		if (cfg->mode == CONFIG_BTN_MODE_JOY) {
-			bkd[bkd_used].joy = true;
-			bkd[bkd_used].portJoy = ~CJ_GET_PORT(cfg->joy);
+			bjd[bjd_used].portJoy = ~CJ_GET_PORT(cfg->joy);
+			bjd[bjd_used].pico_key = btn_idx_to_key[i];
+			bjd[bjd_used].pico_gpio = btn_idx_to_gpio[i];
+			bjd_used++;
 		} else {
 			u8 ck = cfg->key;
-			bkd[bkd_used].joy = false;
 			bkd[bkd_used].portA = CK_GET_PORT_A(ck);
 			bkd[bkd_used].portB = CK_GET_PORT_B(ck);
+			bkd[bkd_used].pico_key = btn_idx_to_key[i];
+			bkd[bkd_used].pico_gpio = btn_idx_to_gpio[i];
+			bkd_used++;
 		}
-		bkd[bkd_used].pico_key = btn_idx_to_key[i];
-		bkd[bkd_used].pico_gpio = btn_idx_to_gpio[i];
-		bkd_used++;
 	}
 }
 
@@ -138,28 +150,21 @@ uint8_t cia1PORTA(void) {
 	v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
 	filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
 
-	if (config.swap_joysticks) {
-		if (!GPIO_In(BTN_UP_PIN))
-			v &= ~CJ_GET_PORT(CJ_UP);
-		if (!GPIO_In(BTN_DOWN_PIN))
-			v &= ~CJ_GET_PORT(CJ_DOWN);
-		if (!GPIO_In(BTN_LEFT_PIN))
-			v &= ~CJ_GET_PORT(CJ_LEFT);
-		if (!GPIO_In(BTN_RIGHT_PIN))
-			v &= ~CJ_GET_PORT(CJ_RIGHT);
+	if (!config.swap_joysticks)
+		goto nojoy;
+
+	for (int i = 0; i < bjd_used; i++) {
+		if (!GPIO_In(bjd[i].pico_gpio))
+			v &= bjd[i].portJoy;
 	}
 
+nojoy:
 	for (int i = 0; i < bkd_used; i++) {
 		if (GPIO_In(bkd[i].pico_gpio))
 			continue;
 
-		if (bkd[i].joy) {
-			if (config.swap_joysticks) {
-				v &= bkd[i].portJoy;
-			}
-		} else if (bkd[i].portB & filter) {
+		if (bkd[i].portB & filter)
 			v &= ~bkd[i].portA;
-		}
 	}
 
 	if (kbdData.portB & filter)
@@ -189,28 +194,21 @@ uint8_t cia1PORTB(void) {
 	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
 	filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
 
-	if (!config.swap_joysticks) {
-		if (!GPIO_In(BTN_UP_PIN))
-			v &= ~CJ_GET_PORT(CJ_UP);
-		if (!GPIO_In(BTN_DOWN_PIN))
-			v &= ~CJ_GET_PORT(CJ_DOWN);
-		if (!GPIO_In(BTN_LEFT_PIN))
-			v &= ~CJ_GET_PORT(CJ_LEFT);
-		if (!GPIO_In(BTN_RIGHT_PIN))
-			v &= ~CJ_GET_PORT(CJ_RIGHT);
+	if (config.swap_joysticks)
+		goto nojoy;
+
+	for (int i = 0; i < bjd_used; i++) {
+		if (!GPIO_In(bjd[i].pico_gpio))
+			v &= bjd[i].portJoy;
 	}
 
+nojoy:
 	for (int i = 0; i < bkd_used; i++) {
 		if (GPIO_In(bkd[i].pico_gpio))
 			continue;
 
-		if (bkd[i].joy) {
-			if (!config.swap_joysticks) {
-				v &= bkd[i].portJoy;
-			}
-		} else if (bkd[i].portA & filter) {
+		if (bkd[i].portA & filter)
 			v &= ~bkd[i].portB;
-		}
 	}
 
 	if (kbdData.portA & filter)

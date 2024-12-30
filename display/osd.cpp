@@ -62,7 +62,7 @@ static const char * const joy_labels[CJ_MAX] = {
 };
 
 static const char btn_labels[CONFIG_BTN_MAX] = {
-	'A', 'B', 'X'
+	'A', 'B', 'X', 'U', 'L', 'R', 'D'
 };
 
 struct kb_state {
@@ -339,15 +339,16 @@ static void osd_config_button(u8 btn)
 	u8 key;
 	u8 kc, mods;
 
-	snprintf(buf, sizeof(buf), "Reassigning button %c", btn_labels[btn]);
+	snprintf(buf, sizeof(buf), "Reassigning button %c in layout %d",
+			btn_labels[btn], config.button_layout);
 	DrawClear();
 	DrawText(buf, 0, 0, COL_WHITE);
-	DrawText("Press:", 0, 16, COL_WHITE);
-	DrawText("UP/DOWN/LEFT/RIGHT for joystick direction", 0, 32, COL_WHITE);
-	DrawText("A for joystick FIRE", 0, 48, COL_WHITE);
-	DrawText("B for no action", 0, 64, COL_WHITE);
-	DrawText("X for keyboard key", 0, 80, COL_WHITE);
-	DrawText("Y to cancel", 0, 96, COL_WHITE);
+	DrawText("Press button to assign:", 0, 16, COL_WHITE);
+	DrawText("UP/DOWN/LEFT/RIGHT: joystick direction", 0, 32, COL_WHITE);
+	DrawText("A: joystick FIRE", 0, 48, COL_WHITE);
+	DrawText("B: no action", 0, 64, COL_WHITE);
+	DrawText("X: keyboard key", 0, 80, COL_WHITE);
+	DrawText("Y: cancel assignment", 0, 96, COL_WHITE);
 
 	KeyWaitNoPressed();
 	KeyFlush();
@@ -425,6 +426,17 @@ static void osd_draw_joy(int row, int selrow)
 	osd_menu_val_char(config.swap_joysticks ? '2' : '1', row);
 }
 
+static void osd_draw_btn_layout(int row, int selrow)
+{
+	char buf[50];
+
+	osd_menu_name("BTN LAYOUT:", row, selrow);
+
+	snprintf(buf, sizeof(buf), "%d (L/R - change, A - edit)",
+			config.button_layout + 1);
+	osd_menu_val(buf, row);
+}
+
 static void osd_draw_button(int row, int selrow, u8 btn)
 {
 	struct button_config *cfg = &config.buttons[btn];
@@ -451,6 +463,74 @@ static void osd_draw_bool(int row, int selrow, const char *name, bool *val)
 	osd_menu_val(*val ? "ON" : "OFF", row);
 }
 
+#define OSD_MENU_BTN_MAXROW	CONFIG_BTN_MAX - 1
+static void osd_draw_btn_layout_all(int selrow)
+{
+	char buf[50];
+
+	DrawClear();
+	snprintf(buf, sizeof(buf), "EDITING LAYOUT %d: Y - back",
+			config.button_layout + 1);
+
+	DrawText(buf, 0, 0, COL_WHITE);
+	for (int i = 0; i < CONFIG_BTN_MAX; i++)
+		osd_draw_button(i, selrow, i);
+}
+
+static void osd_btn_layout_action(int row, u8 key)
+{
+	osd_config_button(row);
+}
+
+static void osd_cleanup(void)
+{
+	KeyWaitNoPressed();
+	KeyFlush();
+	DrawClear();
+}
+
+static void osd_start_btn_layout()
+{
+	int selrow = 0;
+	bool redraw = true;
+
+	SelFont8x16();
+	osd_draw_btn_layout_all(selrow);
+
+	KeyWaitNoPressed();
+	KeyFlush();
+
+	while(true) {
+		char key;
+		if (redraw)
+			osd_draw_btn_layout_all(selrow);
+
+		redraw = true;
+		key = KeyGet();
+
+		switch(key) {
+		case KEY_UP:
+			if (selrow != 0)
+				selrow--;
+			break;
+		case KEY_DOWN:
+			if (selrow < OSD_MENU_BTN_MAXROW)
+				selrow++;
+			break;
+		case KEY_Y:
+			osd_cleanup();
+			return;
+		case KEY_A:
+		case KEY_LEFT:
+		case KEY_RIGHT:
+			osd_btn_layout_action(selrow, key);
+			break;
+		default:
+			redraw = false;
+		}
+	}
+}
+
 static void osd_action(int row, u8 key)
 {
 	switch (row) {
@@ -470,10 +550,21 @@ static void osd_action(int row, u8 key)
 		}
 		audio_vol_update();
 		break;
-	case 2: /* buttons */
-	case 3:
-	case 4:
-		osd_config_button(row - 2);
+	case 2: /* button layout */
+		if (key == KEY_LEFT) {
+			if (config.button_layout == 0)
+				config.button_layout = CONFIG_BTN_LAYOUT_MAX - 1;
+			else
+				config.button_layout--;
+		} else if (key == KEY_RIGHT) {
+			if (config.button_layout == CONFIG_BTN_LAYOUT_MAX - 1)
+				config.button_layout = 0;
+			else
+				config.button_layout++;
+		} else if (key == KEY_A) {
+			osd_start_btn_layout();
+		}
+		apply_button_config();
 		break;
 	case 5: /* autorun */
 		config.autorun = !config.autorun;
@@ -498,28 +589,20 @@ static void osd_action(int row, u8 key)
 	}
 }
 
-#define OSD_MENU_MAXROW	10
+#define OSD_MENU_MAXROW	8
 static void osd_draw_all(int selrow)
 {
 	DrawClear();
 	DrawText("PAUSED: Y - back, X - kbd, B - reboot", 0, 0, COL_WHITE);
 	osd_draw_joy(0, selrow);
 	osd_draw_vol(1, selrow);
-	for (int i = 0; i < CONFIG_BTN_MAX; i++)
-		osd_draw_button(2+i, selrow, i);
-	osd_draw_bool(5, selrow, "AUTORUN:", &config.autorun);
-	osd_draw_bool(6, selrow, "SHOW FPS:", &config.show_fps);
-	osd_draw_bool(7, selrow, "BTN HINTS:", &config.show_keys);
-	osd_menu_name("SAVE PER-GAME CONFIG", 8, selrow);
-	osd_menu_name("SAVE GLOBAL CONFIG", 9, selrow);
-	osd_draw_bool(10, selrow, "FRM STEP:", &config.single_frame_mode);
-}
-
-static void osd_cleanup(void)
-{
-	KeyWaitNoPressed();
-	KeyFlush();
-	DrawClear();
+	osd_draw_btn_layout(2, selrow);
+	osd_draw_bool(3, selrow, "AUTORUN:", &config.autorun);
+	osd_draw_bool(4, selrow, "SHOW FPS:", &config.show_fps);
+	osd_draw_bool(5, selrow, "BTN HINTS:", &config.show_keys);
+	osd_menu_name("SAVE PER-GAME CONFIG", 6, selrow);
+	osd_menu_name("SAVE GLOBAL CONFIG", 7, selrow);
+	osd_draw_bool(8, selrow, "FRM STEP:", &config.single_frame_mode);
 }
 
 void osd_start(void)

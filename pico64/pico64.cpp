@@ -295,6 +295,22 @@ static void config_init_defaults()
 		.mode = CONFIG_BTN_MODE_JOY,
 		.joy = CJ_FIRE,
 	};
+	config.buttons[CONFIG_BTN_UP] = {
+		.mode = CONFIG_BTN_MODE_JOY,
+		.joy = CJ_UP,
+	};
+	config.buttons[CONFIG_BTN_LEFT] = {
+		.mode = CONFIG_BTN_MODE_JOY,
+		.joy = CJ_LEFT,
+	};
+	config.buttons[CONFIG_BTN_RIGHT] = {
+		.mode = CONFIG_BTN_MODE_JOY,
+		.joy = CJ_RIGHT,
+	};
+	config.buttons[CONFIG_BTN_DOWN] = {
+		.mode = CONFIG_BTN_MODE_JOY,
+		.joy = CJ_DOWN,
+	};
 	apply_button_config();
 }
 
