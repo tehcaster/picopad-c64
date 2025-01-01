@@ -75,9 +75,23 @@ struct kb_state {
 struct osd_menu {
 	void (*draw)(int selrow, void *_private);
 	bool (*action)(int row, u8 key, void *_private);
-	int maxrow;
+	int rows;
 };
 static void osd_do(const struct osd_menu *menu, void *_private);
+
+static int inc_limit(int val, int max)
+{
+	if (!(val == max - 1))
+		val++;
+	return val;
+}
+
+static int dec_limit(int val, int max)
+{
+	if (!(val == 0))
+		val--;
+	return val;
+}
 
 void draw_key_hints()
 {
@@ -520,7 +534,7 @@ static void osd_btn_assignment_start(u8 button, int layout)
 	const struct osd_menu osd_btn_assign = {
 		.draw = osd_btn_assign_draw,
 		.action = osd_btn_assign_action,
-		.maxrow = 2,
+		.rows = 3,
 	};
 	struct btn_assignment_info info = {
 		.layout = layout,
@@ -553,17 +567,11 @@ static bool osd_btn_layout_action(int row, u8 key, void *_private)
 	int layout = *(int *)_private;
 
 	if (key == KEY_LEFT) {
-		if (layout == 0)
-			layout = CONFIG_BTN_LAYOUT_MAX - 1;
-		else
-			layout--;
+		layout = dec_limit(layout, CONFIG_BTN_LAYOUT_MAX);
 		*(int *)_private = layout;
 		return false;
 	} else if (key == KEY_RIGHT) {
-		if (layout == CONFIG_BTN_LAYOUT_MAX - 1)
-			layout = 0;
-		else
-			layout++;
+		layout = inc_limit(layout, CONFIG_BTN_LAYOUT_MAX);
 		*(int *)_private = layout;
 		return false;
 	}
@@ -588,7 +596,7 @@ static void osd_start_btn_layout()
 	const struct osd_menu osd_btn_layout = {
 		.draw = osd_btn_layout_draw,
 		.action = osd_btn_layout_action,
-		.maxrow = CONFIG_BTN_MAX,
+		.rows = CONFIG_BTN_MAX + 1,
 	};
 	int layout = config.button_layout;
 	osd_do(&osd_btn_layout, (void *)&layout);
@@ -621,15 +629,11 @@ static bool osd_main_action(int row, u8 key, void *_private)
 		break;
 	case 2: /* button layout */
 		if (key == KEY_LEFT) {
-			if (config.button_layout == 0)
-				config.button_layout = CONFIG_BTN_LAYOUT_MAX - 1;
-			else
-				config.button_layout--;
+			config.button_layout = dec_limit(config.button_layout,
+					CONFIG_BTN_LAYOUT_MAX);
 		} else if (key == KEY_RIGHT) {
-			if (config.button_layout == CONFIG_BTN_LAYOUT_MAX - 1)
-				config.button_layout = 0;
-			else
-				config.button_layout++;
+			config.button_layout = inc_limit(config.button_layout,
+					CONFIG_BTN_LAYOUT_MAX);
 		} else if (key == KEY_A) {
 			osd_start_btn_layout();
 		}
@@ -695,12 +699,10 @@ static void osd_do(const struct osd_menu *menu, void *_private)
 
 		switch(key) {
 		case KEY_UP:
-			if (selrow != 0)
-				selrow--;
+			selrow = dec_limit(selrow, menu->rows);
 			break;
 		case KEY_DOWN:
-			if (selrow < menu->maxrow)
-				selrow++;
+			selrow = inc_limit(selrow, menu->rows);
 			break;
 		case KEY_Y:
 			osd_cleanup();
@@ -727,7 +729,7 @@ void osd_start(void)
 	const struct osd_menu osd_main = {
 		.draw = osd_main_draw,
 		.action = osd_main_action,
-		.maxrow = 8,
+		.rows = 9,
 	};
 
 	osd_do(&osd_main, NULL);
