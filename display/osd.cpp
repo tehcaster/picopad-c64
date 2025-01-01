@@ -355,64 +355,43 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 	}
 }
 
-static void osd_config_button(u8 btn, int lay)
+static u8 osd_config_button_joy(u8 btn, int lay)
 {
-	struct button_layout *layout = &config.layouts[lay];
-	struct button_config *cfg = &layout->buttons[btn];
 	char buf[50];
 	u8 key;
-	u8 kc, mods;
 
-	snprintf(buf, sizeof(buf), "Reassigning button %c in layout %d",
+	snprintf(buf, sizeof(buf), "JOYSTICK ACTION FOR BTN %c IN LAYOUT %d",
 			btn_labels[btn], lay + 1);
 	DrawClear();
 	DrawText(buf, 0, 0, COL_WHITE);
-	DrawText("Press button to assign:", 0, 16, COL_WHITE);
-	DrawText("UP/DOWN/LEFT/RIGHT: joystick direction", 0, 32, COL_WHITE);
-	DrawText("A: joystick FIRE", 0, 48, COL_WHITE);
-	DrawText("B: no action", 0, 64, COL_WHITE);
-	DrawText("X: keyboard key", 0, 80, COL_WHITE);
-	DrawText("Y: cancel assignment", 0, 96, COL_WHITE);
+	DrawText("PRESS BUTTON TO ASSIGN:", 0, 16, COL_WHITE);
+	DrawText("UP/DOWN/LEFT/RIGHT: JOYSTICK DIRECTION", 0, 32, COL_WHITE);
+	DrawText("A: JOYSTICK FIRE", 0, 48, COL_WHITE);
+	DrawText("Y: CANCEL", 0, 64, COL_WHITE);
 
 	KeyWaitNoPressed();
 	KeyFlush();
 
-	while((key = KeyGet()) == NOKEY);
+	while (true) {
+		char key = KeyGet();
 
-	switch (key) {
-	case KEY_Y:
-		return;
-	case KEY_B:
-		cfg->mode = CONFIG_BTN_MODE_OFF;
-		break;
-	case KEY_A:
-		cfg->mode = CONFIG_BTN_MODE_JOY;
-		cfg->joy = CJ_FIRE;
-		break;
-	case KEY_UP:
-		cfg->mode = CONFIG_BTN_MODE_JOY;
-		cfg->joy = CJ_UP;
-		break;
-	case KEY_DOWN:
-		cfg->mode = CONFIG_BTN_MODE_JOY;
-		cfg->joy = CJ_DOWN;
-		break;
-	case KEY_LEFT:
-		cfg->mode = CONFIG_BTN_MODE_JOY;
-		cfg->joy = CJ_LEFT;
-		break;
-	case KEY_RIGHT:
-		cfg->mode = CONFIG_BTN_MODE_JOY;
-		cfg->joy = CJ_RIGHT;
-		break;
-	case KEY_X:
-		if (osd_start_kb(false, &kc, &mods)) {
-			cfg->mode = CONFIG_BTN_MODE_KEY;
-			cfg->key = kc;
+		switch (key) {
+		case KEY_Y:
+			return CJ_MAX;
+		case KEY_A:
+			return CJ_FIRE;
+		case KEY_UP:
+			return CJ_UP;
+		case KEY_DOWN:
+			return CJ_DOWN;
+		case KEY_LEFT:
+			return CJ_LEFT;
+		case KEY_RIGHT:
+			return CJ_RIGHT;
+		default:
+			;
 		}
-		break;
 	}
-	apply_button_config();
 }
 
 static void osd_menu_name(const char *text, int row, int selrow)
@@ -471,7 +450,7 @@ static void osd_draw_button(int row, int selrow, int lay, u8 btn)
 	osd_menu_name(buf, row, selrow);
 
 	if (cfg->mode == CONFIG_BTN_MODE_OFF) {
-		osd_menu_val("NO ACTION", row);
+osd_menu_val("NO ACTION", row);
 	} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
 		snprintf(buf, sizeof(buf), "KEY %s", kb_labels[cfg->key]);
 		osd_menu_val(buf, row);
@@ -488,11 +467,72 @@ static void osd_draw_bool(int row, int selrow, const char *name, bool *val)
 	osd_menu_val(*val ? "ON" : "OFF", row);
 }
 
+struct btn_assignment_info {
+	int layout;
+	u8 btn;
+};
+
+static void osd_btn_assign_draw(int selrow, void *_private)
+{
+	struct btn_assignment_info *info = (struct btn_assignment_info *)_private;
+	char buf[50];
+
+	DrawClear();
+	snprintf(buf, sizeof(buf), "ASSIGN BUTTON %c IN LAYOUT %d",
+			btn_labels[info->btn], info->layout + 1);
+	DrawText(buf, 0, 0, COL_WHITE);
+	osd_menu_name("JOYSTICK ACTION", 0, selrow);
+	osd_menu_name("KEYBOARD KEY", 1, selrow);
+	osd_menu_name("NO ACTION", 2, selrow);
+}
+
+static bool osd_btn_assign_action(int row, u8 key, void *_private)
+{
+	struct btn_assignment_info *info = (struct btn_assignment_info *)_private;
+	struct button_layout *layout = &config.layouts[info->layout];
+	struct button_config *cfg = &layout->buttons[info->btn];
+	u8 kc, jc, mods;
+
+	switch (row) {
+	case 0:
+		jc = osd_config_button_joy(info->btn, info->layout);
+		if (jc < CJ_MAX) {
+			cfg->mode = CONFIG_BTN_MODE_JOY;
+			cfg->joy = jc;
+		}
+		break;
+	case 1:
+		if (osd_start_kb(false, &kc, &mods)) {
+			cfg->mode = CONFIG_BTN_MODE_KEY;
+			cfg->key = kc;
+		}
+		break;
+	case 2:
+		cfg->mode = CONFIG_BTN_MODE_OFF;
+		break;
+	}
+	apply_button_config();
+	return true;
+}
+
+static void osd_btn_assignment_start(u8 button, int layout)
+{
+	const struct osd_menu osd_btn_assign = {
+		.draw = osd_btn_assign_draw,
+		.action = osd_btn_assign_action,
+		.maxrow = 2,
+	};
+	struct btn_assignment_info info = {
+		.layout = layout,
+		.btn = button,
+	};
+	osd_do(&osd_btn_assign, (void *)&info);
+}
+
 static void osd_btn_layout_draw(int selrow, void *_private)
 {
 	int layout = *(int *)_private;
 	char buf[50];
-	bool initial;
 
 	DrawClear();
 	snprintf(buf, sizeof(buf), "EDITING LAYOUT %d (L/R: switch, Y: back)",
@@ -508,7 +548,7 @@ static void osd_btn_layout_draw(int selrow, void *_private)
 	osd_menu_val(buf, CONFIG_BTN_MAX + 1);
 }
 
-bool osd_btn_layout_action(int row, u8 key, void *_private)
+static bool osd_btn_layout_action(int row, u8 key, void *_private)
 {
 	int layout = *(int *)_private;
 
@@ -529,7 +569,7 @@ bool osd_btn_layout_action(int row, u8 key, void *_private)
 	}
 
 	if (row < CONFIG_BTN_MAX) {
-		osd_config_button(row, layout);
+		osd_btn_assignment_start(row, layout);
 	} else {
 		config.initial_layout = layout;
 	}
