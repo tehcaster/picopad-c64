@@ -24,13 +24,15 @@ extern u32 timeSWISR;
 #define CONFIG_BTN_MODE_OFF	0
 #define CONFIG_BTN_MODE_KEY	1
 #define CONFIG_BTN_MODE_JOY	2
-#define CONFIG_BTN_MODE_MAX	3
+#define CONFIG_BTN_MODE_LAYOUT	3
+#define CONFIG_BTN_MODE_MAX	4
 
 struct button_config {
 	u8 mode;
 	union {
 		u8 key;
 		u8 joy;
+		u8 layout;
 	};
 
 	bool operator!=(const button_config &a) {
@@ -39,6 +41,8 @@ struct button_config {
 		if (mode == CONFIG_BTN_MODE_KEY && key != a.key)
 			return true;
 		if (mode == CONFIG_BTN_MODE_JOY && joy != a.joy)
+			return true;
+		if (mode == CONFIG_BTN_MODE_LAYOUT && joy != a.layout)
 			return true;
 		return false;
 	}

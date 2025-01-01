@@ -137,6 +137,8 @@ static void config_load_button(u8 layout, char *val)
 		btn->key = key;
 	else if (mode == CONFIG_BTN_MODE_JOY)
 		btn->joy = key;
+	else if (mode == CONFIG_BTN_MODE_LAYOUT)
+		btn->layout = key;
 }
 
 static void config_game_load()
@@ -265,6 +267,8 @@ void config_game_save()
 				val = btn->key;
 			else if (btn->mode == CONFIG_BTN_MODE_JOY)
 				val = btn->joy;
+			else if (btn->mode == CONFIG_BTN_MODE_LAYOUT)
+				val = btn->layout;
 
 			printf("button=%d,%d,%d\n", i, btn->mode, val);
 			FilePrint(&file, "button=%d,%d,%d\n", i, btn->mode, val);

@@ -101,6 +101,7 @@ void draw_key_hints()
 	int y2 = 240 - 8;
 
 	struct button_layout *layout;
+	char buf[50];
 
 	if (!config.show_keys)
 		return;
@@ -134,6 +135,9 @@ void draw_key_hints()
 			DrawText("NONE", x, y, COL_GRAY);
 		} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
 			DrawText(kb_labels[cfg->key], x, y, COL_GRAY);
+		} else if (cfg->mode == CONFIG_BTN_MODE_LAYOUT) {
+			snprintf(buf, sizeof(buf), "SW.LT %d", cfg->layout + 1);
+			DrawText(buf, x, y, COL_GRAY);
 		} else {
 			DrawText("J.", x, y, COL_GRAY);
 			DrawText(joy_labels[cfg->key], x + 2*8, y, COL_GRAY);
@@ -468,6 +472,9 @@ osd_menu_val("NO ACTION", row);
 	} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
 		snprintf(buf, sizeof(buf), "KEY %s", kb_labels[cfg->key]);
 		osd_menu_val(buf, row);
+	} else if (cfg->mode == CONFIG_BTN_MODE_LAYOUT) {
+		snprintf(buf, sizeof(buf), "SWITCH TO LAYOUT %d", cfg->layout + 1);
+		osd_menu_val(buf, row);
 	} else {
 		snprintf(buf, sizeof(buf), "JOY %s", joy_labels[cfg->key]);
 		osd_menu_val(buf, row);
@@ -484,6 +491,7 @@ static void osd_draw_bool(int row, int selrow, const char *name, bool *val)
 struct btn_assignment_info {
 	int layout;
 	u8 btn;
+	int switch_layout;
 };
 
 static void osd_btn_assign_draw(int selrow, void *_private)
@@ -498,6 +506,10 @@ static void osd_btn_assign_draw(int selrow, void *_private)
 	osd_menu_name("JOYSTICK ACTION", 0, selrow);
 	osd_menu_name("KEYBOARD KEY", 1, selrow);
 	osd_menu_name("NO ACTION", 2, selrow);
+	osd_menu_name("SW. LAYOUT", 3, selrow);
+
+	snprintf(buf, sizeof(buf), "%d (L/R to change)", info->switch_layout + 1);
+	osd_menu_val(buf, 3);
 }
 
 static bool osd_btn_assign_action(int row, u8 key, void *_private)
@@ -524,6 +536,18 @@ static bool osd_btn_assign_action(int row, u8 key, void *_private)
 	case 2:
 		cfg->mode = CONFIG_BTN_MODE_OFF;
 		break;
+	case 3:
+		if (key == KEY_LEFT) {
+			info->switch_layout = dec_limit(info->switch_layout, CONFIG_BTN_LAYOUT_MAX);
+			return false;
+		} else if (key == KEY_RIGHT) {
+			info->switch_layout = inc_limit(info->switch_layout, CONFIG_BTN_LAYOUT_MAX);
+			return false;
+		} else {
+			cfg->mode = CONFIG_BTN_MODE_LAYOUT;
+			cfg->layout = info->switch_layout;
+		}
+		break;
 	}
 	apply_button_config();
 	return true;
@@ -534,7 +558,7 @@ static void osd_btn_assignment_start(u8 button, int layout)
 	const struct osd_menu osd_btn_assign = {
 		.draw = osd_btn_assign_draw,
 		.action = osd_btn_assign_action,
-		.rows = 3,
+		.rows = 4,
 	};
 	struct btn_assignment_info info = {
 		.layout = layout,

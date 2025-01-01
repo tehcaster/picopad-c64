@@ -304,6 +304,7 @@ void c64_Input()
 	static bool toggle = true;
 	static const char * textseq = NULL;
 	static int osd_key_timeout = 0;
+	struct button_layout *layout = &config.layouts[config.button_layout];
 
 	if (firsttime && config.autorun) {
 		firsttime = false;
@@ -353,15 +354,16 @@ void c64_Input()
 		return;
         }
 
-	static bool key_x_last = false;
-	bool key_x = KeyPressed(KEY_X);
-	if (key_x != key_x_last) {
-		if (key_x && !key_x_last)
-			setKey(CK_A, 0);
-		else if (!key_x && key_x_last)
-			unsetKey();
-		key_x_last = key_x;
-		return;
+	for (int i = 0; i < CONFIG_BTN_MAX; i++) {
+		struct button_config *cfg = &layout->buttons[i];
+
+		if (cfg->mode == CONFIG_BTN_MODE_LAYOUT) {
+			if (KeyPressed(btn_idx_to_key[i])) {
+				config.button_layout = cfg->layout;
+				apply_button_config();
+				draw_key_hints();
+			}
+		}
 	}
 
 	if (KeyPressed(KEY_Y)) {
