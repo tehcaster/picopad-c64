@@ -72,6 +72,13 @@ struct kb_state {
 	bool with_mods;
 };
 
+struct osd_menu {
+	void (*draw)(int selrow, void *_private);
+	bool (*action)(int row, u8 key, void *_private);
+	int maxrow;
+};
+static void osd_do(const struct osd_menu *menu, void *_private);
+
 void draw_key_hints()
 {
 	int x1 = 0;
@@ -348,16 +355,16 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 	}
 }
 
-static void osd_config_button(u8 btn)
+static void osd_config_button(u8 btn, int lay)
 {
-	struct button_layout *layout = &config.layouts[config.button_layout];
+	struct button_layout *layout = &config.layouts[lay];
 	struct button_config *cfg = &layout->buttons[btn];
 	char buf[50];
 	u8 key;
 	u8 kc, mods;
 
 	snprintf(buf, sizeof(buf), "Reassigning button %c in layout %d",
-			btn_labels[btn], config.button_layout);
+			btn_labels[btn], lay + 1);
 	DrawClear();
 	DrawText(buf, 0, 0, COL_WHITE);
 	DrawText("Press button to assign:", 0, 16, COL_WHITE);
@@ -481,9 +488,9 @@ static void osd_draw_bool(int row, int selrow, const char *name, bool *val)
 	osd_menu_val(*val ? "ON" : "OFF", row);
 }
 
-#define OSD_MENU_BTN_MAXROW	CONFIG_BTN_MAX
-static void osd_draw_btn_layout_all(int selrow, int layout)
+static void osd_btn_layout_draw(int selrow, void *_private)
 {
+	int layout = *(int *)_private;
 	char buf[50];
 	bool initial;
 
@@ -501,13 +508,32 @@ static void osd_draw_btn_layout_all(int selrow, int layout)
 	osd_menu_val(buf, CONFIG_BTN_MAX + 1);
 }
 
-static void osd_btn_layout_action(int row, u8 key, int layout)
+bool osd_btn_layout_action(int row, u8 key, void *_private)
 {
+	int layout = *(int *)_private;
+
+	if (key == KEY_LEFT) {
+		if (layout == 0)
+			layout = CONFIG_BTN_LAYOUT_MAX - 1;
+		else
+			layout--;
+		*(int *)_private = layout;
+		return false;
+	} else if (key == KEY_RIGHT) {
+		if (layout == CONFIG_BTN_LAYOUT_MAX - 1)
+			layout = 0;
+		else
+			layout++;
+		*(int *)_private = layout;
+		return false;
+	}
+
 	if (row < CONFIG_BTN_MAX) {
-		osd_config_button(row);
+		osd_config_button(row, layout);
 	} else {
 		config.initial_layout = layout;
 	}
+	return false;
 }
 
 static void osd_cleanup(void)
@@ -519,59 +545,23 @@ static void osd_cleanup(void)
 
 static void osd_start_btn_layout()
 {
-	int selrow = 0;
-	bool redraw = true;
+	const struct osd_menu osd_btn_layout = {
+		.draw = osd_btn_layout_draw,
+		.action = osd_btn_layout_action,
+		.maxrow = CONFIG_BTN_MAX,
+	};
 	int layout = config.button_layout;
-
-	SelFont8x16();
-	osd_draw_btn_layout_all(selrow, layout);
-
-	KeyWaitNoPressed();
-	KeyFlush();
-
-	while(true) {
-		char key;
-		if (redraw)
-			osd_draw_btn_layout_all(selrow, layout);
-
-		redraw = true;
-		key = KeyGet();
-
-		switch(key) {
-		case KEY_UP:
-			if (selrow != 0)
-				selrow--;
-			break;
-		case KEY_DOWN:
-			if (selrow < OSD_MENU_BTN_MAXROW)
-				selrow++;
-			break;
-		case KEY_Y:
-			osd_cleanup();
-			return;
-		case KEY_LEFT:
-			if (layout == 0)
-				layout = CONFIG_BTN_LAYOUT_MAX - 1;
-			else
-				layout--;
-			break;
-		case KEY_RIGHT:
-			if (layout == CONFIG_BTN_LAYOUT_MAX - 1)
-				layout = 0;
-			else
-				layout++;
-			break;
-		case KEY_A:
-			osd_btn_layout_action(selrow, key, layout);
-			break;
-		default:
-			redraw = false;
-		}
-	}
+	osd_do(&osd_btn_layout, (void *)&layout);
 }
 
-static void osd_action(int row, u8 key)
+static bool osd_main_action(int row, u8 key, void *_private)
 {
+	if (key == KEY_X) {
+		return osd_start_kb(true, &osd_key_pending, &osd_mods_pending);
+	} else if (key == KEY_B) {
+		ResetToBootLoader();
+	}
+
 	switch (row) {
 	case 0: /* joystick */
 		config.swap_joysticks = !config.swap_joysticks;
@@ -626,10 +616,10 @@ static void osd_action(int row, u8 key)
 	default:
 		break;
 	}
+	return false;
 }
 
-#define OSD_MENU_MAXROW	8
-static void osd_draw_all(int selrow)
+static void osd_main_draw(int selrow, void *_private)
 {
 	DrawClear();
 	DrawText("PAUSED: Y - back, X - kbd, B - reboot", 0, 0, COL_WHITE);
@@ -644,13 +634,13 @@ static void osd_draw_all(int selrow)
 	osd_draw_bool(8, selrow, "FRM STEP:", &config.single_frame_mode);
 }
 
-void osd_start(void)
+static void osd_do(const struct osd_menu *menu, void *_private)
 {
 	int selrow = 0;
 	bool redraw = true;
 
 	SelFont8x16();
-	osd_draw_all(selrow);
+	menu->draw(selrow, _private);
 
 	KeyWaitNoPressed();
 	KeyFlush();
@@ -658,7 +648,7 @@ void osd_start(void)
 	while(true) {
 		char key;
 		if (redraw)
-			osd_draw_all(selrow);
+			menu->draw(selrow, _private);
 
 		redraw = true;
 		key = KeyGet();
@@ -669,30 +659,37 @@ void osd_start(void)
 				selrow--;
 			break;
 		case KEY_DOWN:
-			if (selrow < OSD_MENU_MAXROW)
+			if (selrow < menu->maxrow)
 				selrow++;
-			break;
-		case KEY_X:
-			if (osd_start_kb(true, &osd_key_pending,
-						&osd_mods_pending)) {
-				osd_cleanup();
-				SelFont8x16();
-				return;
-			}
-			break;
-		case KEY_B:
-			ResetToBootLoader();
 			break;
 		case KEY_Y:
 			osd_cleanup();
 			return;
+		case KEY_X:
+		case KEY_B:
 		case KEY_A:
 		case KEY_LEFT:
 		case KEY_RIGHT:
-			osd_action(selrow, key);
+			if (menu->action(selrow, key, _private)) {
+				osd_cleanup();
+				SelFont8x16();
+				return;
+			}
 			break;
 		default:
 			redraw = false;
 		}
 	}
 }
+
+void osd_start(void)
+{
+	const struct osd_menu osd_main = {
+		.draw = osd_main_draw,
+		.action = osd_main_action,
+		.maxrow = 8,
+	};
+
+	osd_do(&osd_main, NULL);
+}
+
