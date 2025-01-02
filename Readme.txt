@@ -93,5 +93,4 @@ Button layouts:
 TODO:
 - handle RESTORE key
 - kbd exit with Y, show operation info
-- saving volume in _GLOBAL.CFG
 - show run hint for B?

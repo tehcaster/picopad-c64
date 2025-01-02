@@ -69,6 +69,9 @@ static void config_global_load()
 			config.show_fps = *value == '1' ? 1 : 0;
 		} else if (!strcmp(name, "show_keys")) {
 			config.show_keys = *value == '1' ? 1 : 0;
+		} else if (!strcmp(name, "volume")) {
+			int vol = atoi(value);
+			ConfigSetVolume(vol);
 		} else {
 			printf("global config unknown name '%s'\n", name);
 		}
@@ -95,6 +98,7 @@ void config_global_save()
 	FilePrint(&file, "autorun=%d\n", config.autorun ? 1 : 0);
 	FilePrint(&file, "show_fps=%d\n", config.show_fps ? 1 : 0);
 	FilePrint(&file, "show_keys=%d\n", config.show_keys ? 1 : 0);
+	FilePrint(&file, "volume=%d\n", ConfigGetVolume());
 
 out_close:
 	if (!FileClose(&file))
