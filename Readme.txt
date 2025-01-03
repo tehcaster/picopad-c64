@@ -20,6 +20,20 @@ Summary of changes so far:
   with multiple layouts, saving global and per-game configs to the SD card.
 - Fixed some bugs in the VIC emulation that manifested in River Raid.
 
+Building:
+
+- You need a clone of PicoLibSDK and follow its prerequisites (toolchain in
+  PATH, elf2uf2 built in the appropriate directory).
+  - https://github.com/Panda381/PicoLibSDK is the upstream version
+  - my fork https://github.com/tehcaster/PicoLibSDK might have fixes relevant
+    to the C64 emulator, pending upstreaming.
+
+- This repository needs to be cloned into PicoLibSDK/PicoPad/EMU as a directory
+  named C64, due to the use of hardcoded relative paths in the SDK's build
+  scripts. Note a symlink will not work.
+
+- Execute c.sh in the C64 directory.
+
 Usage:
 
 - Being part of PicoLibSDK, the C64.uf2 image includes the SDK's bootloader.
