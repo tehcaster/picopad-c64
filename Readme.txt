@@ -92,5 +92,4 @@ Button layouts:
 
 TODO:
 - handle RESTORE key
-- kbd exit with Y, show operation info
 - show run hint for B?

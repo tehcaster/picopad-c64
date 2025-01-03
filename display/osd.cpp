@@ -301,6 +301,16 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 	bool redraw = true;
 	SelFont8x16();
 	DrawClear();
+
+	if (with_mods) {
+		DrawText("A: select key or toggle (Sft, C=, CTRL)", 0, 110, COL_WHITE);
+		DrawText("B: select key, never toggle", 0, 110 + 16, COL_WHITE);
+		DrawText("X or Y: cancel", 0, 110 + 2*16, COL_WHITE);
+	} else {
+		DrawText("A or B: select key", 0, 110, COL_WHITE);
+		DrawText("X or Y: cancel", 0, 110 + 16, COL_WHITE);
+	}
+
 	int prev_row = kbs.row;
 	while(true) {
 		if (redraw)
@@ -342,11 +352,13 @@ static bool osd_start_kb(bool with_mods, u8 *ret_kc, u8 *ret_mods)
 			if (kbs.row < 4)
 				osd_kb_fixup_col(&kbs, prev_row);
 			break;
+		case KEY_Y:
 		case KEY_X:
 			return false;
+		case KEY_B:
 		case KEY_A:
 			kc = osd_kb_get_code(&kbs);
-			if (with_mods) {
+			if (with_mods && key == KEY_A) {
 				if (kc == CK_LSHIFT) {
 					kbs.mods ^= CK_MOD_LSHIFT;
 					break;
@@ -468,7 +480,7 @@ static void osd_draw_button(int row, int selrow, int lay, u8 btn)
 	osd_menu_name(buf, row, selrow);
 
 	if (cfg->mode == CONFIG_BTN_MODE_OFF) {
-osd_menu_val("NO ACTION", row);
+		osd_menu_val("NO ACTION", row);
 	} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
 		snprintf(buf, sizeof(buf), "KEY %s", kb_labels[cfg->key]);
 		osd_menu_val(buf, row);
