@@ -92,4 +92,3 @@ Button layouts:
 
 TODO:
 - handle RESTORE key
-- show run hint for B?

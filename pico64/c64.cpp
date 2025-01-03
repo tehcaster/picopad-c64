@@ -177,6 +177,8 @@ void apply_button_config() {
 	}
 }
 
+static bool input_blocked = false;
+
 uint8_t cia1PORTA(void) {
 
 	uint8_t v;
@@ -184,6 +186,9 @@ uint8_t cia1PORTA(void) {
 
 	v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
 	filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
+
+	if (input_blocked)
+		goto nobuttons;
 
 	if (!config.swap_joysticks)
 		goto nojoy;
@@ -201,6 +206,8 @@ nojoy:
 		if (bkd[i].portB & filter)
 			v &= ~bkd[i].portA;
 	}
+
+nobuttons:
 
 	if (kbdData.portB & filter)
 		v &= ~kbdData.portA;
@@ -229,6 +236,9 @@ uint8_t cia1PORTB(void) {
 	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
 	filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
 
+	if (input_blocked)
+		goto nobuttons;
+
 	if (config.swap_joysticks)
 		goto nojoy;
 
@@ -245,6 +255,8 @@ nojoy:
 		if (bkd[i].portA & filter)
 			v &= ~bkd[i].portB;
 	}
+
+nobuttons:
 
 	if (kbdData.portA & filter)
 		v &= ~kbdData.portB;
@@ -284,11 +296,6 @@ void c64_Step(void)
 	oneRasterLine();
 }
 
-void c64_Start(char * filename)
-{
-}
-
-
 static const char * textload = "\r\t\tLOAD\"\"\r\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\tRUN\r";
 
 //#define DEBUG 1
@@ -298,17 +305,19 @@ static const char * digits = "0123456789ABCDEF";
 static char buf[5] = {0,0,0,0,0};
 #endif
 
+bool load_run_pending = true;
+
 void c64_Input()
 {
-	static bool firsttime = true;
 	static bool toggle = true;
 	static const char * textseq = NULL;
 	static int osd_key_timeout = 0;
 	struct button_layout *layout = &config.layouts[config.button_layout];
 
-	if (firsttime && config.autorun) {
-		firsttime = false;
+	if (load_run_pending && config.autorun) {
+		load_run_pending = false;
 		textseq = textload;
+		input_blocked = true;
 		return;
 	}
 
@@ -337,8 +346,10 @@ void c64_Input()
 		}
 		if (!toggle) {
 			textseq++;
-			if (!*textseq)
+			if (!*textseq) {
 				textseq = NULL;
+				input_blocked = false;
+			}
 			toggle = true;
 		} else {
 			toggle = false;
@@ -347,9 +358,11 @@ void c64_Input()
 	}
 
 	if (KeyPressed(KEY_B)) {
-		if (firsttime) {
-			firsttime = false;
+		if (load_run_pending) {
+			load_run_pending = false;
 			textseq = textload;
+			input_blocked = true;
+			draw_key_hints();
 		}
 		return;
         }

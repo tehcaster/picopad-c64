@@ -4,7 +4,6 @@
 
 extern void c64_Init(void);
 extern void c64_Step(void);
-extern void c64_Start(char * filename);
 extern void c64_Input();
 
 extern u32 nFramesC64;
@@ -70,6 +69,8 @@ struct emu_config {
 
 extern const struct button_layout default_button_layout;
 extern struct emu_config config;
+
+extern bool load_run_pending;
 
 void apply_button_config();
 void config_global_save();

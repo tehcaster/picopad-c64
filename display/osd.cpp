@@ -131,6 +131,11 @@ void draw_key_hints()
 		DrawChar(':', x + 8, y, COL_GRAY);
 		x += 3*8;
 
+		if (btn == CONFIG_BTN_B && !config.autorun && load_run_pending) {
+			DrawText("LOAD+RUN", x, y, COL_GRAY);
+			continue;
+		}
+
 		if (cfg->mode == CONFIG_BTN_MODE_OFF) {
 			DrawText("NONE", x, y, COL_GRAY);
 		} else if (cfg->mode == CONFIG_BTN_MODE_KEY) {
