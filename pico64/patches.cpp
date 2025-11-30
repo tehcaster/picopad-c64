@@ -35,10 +35,15 @@
 
 #include "../include.h"
 #include "patches.h"
+#include "c64.h"
 
 #define DIRECTORY "C64/\0"
 
 static char buffer[2];
+
+u16 prg_addr = 0;
+u32 prg_offset = 0;
+u32 prg_size = 0;
 
 void patchLOAD(void) {
 
@@ -193,25 +198,39 @@ uint16_t addr,size;
 	DiskAutoMount();
 	SetDir(FileSelPath);
 	//printf("opening %s\n", FileSelTempBuf);
-	size = GetFileSize(FileSelTempBuf);
+	if (prg_size == 0)
+		prg_size = GetFileSize(FileSelTempBuf) - 2;
 	if (!FileOpen(&file, FileSelTempBuf)) {
 		//printf("opening failed\n");
 		cpu.pc = 0xf530; //Jump to $F530
 		return;
 	}
 
-	FileRead(&file, buffer, 2);
-	addr = buffer[1] * 256 + buffer[0];
-	FileRead(&file, (char*)&cpu.RAM[addr], size - 2);
+	if (prg_offset) {
+		if (!FileSeek(&file, prg_offset)) {
+			printf("seek failed\n");
+			cpu.pc = 0xf530; //Jump to $F530
+			return;
+		}
+		addr = prg_addr;
+	} else {
+		FileRead(&file, buffer, 2);
+		addr = buffer[1] * 256 + buffer[0];
+	}
+
+	u32 read = FileRead(&file, (char*)&cpu.RAM[addr], prg_size);
+	if (read != prg_size) {
+		printf("read failed: wanted %u got %u\n", prg_size, read);
+	}
 	FileClose(&file);
 	DiskUnmount();
 
-	cpu.RAM[0xAF] = (addr + size - 2) & 0xff;
-	cpu.RAM[0xAE] = (addr + size - 2) / 256;
+	cpu.RAM[0xAF] = (addr + prg_size) & 0xff;
+	cpu.RAM[0xAE] = (addr + prg_size) / 256;
 
 	cpu.y = 0x49; //Offset for "LOADING"
 	cpu.pc = 0xF12B; //Print and return
-	printf("game loaded\n");
+	printf("game loaded addr %x offset %u size %u\n", addr, prg_offset, prg_size);
 	return;
 }
 

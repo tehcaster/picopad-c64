@@ -57,6 +57,7 @@ struct button_layout {
 };
 
 struct emu_config {
+	int  t64_entry;
 	bool swap_joysticks;
 	bool show_fps;
 	bool show_keys;
@@ -66,6 +67,10 @@ struct emu_config {
 	u8 initial_layout;
 	struct button_layout layouts[CONFIG_BTN_LAYOUT_MAX];
 };
+
+extern u16 prg_addr;
+extern u32 prg_offset;
+extern u32 prg_size;
 
 extern const struct button_layout default_button_layout;
 extern struct emu_config config;

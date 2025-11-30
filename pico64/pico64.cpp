@@ -211,6 +211,12 @@ restart:
 				layout = 0;
 		} else if (!strcmp(name, "button")) {
 			config_load_button(layout, value);
+		} else if (!strcmp(name, "t64_entry")) {
+			int val = atoi(value);
+
+			if (val >= 0) {
+				config.t64_entry = val;
+			}
 		} else {
 			printf("per-game config unknown name '%s'\n", name);
 		}
@@ -241,6 +247,7 @@ void config_game_save()
 		goto out;
 	}
 
+	FilePrint(&file, "t64_entry=%d\n", config.t64_entry);
 	FilePrint(&file, "joyswap=%d\n", config.swap_joysticks ? 1 : 0);
 	FilePrint(&file, "initial_layout=%d\n", config.initial_layout);
 	for (int lay = 0; lay < CONFIG_BTN_LAYOUT_MAX; lay++) {
@@ -353,6 +360,154 @@ out:
 	DiskUnmount();
 }
 
+static bool select_t64(const char **error)
+{
+	sFile file;
+	unsigned fsize;
+	char buf[33];
+	buf[32] = 0;
+	unsigned entries_max, entries_used;
+	struct osd_filelist osd_filelist = { };
+	int entry_selected = 0;
+
+	*error = NULL;
+
+	DiskAutoMount();
+	SetDir(FileSelPath);
+
+	if (!FileOpen(&file, FileSelTempBuf)) {
+		*error = "Cannot open file";
+		return false;
+	}
+
+	fsize = GetFileSize(FileSelTempBuf);
+
+	if (FileRead(&file, buf, 32) != 32) {
+		*error = "Read failed";
+		return false;
+	}
+
+	printf("t64 header: %s\n", buf);
+
+	if (strncmp(buf, "C64", 3)) {
+		*error = "T64 wrong header";
+		return false;
+	}
+
+	if (FileRead(&file, buf, 32) != 32) {
+		*error = "Read failed";
+		return false;
+	}
+
+	unsigned ver = (unsigned) buf[0] + (unsigned) buf[1] * 256;
+	printf("t64 version: %x\n", ver);
+
+	entries_max = (unsigned) buf[2] + (unsigned) buf[3] * 256;
+	entries_used = (unsigned) buf[4] + (unsigned) buf[5] * 256;
+
+	printf("dir entries: %u / %u\n", entries_used, entries_max);
+
+	printf("tape name: %s\n", buf + 8);
+	memcpy(&osd_filelist.tape_name, buf + 8, 24);
+
+	if (entries_used == 0) {
+		*error = "No tape entries";
+		return false;
+	}
+
+	if (entries_used == 1)
+		goto selected;
+
+	if (config.t64_entry >= 0 && config.t64_entry < entries_used)
+		entry_selected = config.t64_entry;
+
+	osd_filelist.pages = (entries_used + FILES_PER_PAGE - 1) / FILES_PER_PAGE;
+	osd_filelist.page = entry_selected / FILES_PER_PAGE;
+	osd_filelist.selected = entry_selected % FILES_PER_PAGE;
+
+show_page:
+	osd_filelist.nr_files = (osd_filelist.page == osd_filelist.pages - 1) ?
+				entries_used - (osd_filelist.pages - 1) * FILES_PER_PAGE : FILES_PER_PAGE;
+
+	if (osd_filelist.selected > osd_filelist.nr_files - 1)
+		osd_filelist.selected = osd_filelist.nr_files - 1;
+
+	printf("page %d of %d selected row %d of %d\n", osd_filelist.page,
+			 osd_filelist.pages, osd_filelist.selected,
+			 osd_filelist.nr_files);
+
+	FileSeek(&file, 64 + osd_filelist.page * FILES_PER_PAGE * 32);
+
+	for (int i = 0; i < osd_filelist.nr_files; i++) {
+		if (FileRead(&file, buf, 32) != 32) {
+			FileSelDispBigErr("Read failed");
+			return false;
+		}
+
+		printf("directory entry %d type %x ftype %x\n", i, buf[0], buf[1]);
+
+		printf("filename: %s\n", buf + 16);
+
+		memcpy(&osd_filelist.names[i][0], buf + 16, 16);
+	}
+
+	if (!osd_tape_file_select_start(&osd_filelist))
+		return false;
+
+	if (osd_filelist.action == KEY_LEFT) {
+		osd_filelist.page--;
+		goto show_page;
+	} else if (osd_filelist.action == KEY_RIGHT) {
+		osd_filelist.page++;
+		goto show_page;
+	}
+
+	entry_selected = osd_filelist.page * FILES_PER_PAGE + osd_filelist.selected;
+
+	printf("selected entry %d\n", entry_selected);
+
+	config.t64_entry = entry_selected;
+
+	FileSeek(&file, 64 + entry_selected * 32);
+
+selected:
+
+	if (FileRead(&file, buf, 32) != 32) {
+		*error = "Read failed";
+		return false;
+	}
+
+	unsigned start = (unsigned) buf[2] + (unsigned) buf[3] * 256;
+	unsigned end = (unsigned) buf[4] + (unsigned) buf[5] * 256;
+
+	unsigned offset = (unsigned) buf[8] + (unsigned) buf[9] * 256
+			+ (unsigned) buf[10] * 256 * 256
+			+ (unsigned) buf[11] * 256 * 256 * 256;
+
+	printf("start_addr %x end_addr %x offset %u size %u\n", start, end, offset, end - start);
+
+	if (start == 0 || end == 0 || end - start == 0 || offset >= fsize ||
+			offset + (end - start)  > fsize) {
+		if (entries_used == 1) {
+			*error = "Invalid tape entry";
+			return false;
+		}
+
+		tft.stopRefresh();
+		FileSelDispBigErr("Invalid tape entry");
+		tft.startRefresh();
+		goto show_page;
+	}
+
+	prg_offset = offset;
+	prg_size = end - start;
+	prg_addr = start;
+
+	FileClose(&file);
+
+	return true;
+}
+
 static void config_init_defaults()
 {
 	for (int i = 0; i < CONFIG_BTN_LAYOUT_MAX; i++)
@@ -372,18 +527,34 @@ int main(void) {
 
     tft.begin();
 
-    FileSelInit("/C64", "Select game", "PRG", &FileSelColBlue);
+    FileSelInit2("/C64", "Select game", "PRG", "T64", &FileSelColBlue);
     last_game_load();
     if (!FileSel())
 	    ResetToBootLoader();
+
     last_game_save();
+
+    /* in case the tape file selector is needed */
+    SelFont8x8();
+    tft.startRefresh();
 
     config_game_load();
 
+    if (FileSelLastNameExt == 1) {
+	const char * error;
+
+        if (!select_t64(&error)) {
+		tft.stopRefresh();
+		if (error)
+			FileSelDispBigErr(error);
+		ResetToBootLoader();
+	}
+
+	config_game_save();
+    }
+
     c64_Init();
     tft.begin_audio();
-    SelFont8x8();
-    tft.startRefresh();
 
     printf("display baud: %u want %u\n", SPI_GetBaudrate(DISP_SPI), DISP_SPI_BAUD);
     printf("peri clock: %u\n", CurrentFreq[CLK_PERI]);

@@ -77,7 +77,8 @@ struct osd_menu {
 	bool (*action)(int row, u8 key, void *_private);
 	int rows;
 };
-static void osd_do(const struct osd_menu *menu, void *_private);
+
+static bool osd_do(const struct osd_menu *menu, void *_private, int selrow);
 
 static int inc_limit(int val, int max)
 {
@@ -581,7 +582,7 @@ static void osd_btn_assignment_start(u8 button, int layout)
 		.layout = layout,
 		.btn = button,
 	};
-	osd_do(&osd_btn_assign, (void *)&info);
+	osd_do(&osd_btn_assign, (void *)&info, 0);
 }
 
 static void osd_btn_layout_draw(int selrow, void *_private)
@@ -640,7 +641,7 @@ static void osd_start_btn_layout()
 		.rows = CONFIG_BTN_MAX + 1,
 	};
 	int layout = config.button_layout;
-	osd_do(&osd_btn_layout, (void *)&layout);
+	osd_do(&osd_btn_layout, (void *)&layout, 0);
 }
 
 static bool osd_main_action(int row, u8 key, void *_private)
@@ -720,9 +721,8 @@ static void osd_main_draw(int selrow, void *_private)
 	osd_draw_bool(8, selrow, "FRM STEP:", &config.single_frame_mode);
 }
 
-static void osd_do(const struct osd_menu *menu, void *_private)
+static bool osd_do(const struct osd_menu *menu, void *_private, int selrow)
 {
-	int selrow = 0;
 	bool redraw = true;
 
 	SelFont8x16();
@@ -748,7 +748,7 @@ static void osd_do(const struct osd_menu *menu, void *_private)
 			break;
 		case KEY_Y:
 			osd_cleanup();
-			return;
+			return false;
 		case KEY_X:
 		case KEY_B:
 		case KEY_A:
@@ -757,7 +757,7 @@ static void osd_do(const struct osd_menu *menu, void *_private)
 			if (menu->action(selrow, key, _private)) {
 				osd_cleanup();
 				SelFont8x16();
-				return;
+				return true;
 			}
 			break;
 		default:
@@ -774,6 +774,61 @@ void osd_start(void)
 		.rows = 9,
 	};
 
-	osd_do(&osd_main, NULL);
+	osd_do(&osd_main, NULL, 0);
 }
 
+static void osd_filelist_draw(int selrow, void *_private)
+{
+	char buf[50];
+	struct osd_filelist *osd_filelist = (struct osd_filelist *)_private;
+
+	snprintf(buf, sizeof(buf), "LOAD FROM TAPE: %s", osd_filelist->tape_name);
+
+	DrawClear();
+
+	DrawText(buf, 0, 0, COL_WHITE);
+
+	for (int i = 0; i < osd_filelist->nr_files; i++) {
+		osd_menu_name(osd_filelist->names[i], i, selrow);
+	}
+
+	if (osd_filelist->pages > 1) {
+		snprintf(buf, sizeof(buf), "page %d of %d (L - prev, R - next)",
+				osd_filelist->page + 1, osd_filelist->pages);
+		osd_menu_name(buf, 13, 0);
+	}
+}
+
+static bool osd_filelist_action(int row, u8 key, void *_private)
+{
+	struct osd_filelist *osd_filelist = (struct osd_filelist *)_private;
+
+	osd_filelist->selected = row;
+	osd_filelist->action = key;
+
+	switch (key) {
+	case KEY_LEFT:
+		if (osd_filelist->page > 0)
+			return true;
+		return false;
+	case KEY_RIGHT:
+		if (osd_filelist->page < osd_filelist->pages - 1)
+			return true;
+		return false;
+	case KEY_A:
+		return true;
+	default:
+		return false;
+	}
+}
+
+bool osd_tape_file_select_start(struct osd_filelist *osd_filelist)
+{
+	const struct osd_menu osd_file_menu = {
+		.draw = osd_filelist_draw,
+		.action = osd_filelist_action,
+		.rows = osd_filelist->nr_files,
+	};
+
+	return osd_do(&osd_file_menu, osd_filelist, osd_filelist->selected);
+}

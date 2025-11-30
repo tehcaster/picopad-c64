@@ -100,7 +100,9 @@ const struct button_layout default_button_layout = {
 	},
 };
 
-struct emu_config config = { };
+struct emu_config config = {
+	.t64_entry = -1,
+};
 
 static void setKey(u8 ck, u8 mods)
 {
