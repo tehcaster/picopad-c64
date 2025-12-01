@@ -76,4 +76,6 @@ void apply_button_config();
 void config_global_save();
 void config_game_save();
 
+void stoprefresh();
+
 #endif

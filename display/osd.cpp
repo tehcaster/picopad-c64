@@ -648,6 +648,7 @@ static bool osd_main_action(int row, u8 key, void *_private)
 	if (key == KEY_X) {
 		return osd_start_kb(true, &osd_key_pending, &osd_mods_pending);
 	} else if (key == KEY_B) {
+		stoprefresh();
 		ResetToBootLoader();
 	}
 
