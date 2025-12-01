@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "roms.h"
+#include <cstddef>
 
 #define PROGMEM
 /*
