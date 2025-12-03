@@ -18,6 +18,7 @@ Summary of changes so far:
 - Removal of MCUME code intended for other hardware.
 - Implementation of OSD menu including keyboard emulation and button assignment
   with multiple layouts, saving global and per-game configs to the SD card.
+- Added support for .t64 files.
 - Fixed some bugs in the VIC emulation that manifested in River Raid.
 
 Building:
@@ -39,11 +40,15 @@ Usage:
 - Being part of PicoLibSDK, the C64.uf2 image includes the SDK's bootloader.
 
 - The emulator looks for games in the C64 folder on the root of the SD card.
-  For now only .prg format (and file extension) is supported. To extract from
-  a t64 or d64 file I have used the https://style64.org/dirmaster tool.
+  For now only .prg and .t64 formats (and file extension) are supported. To
+  extract .prg from a t64 or d64 file I have used the
+  https://style64.org/dirmaster tool (under WINE).
 
-- Starting the emulator will show a .prg file selection screen. A confirms
-  selection, Y reboots to PicoLibSDK's bootloader.
+- Starting the emulator will show a .prg + .t64 file selection screen. A
+  confirms selection, Y reboots to PicoLibSDK's bootloader.
+
+- If the selected file is .t64 with more than one entry, another OSD menu
+  appears to select the entry and press A. Again, Y reboots.
 
 - The emulation starts and shows the C64 screen. If autorun is not enabled,
   pressing B will enter the commands to load and run the selected .prg.
@@ -79,6 +84,9 @@ Button layouts:
   The config uses the same name as the respective .PRG file, but with a .CFG
   extension, and is located in the same subdirectory of C64/.
 
+- For .t64 there is currently only a single per-game config for all the
+  entries.
+
 - In the OSD main menu, it's possible to switch between emulating joystick 1
   and 2, this setting is part of the per-game config.
 
@@ -105,4 +113,9 @@ Button layouts:
   need for manual OSD keyboard selection.
 
 TODO:
+- Either support per-entry configs for .t64 or add a way to extract the entry
+  to its own top-level .prg file.
+- .d64 floppy emulation support
+- improve performance, including LCD refresh if possible
+- get more games running, fixing bugs and glitches
 - handle RESTORE key
