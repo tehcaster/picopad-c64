@@ -62,6 +62,10 @@ Usage:
   toggled by A, and/or adjusted by left/right. Y exits the OSD (sub)menu, B
   on the main screen reboots to the bootloader.
 
+- Y key held for 1s (while not in OSD) creates a screenshot (BMP in root of the
+  SD card, provided by PicoLibSDK). The emulation is paused while holding Y.
+  Releasing Y before 1s enters OSD.
+
 - X on the main screen opens the OSD keyboard which can be navigated to select
   a key. Pressing A exits OSD and emulates a short keypress of the selected
   key. For Shift, C= and Ctrl keys, they are highlighted and sent as a key combo

@@ -60,7 +60,7 @@
 #define USE_PWMSND		0		// use PWM sound output; set 1.. = number of channels (lib_pwmsnd.c, lib_pwmsnd.h)
 //#define USE_ORIGSDK		1		// include interface of original-SDK
 //#define EMU_DEBUG_SYNC	1		// 1 = debug measure time synchronization
-#define USE_SCREENSHOT		0		// use screen shots
+#define USE_SCREENSHOT		1		// use screen shots
 #define USE_EMUSCREENSHOT	0		// use emulator screen shots
 //#define USE_USBPAD		1		// simulate keypad with USB keyboard
 #define USE_FILESEL		1		// use file selection (lib_filesel.c, lib_filesel.h)

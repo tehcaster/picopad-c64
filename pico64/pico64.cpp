@@ -585,8 +585,24 @@ int main(void) {
 	}
 
 	if (osd_active) {
+		u32 start = Time();
+		bool scr_done = false;
+
 		audio_paused = true;
-		osd_start();
+
+		while (KeyPressed(KEY_Y)) {
+			u32 cur = Time();
+
+			if ((cur - start) > 1000000 && !scr_done) {
+				ScreenShot();
+				draw_screenshot_done();
+				scr_done = true;
+			}
+		}
+
+		if (!scr_done)
+			osd_start();
+
 		osd_active = false;
 		audio_paused = false;
 

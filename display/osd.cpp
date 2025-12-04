@@ -165,6 +165,14 @@ void draw_fps(u32 lcd, u32 c64)
 	DrawText(buf, 320-12*8, 0, COL_GRAY);
 }
 
+void draw_screenshot_done()
+{
+	SelFont8x8();
+	DrawRect(160-10*8, 98, 20*8, 14, COL_BLACK);
+
+	DrawText("SCREENSHOT DONE", 160-8*8, 100, COL_WHITE);
+}
+
 static void osd_draw_kb_space(struct kb_state *kbs)
 {
 	int x = 120;

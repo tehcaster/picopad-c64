@@ -22,5 +22,6 @@ void osd_start(void);
 bool osd_tape_file_select_start(struct osd_filelist *osd_filelist);
 void draw_key_hints(void);
 void draw_fps(u32 lcd, u32 c64);
+void draw_screenshot_done();
 
 #endif
