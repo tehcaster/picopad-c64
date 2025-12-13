@@ -5,6 +5,9 @@
 
 extern const unsigned char rom_basic[8192];
 extern const unsigned char rom_kernal[8192];
+#if APPLY_PATCHES
+extern const unsigned char rom_kernal_patched[8192];
+#endif
 extern const unsigned char rom_characters[4096];
 
 #endif

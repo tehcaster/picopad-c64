@@ -84,6 +84,7 @@ struct tcpu {
   unsigned ticks;
   unsigned lineCycles;
   unsigned long lineStartTime;
+  bool kernal_patched;
 
   r_rarr_ptr_t plamap_r; //Memory-Mapping read
   w_rarr_ptr_t plamap_w; //Memory-Mapping write

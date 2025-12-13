@@ -281,6 +281,8 @@ nobuttons:
 
 void c64_Init(void)
 {
+  cpu.kernal_patched = config.kernal_patched;
+
   disableEventResponder();
   resetPLA();
   resetCia1();

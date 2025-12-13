@@ -539,6 +539,7 @@ int main(void) {
     tft.startRefresh();
 
     config_game_load();
+    config.kernal_patched = true;
 
     if (FileSelLastNameExt == 1) {
 	const char * error;

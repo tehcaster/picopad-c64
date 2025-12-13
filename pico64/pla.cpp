@@ -43,13 +43,24 @@
 #include "cia1.h"
 #include "cia2.h"
 
+#include "c64.h"
 
 extern CONSTROM rarray_t PLA_READ[8];
 extern CONSTROM warray_t PLA_WRITE[8];
 
 uint8_t r_ram(uint32_t address)		{ return cpu.RAM[address]; }
 uint8_t r_bas(uint32_t address)		{ return rom_basic[address & (sizeof(rom_basic)-1)]; } //BASIC ROM
-uint8_t r_ker(uint32_t address)		{ return rom_kernal[address & (sizeof(rom_kernal)-1)]; } //KERNAL ROM
+
+uint8_t r_ker(uint32_t address)
+{
+	address &= (sizeof(rom_kernal)-1);
+#if APPLY_PATCHES
+	return cpu.kernal_patched ? rom_kernal_patched[address] : rom_kernal[address];
+#else
+	return rom_kernal[address];
+#endif
+} //KERNAL ROM
+
 uint8_t r_chr(uint32_t address)		{ return rom_characters[address & (sizeof(rom_characters)-1)]; } //CHARACTER ROM
 uint8_t r_vic(uint32_t address)		{ return vic_read(address); }
 #ifdef HAS_SND      
@@ -173,7 +184,7 @@ rarray_t PLA_READ[8] = {
 	/* 20 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,
 	/* 30 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,
 
-	/* 40 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,
+		/* 40 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,
 	/* 50 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,
 	/* 60 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,
 	/* 70 */   r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,  r_ram,

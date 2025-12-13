@@ -63,6 +63,7 @@ struct emu_config {
 	bool show_keys;
 	bool autorun;
 	bool single_frame_mode;
+	bool kernal_patched;
 	u8 button_layout;
 	u8 initial_layout;
 	struct button_layout layouts[CONFIG_BTN_LAYOUT_MAX];
