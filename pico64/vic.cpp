@@ -1420,6 +1420,8 @@ void vic_do(void) {
   if (cpu.vic.borderFlag && !cpu.vic.badline) {
 	cpu_clock(5);
     fastFillLineNoSprites(p, pe + BORDER_RIGHT, cpu.vic.colors[0]);
+    if (r >= FIRSTDISPLAYLINE + BORDER && r <= LASTDISPLAYLINE - BORDER)
+      memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
     goto noDisplayIncRC ;
   }
 
