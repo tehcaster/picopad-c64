@@ -38,7 +38,7 @@
 #include "cpu.h"
 #include "cia1.h"
 //#include <string.h>
-
+#include "c64.h"
 
 #define DEBUGCIA1 0
 #define RTCDEBUG 0
@@ -315,6 +315,20 @@ void cia1_clock(int clk) {
 
 	int32_t t;
 	uint32_t regFEDC = cpu.cia1.R32[0x0C/4];
+	static int tape_clk = 0;
+
+tape_retry:
+	if (tape_running) {
+		tape_clk -= clk;
+		if (tape_clk < 0) {
+			regFEDC |= 0x1000;
+			tape_clk += tape_next_pulse();
+			if (tape_clk < 0 && tape_running) {
+				printf("tape clk underflow: %d\n", tape_clk);
+				goto tape_retry;
+			}
+		}
+	}
 
 	// TIMER A
 	//if (((cpu.cia1.R[0x0E] & 0x01)>0) && ((cpu.cia1.R[0x0E] & 0x20)==0)) {
@@ -362,10 +376,8 @@ void cia1_clock(int clk) {
 	}
 
 tend:
-
-
 	// INTERRUPT ?
-	if ( regFEDC & cpu.cia1.W32[0x0C/4] & 0x0f00 ) {
+	if ( regFEDC & cpu.cia1.W32[0x0C/4] & 0x1f00 ) {
 		regFEDC |= 0x8000;
 		cpu.cia1.R32[0x0C/4]=regFEDC;
 	}

@@ -278,6 +278,110 @@ nobuttons:
 	return v;
 }
 
+sFile tape_file;
+u8 tape_version;
+unsigned tape_size;
+bool tape_running = false;
+
+static unsigned tape_pos;
+static u8 tape_buf[64];
+static bool tape_pending = false;
+static int tape_pulse_clk = 0;
+
+void tape_play()
+{
+	u8 val = cpu.RAM[1];
+
+	val &= ~((u8)1<<4);
+
+	cpu.RAM[1] = val;
+}
+
+void tape_stop()
+{
+	u8 val = cpu.RAM[1];
+
+	val |= ((u8)1<<4);
+
+	cpu.RAM[1] = val;
+
+	tape_running = false;
+}
+
+void tape_init()
+{
+	tape_pos = 0;
+	tape_pending = true;
+}
+
+void tape_motor_on()
+{
+	if (!tape_pending)
+		return;
+	printf("tape motor on\n");
+	tape_running = true;
+}
+
+void tape_motor_off()
+{
+	if (!tape_pending)
+		return;
+	printf("tape motor off\n");
+	tape_running = false;
+}
+
+unsigned int tape_next_pulse()
+{
+	unsigned rem = 0;
+	unsigned acc = 0;
+	while (tape_pos < tape_size) {
+		if (tape_pos % 64 == 0) {
+			unsigned batch = tape_size - tape_pos < 64 ? tape_size - tape_pos : 64;
+
+			if (FileRead(&tape_file, tape_buf, batch) != batch) {
+				printf("read failed at pos %u/%u\n", tape_pos, tape_size);
+				break;
+			}
+		}
+
+		unsigned val = tape_buf[tape_pos++ % 64];
+
+		if (rem > 0) {
+			print("rem %u val %u\n", rem, val);
+			switch (rem) {
+			case 1:
+				val *= 256;
+			case 2:
+				val *= 256;
+			case 3:
+				;
+			}
+			rem--;
+			acc += val;
+			if (rem == 0) {
+				print("wide pulse: %u\n", acc);
+				return acc * 8;
+			}
+		} else {
+			if (val == 0) {
+				if (tape_version == 0) {
+					val = 256;
+				} else {
+					acc = 0;
+					rem = 3;
+					continue;
+				}
+			}
+			return val * 8;
+		//	print("pulse: %u\n", val);
+		}
+	}
+	printf("reached tape end\n");
+	tape_stop();
+	tape_pending = false;
+	return 0;
+}
+
 
 void c64_Init(void)
 {
@@ -353,6 +457,8 @@ void c64_Input()
 			if (!*textseq) {
 				textseq = NULL;
 				input_blocked = false;
+				if (tape_pending)
+					tape_play();
 			}
 			toggle = true;
 		} else {

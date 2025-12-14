@@ -360,6 +360,59 @@ out:
 	DiskUnmount();
 }
 
+static bool select_tap(const char **error)
+{
+	unsigned fsize;
+	unsigned tsize;
+	u8 buf[64];
+	u8 version;
+
+	*error = NULL;
+
+	DiskAutoMount();
+	SetDir(FileSelPath);
+
+	if (!FileOpen(&tape_file, FileSelTempBuf)) {
+		*error = "Cannot open file";
+		return false;
+	}
+
+	fsize = GetFileSize(FileSelTempBuf);
+
+	if (FileRead(&tape_file, buf, 20) != 20) {
+		*error = "Read failed";
+		return false;
+	}
+
+	if (memcmp(buf, "C64-TAPE-RAW", 12)) {
+		*error = "TAP wrong header";
+		return false;
+	}
+
+	version = buf[12];
+	printf("TAP version: %u\n", version);
+
+	if (version != 0 && version != 1) {
+		*error = "TAP unsupported version";
+		return false;
+	}
+
+	tsize = buf[16] + buf[17] * 256 + buf[18] * 256 * 256
+		+ buf[19] * 256 * 256 * 256;
+
+	printf("fsize %u tside %u\n", fsize, tsize);
+	if (tsize > fsize - 20) {
+		tsize = fsize - 20;
+	}
+
+	tape_version = version;
+	tape_size = tsize;
+
+	tape_init();
+
+	return true;
+}
+
 static bool select_t64(const char **error)
 {
 	sFile file;
@@ -527,7 +580,7 @@ int main(void) {
 
     tft.begin();
 
-    FileSelInit2("/C64", "Select game", "PRG", "T64", &FileSelColBlue);
+    FileSelInit3("/C64", "Select game", "PRG", "T64", "TAP", &FileSelColBlue);
     last_game_load();
     if (!FileSel())
 	    ResetToBootLoader();
@@ -552,6 +605,19 @@ int main(void) {
 	}
 
 	config_game_save();
+    }
+
+    if (FileSelLastNameExt == 2) {
+	const char * error;
+
+	if (!select_tap(&error)) {
+		tft.stopRefresh();
+		if (error)
+			FileSelDispBigErr(error);
+		ResetToBootLoader();
+	}
+
+	config.kernal_patched = false;
     }
 
     c64_Init();

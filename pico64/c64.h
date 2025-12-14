@@ -73,6 +73,19 @@ extern u16 prg_addr;
 extern u32 prg_offset;
 extern u32 prg_size;
 
+extern sFile tape_file;
+extern u8 tape_version;
+extern unsigned tape_size;
+extern bool tape_running;
+
+void tape_play();
+void tape_stop();
+void tape_init();
+void tape_motor_on();
+void tape_motor_off();
+unsigned int tape_next_pulse();
+
+
 extern const struct button_layout default_button_layout;
 extern struct emu_config config;
 

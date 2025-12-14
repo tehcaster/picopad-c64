@@ -79,14 +79,43 @@ uint8_t r_rnd(uint32_t address)		{ return 255;} //Random for $DE00-$DFFF
 void w_ram( uint32_t address, uint8_t value )	{ 
     cpu.RAM[address ]=value; 
 }
-void w_ramz( uint32_t address, uint8_t value )	{ 
-	cpu.RAM[address]=value;  //zeropage
-	if (address==1) {	//6510 Port
+void w_ramz( uint32_t address, uint8_t value )
+{
+	if (address == 1) {	//6510 PortA
+		u8 outmask = cpu.RAM[0];
+
+		u8 old = cpu.RAM[1];
+
+		bool old_motor = old & (u8)1 << 5;
+		bool new_motor;
+
+		//print("write to addr 1: 0x%x\n", value);
+
+		old &= ~outmask;
+
+		value &= outmask;
+
+		value |= old;
+
+		new_motor = value & (u8)1 << 5;
+
+		cpu.RAM[1] = value;
+
 		value &= 0x07;
 		cpu.plamap_r = (rarray_t*)&PLA_READ[value];
 		cpu.plamap_w = (warray_t*)&PLA_WRITE[value];
-	  } 
-	} 
+
+		if (old_motor != new_motor) {
+			// Bit 5 - Cassette Motor Control; 0 = On, 1 = Off
+			if (new_motor)
+				tape_motor_off();
+			else
+				tape_motor_on();
+		}
+	} else {
+		cpu.RAM[address] = value;  //zeropage
+	}
+}
 void w_vic( uint32_t address, uint8_t value )	{ vic_write(address, value); }
 void w_col( uint32_t address, uint8_t value )	{ cpu.vic.COLORRAM[address & 0x3FF] = value & 0x0F;}
 #ifdef HAS_SND      
