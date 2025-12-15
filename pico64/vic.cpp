@@ -1276,8 +1276,8 @@ void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
 typedef void (*modes_t)( tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc ); //Funktionspointer
 const modes_t modes[8] = {mode0, mode1, mode2, mode3, mode4, mode5, mode6, mode7};
 
-
-static tpixel linebuffer[SCREEN_WIDTH*16];
+/* extend by max xscroll rounded up */
+static tpixel linebuffer[SCREEN_WIDTH + 8];
 
 void vic_do(void) {
 
@@ -1287,6 +1287,8 @@ void vic_do(void) {
   tpixel *p;
   uint16_t *spl;
   uint8_t mode;
+  bool csel_left;
+  uint16_t bdcol_left;
 
   /*****************************************************************************************************/
   /* Linecounter ***************************************************************************************/
@@ -1434,24 +1436,33 @@ void vic_do(void) {
   //max_x =  (!cpu.vic.CSEL) ? 40:38;
   //X-Scrolling:
 
+  /*
+   * Remember if CSEL was set when we reached x = 24, current border color to
+   * overwrite first 7 pixels later if !CSEL
+   *
+   * TODO: we ignore hyperscreen for the foreseeable future...
+   */
+  csel_left = cpu.vic.CSEL;
+  bdcol_left = cpu.vic.colors[0];
+
   xscroll = cpu.vic.XSCROLL;
 
   if (xscroll > 0) {
-    uint16_t col = cpu.vic.colors[0];
-
-    if (!cpu.vic.CSEL) {
-      cpu_clock(1);
+    if (csel_left) {
+      /* we don't have the extra border to cover the bg/sprites so render them */
       uint16_t sprite;
+      uint16_t col = cpu.vic.colors[1]; /* B0C */
+
       for (int i = 0; i < xscroll; i++) {
         SPRITEORFIXEDCOLOR();
       }
     } else {
+      /* just bump everything as the border will cover it */
       spl += xscroll;
-      for (unsigned i = 0; i < xscroll; i++) {
-        *p++ = col;
-      }
-
+      p += xscroll;
     }
+    /* bump the end as well for proper clocks during modes (?) */
+    pe += xscroll;
   }
 
   /*****************************************************************************************************/
@@ -1577,55 +1588,22 @@ g-Zugriff
 
   /*****************************************************************************************************/
 
+  /* grow the right border over what has been rendered */
   if (!cpu.vic.CSEL) {
-    cpu_clock(1);
-    uint16_t col = cpu.vic.colors[0];
-    p = &linebuffer[0]; // tft.getLineBuffer((r - FIRSTDISPLAYLINE));
-#if 0
-    // Sprites im Rand
-    uint16_t sprite;
-    uint16_t * spl;
-    spl = &cpu.vic.spriteLine[24 + xscroll];
-
-    SPRITEORFIXEDCOLOR()
-    SPRITEORFIXEDCOLOR()
-    SPRITEORFIXEDCOLOR()
-    SPRITEORFIXEDCOLOR()
-    SPRITEORFIXEDCOLOR()
-    SPRITEORFIXEDCOLOR()
-    SPRITEORFIXEDCOLOR() //7
-#else
-    //keine Sprites im Rand
-    *p++ = col; *p++ = col; *p++ = col; *p++ = col;
-    *p++ = col; *p++ = col; *p = col;
-
-#endif
-
-    //Rand rechts:
-    p = &linebuffer[SCREEN_WIDTH - 9 + BORDER_LEFT]; //tft.getLineBuffer((r - FIRSTDISPLAYLINE)) + SCREEN_WIDTH - 9 + BORDER_LEFT;
-    pe = p + 9;
-
-#if 0
-    // Sprites im Rand
-    spl = &cpu.vic.spriteLine[24 + SCREEN_WIDTH - 9 + xscroll];
-    while (p < pe) {
-      SPRITEORFIXEDCOLOR();
+    for (unsigned int i = SCREEN_WIDTH - 9; i < SCREEN_WIDTH; i++) {
+      linebuffer[i] = cpu.vic.colors[0];
     }
-#else
-    //keine Sprites im Rand
-    //while (p < pe) {
-    //  *p++ = col;
-    //}
-#endif
+  }
 
-
-
+  /* grow also the left border as determined earlier */
+  if (!csel_left) {
+    for (unsigned int i = 0; i < 7; i++) {
+      linebuffer[i] = bdcol_left;
+    }
   }
 
   memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
-  memset(&linebuffer[0], 0, SCREEN_WIDTH*2);
-
-
+  memset(&linebuffer[0], 0, sizeof(linebuffer));
 
 
 //Rechter Rand nach CSEL, im Textbereich

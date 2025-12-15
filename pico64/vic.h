@@ -121,7 +121,9 @@ struct tvic {
   };
 
   //tsprite spriteInfo[8];//todo
-  uint16_t spriteLine[SPRITE_MAX_X];
+
+  /* extend by max xscroll rounded up */
+  uint16_t spriteLine[SPRITE_MAX_X + 8];
 
   uint8_t lineMemChr[40];
   uint8_t lineMemCol[40];
