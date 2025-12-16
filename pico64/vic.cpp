@@ -1688,9 +1688,10 @@ noDisplayIncRC:
           unsigned short lineOfSprite = r - y;
           if (R17 & b) lineOfSprite = lineOfSprite / 2; // Y-Expansion
           unsigned short spriteadr = cpu.vic.bank | cpu.RAM[cpu.vic.videomatrix + (1024 - 8) + i] << 6 | (lineOfSprite * 3);
-          unsigned spriteData = ((unsigned)cpu.RAM[ spriteadr ] << 16) | ((unsigned)cpu.RAM[ spriteadr + 1 ] << 8) | ((unsigned)cpu.RAM[ spriteadr + 2 ]);
+          unsigned spriteData = ((unsigned)cpu.RAM[ spriteadr ] << 24) | ((unsigned)cpu.RAM[ spriteadr + 1 ] << 16) | ((unsigned)cpu.RAM[ spriteadr + 2 ] << 8);
 
           if (!spriteData) continue;
+          spriteData = reverse(spriteData);
           cpu.vic.lineHasSprites = 1;
 
           uint16_t * slp = &cpu.vic.spriteLine[x]; //Sprite-Line-Pointer
@@ -1703,8 +1704,8 @@ noDisplayIncRC:
 
             if ((cpu.vic.MXE & b) == 0) { // NO MULTICOLOR, NO SPRITE-EXPANSION
               for (unsigned cnt = 0; cnt < 24; cnt++) {
-                int c = (spriteData >> 23) & 0x01;
-                spriteData = (spriteData << 1);
+                int c = spriteData & 0x01;
+                spriteData >>= 1;
 
                 if (c) {
                   if (*slp == 0) *slp = color;
@@ -1716,8 +1717,8 @@ noDisplayIncRC:
 
             } else {    // NO MULTICOLOR, SPRITE-EXPANSION
 	      for (unsigned cnt = 0; cnt < 24; cnt++) {
-                int c = (spriteData >> 23) & 0x01;
-                spriteData = (spriteData << 1);
+                int c = spriteData & 0x01;
+                spriteData >>= 1;
                 //So wie oben, aber zwei gleiche Pixel
 
                 if (c) {
@@ -1741,15 +1742,15 @@ noDisplayIncRC:
               Die horizontale Auflösung wird von 24 auf 12 halbiert, da bei der Sprite-Definition jeweils zwei Bits zusammengefasst werden.
             */
             uint16_t colors[4];
-            //colors[0] = 1; //dummy, color 0 is transparent
-            colors[1] = upperByte | cpu.vic.R[0x25];
-            colors[2] = upperByte | cpu.vic.R[0x27 + i];
+            colors[0] = 0; //dummy, color 0 is transparent
+            colors[1] = upperByte | cpu.vic.R[0x27 + i];
+            colors[2] = upperByte | cpu.vic.R[0x25];
             colors[3] = upperByte | cpu.vic.R[0x26];
 
             if ((cpu.vic.MXE & b) == 0) { // MULTICOLOR, NO SPRITE-EXPANSION
               for (unsigned cnt = 0; cnt < 12; cnt++) {
-                int c = (spriteData >> 22) & 0x03;
-                spriteData = (spriteData << 2);
+                int c = spriteData & 0x03;
+                spriteData >>= 2;
 
                 if (c) {
                   if (*slp == 0) *slp = colors[c];
@@ -1766,8 +1767,8 @@ noDisplayIncRC:
 
             } else {    // MULTICOLOR, SPRITE-EXPANSION
               for (unsigned cnt = 0; cnt < 12; cnt++) {
-                int c = (spriteData >> 22) & 0x03;
-                spriteData = (spriteData << 2);
+                int c = spriteData & 0x03;
+                spriteData >>= 2;
 
                 //So wie oben, aber vier gleiche Pixel
                 if (c) {
