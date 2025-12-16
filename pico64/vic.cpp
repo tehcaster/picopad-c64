@@ -1702,8 +1702,7 @@ noDisplayIncRC:
             uint16_t color = upperByte | cpu.vic.R[0x27 + i];
 
             if ((cpu.vic.MXE & b) == 0) { // NO MULTICOLOR, NO SPRITE-EXPANSION
-              unsigned maxcnt = min(24, SPRITE_MAX_X - x);
-              for (unsigned cnt = 0; (spriteData > 0) && (cnt < maxcnt); cnt++) {
+              for (unsigned cnt = 0; cnt < 24; cnt++) {
                 int c = (spriteData >> 23) & 0x01;
                 spriteData = (spriteData << 1);
 
@@ -1716,8 +1715,7 @@ noDisplayIncRC:
               }
 
             } else {    // NO MULTICOLOR, SPRITE-EXPANSION
-              unsigned maxcnt = min(24, (SPRITE_MAX_X - x)/2);
-	      for (unsigned cnt = 0; (spriteData > 0) && (cnt < maxcnt); cnt++) {
+	      for (unsigned cnt = 0; cnt < 24; cnt++) {
                 int c = (spriteData >> 23) & 0x01;
                 spriteData = (spriteData << 1);
                 //So wie oben, aber zwei gleiche Pixel
@@ -1749,8 +1747,7 @@ noDisplayIncRC:
             colors[3] = upperByte | cpu.vic.R[0x26];
 
             if ((cpu.vic.MXE & b) == 0) { // MULTICOLOR, NO SPRITE-EXPANSION
-              unsigned maxcnt = min(12, (SPRITE_MAX_X - x)/2);
-              for (unsigned cnt = 0; (spriteData > 0) && (cnt < maxcnt); cnt++) {
+              for (unsigned cnt = 0; cnt < 12; cnt++) {
                 int c = (spriteData >> 22) & 0x03;
                 spriteData = (spriteData << 2);
 
@@ -1768,8 +1765,7 @@ noDisplayIncRC:
               }
 
             } else {    // MULTICOLOR, SPRITE-EXPANSION
-              unsigned maxcnt = min(12, (SPRITE_MAX_X - x)/4);
-              for (unsigned cnt = 0; (spriteData > 0) && (cnt < maxcnt); cnt++) {
+              for (unsigned cnt = 0; cnt < 12; cnt++) {
                 int c = (spriteData >> 22) & 0x03;
                 spriteData = (spriteData << 2);
 

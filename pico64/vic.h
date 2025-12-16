@@ -42,7 +42,7 @@
 
 // TODO: is it really limited like this for collision detection purposes?
 // from reading VIC-Article.txt I think maybe not?
-#define SPRITE_MAX_X (320 + 24)
+#define SPRITE_MAX_X (24 + 320)
 
 /* for later use
 struct tsprite {
@@ -123,7 +123,7 @@ struct tvic {
   //tsprite spriteInfo[8];//todo
 
   /* extend by max xscroll rounded up */
-  uint16_t spriteLine[SPRITE_MAX_X + 8];
+  uint16_t spriteLine[SPRITE_MAX_X + 48 + 8];
 
   uint8_t lineMemChr[40];
   uint8_t lineMemCol[40];
