@@ -1603,7 +1603,7 @@ g-Zugriff
   }
 
   memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
-  memset(&linebuffer[0], 0, sizeof(linebuffer));
+  //memset(&linebuffer[0], 0, sizeof(linebuffer));
 
 
 //Rechter Rand nach CSEL, im Textbereich
