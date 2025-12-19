@@ -364,13 +364,19 @@ void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
 			pixel = sprite & 0x0f; //Hintergrundgrafik
             if (sprite & 0x4000) {  // MDP = 1
 
-              if (chr & 0x80) {  //Vordergrundpixel ist gesetzt
+
+              /*
+               * "It is interesting to note that not only the bit combination "00" but also
+               * "01" is regarded as "background" for the purposes of sprite priority and
+               * collision detection."
+               */
+              if (c > 1) {  //Vordergrundpixel ist gesetzt
                 cpu.vic.fgcollision |= spritenum;
                 pixel = colors[c];
               }
 
             } else {          // MDP = 0
-              if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
+              if (c > 1) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
             }
 
           } else { // Kein Sprite
@@ -388,12 +394,12 @@ void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
 			pixel =  sprite & 0x0f; //Hintergrundgrafik
             if (sprite & 0x4000) {  // MDP = 1
 
-              if (chr & 0x80) { //Vordergrundpixel ist gesetzt
+              if (c > 1) { //Vordergrundpixel ist gesetzt
                 cpu.vic.fgcollision |= spritenum;
                 pixel = colors[c];
               }
             } else {          // MDP = 0
-              if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
+              if (c > 1) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
             }
           } else { // Kein Sprite
             pixel = colors[c];
@@ -551,7 +557,6 @@ void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
 
         int sprite = *spl++;
 
-        chr = chr << 1;
         if (sprite) {     // Sprite: Ja
           /*
              Sprite-Prioritäten (Anzeige)
@@ -579,6 +584,7 @@ void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
         }
 
         *p++ = cpu.vic.palette[pixel];
+        chr = chr << 1;
 
       }
     } while (p < pe);
@@ -984,8 +990,6 @@ void mode5 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
         for (unsigned i = 0; i < 4; i++) {
           if (p >= pe) break;
 
-          chr = chr << 2;
-
           int sprite = *spl;
 		  *spl++ = 0;
 
@@ -1028,6 +1032,7 @@ void mode5 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
           }
           *p++ = cpu.vic.palette[pixel];
 
+          chr = chr << 2;
         }
 
       }
@@ -1097,7 +1102,6 @@ void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
         int sprite = *spl;
         *spl++ = 0;
 
-        chr = chr << 1;
         if (sprite) {     // Sprite: Ja
           /*
              Sprite-Prioritäten (Anzeige)
@@ -1125,6 +1129,7 @@ void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
         }
 
         *p++ = cpu.vic.palette[pixel];
+        chr = chr << 1;
 
       }
 
@@ -1191,8 +1196,6 @@ void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
       for (unsigned i = 0; i < 4; i++) {
         if (p >= pe) break;
 
-        chr = chr << 2;
-
         int sprite = *spl;
 		*spl++ = 0;
 
@@ -1235,6 +1238,8 @@ void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
         }
 
         *p++ = cpu.vic.palette[pixel];
+        chr = chr << 2;
+
 
       }
 
