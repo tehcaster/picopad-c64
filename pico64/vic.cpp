@@ -54,6 +54,7 @@
 //#include <math.h>
 //#include <stdlib.h>
 
+#include "c64.h"
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b)) 
@@ -1690,6 +1691,10 @@ noDisplayIncRC:
           uint16_t x =  (((cpu.vic.R[0x10] >> i) & 1) << 8) | cpu.vic.R[i * 2];
           if (x >= SPRITE_MAX_X) continue;
 
+          //DEBUG
+          //if (config.single_frame_mode)
+          //  printf("line %d mode %u sprite %u x %u y %u\n", r, mode, i, x, y);
+
           unsigned short lineOfSprite = r - y;
           if (R17 & b) lineOfSprite = lineOfSprite / 2; // Y-Expansion
           unsigned short spriteadr = cpu.vic.bank | cpu.RAM[cpu.vic.videomatrix + (1024 - 8) + i] << 6 | (lineOfSprite * 3);
@@ -1701,6 +1706,9 @@ noDisplayIncRC:
 
           uint16_t * slp = &cpu.vic.spriteLine[x]; //Sprite-Line-Pointer
           unsigned short upperByte = ( 0x80 | ( (cpu.vic.MDP & b) ? 0x40 : 0 ) | i ) << 8; //Bit7 = Sprite "da", Bit 6 = Sprite-Priorität vor Grafik/Text, Bits 3..0 = Spritenummer
+
+          //if (config.single_frame_mode)
+          //  printf("upperByte %x color %u\n", upperByte, cpu.vic.R[0x27 + i]);
 
           //Sprite in Spritezeile schreiben:
           if ((cpu.vic.MMC & b) == 0) { // NO MULTICOLOR
