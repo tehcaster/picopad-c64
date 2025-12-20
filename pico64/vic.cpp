@@ -136,7 +136,8 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
 #define PRINTOVERFLOWS
 #endif
 
-static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol)
+static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol,
+			 uint16_t bgcol)
 {
 	for (unsigned i = 0; i < 8; i++) {
 		uint16_t pixel;
@@ -158,7 +159,7 @@ static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol)
 					cpu.vic.fgcollision |= spritenum;
 			}
 		} else {
-			pixel = (chr & 0x80) ? fgcol : cpu.vic.B0C;
+			pixel = (chr & 0x80) ? fgcol : bgcol;
 		}
 
 		*p++ = cpu.vic.palette[pixel];
@@ -253,7 +254,7 @@ static void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 		fgcol = cpu.vic.lineMemCol[x];
 		x++;
 
-		char_sprites(p, spl, chr, fgcol);
+		char_sprites(p, spl, chr, fgcol, cpu.vic.B0C);
 		p += 8;
 		spl += 8;
 	}
@@ -345,7 +346,7 @@ static void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 
 		/* MC flag 0 */
 		if ((fgcol & 0x08) == 0)
-			char_sprites(p, spl, chr, colors[3]);
+			char_sprites(p, spl, chr, colors[3], colors[0]);
 		else
 			char_sprites_mc(p, spl, chr, &colors[0]);
 
@@ -404,134 +405,84 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  /*
-     Standard-Bitmap-Modus (ECM / BMM / MCM = 0/1/0) ("HIRES")
-     In diesem Modus (wie in allen Bitmap-Modi) liest der VIC die Grafikdaten aus einer 320×200-Bitmap,
-     in der jedes Bit direkt einem Punkt auf dem Bildschirm entspricht. Die Daten aus der videomatrix
-     werden für die Farbinformation benutzt. Da die videomatrix weiterhin nur eine 40×25-Matrix ist,
-     können die Farben nur für Blöcke von 8×8 Pixeln individuell bestimmt werden (also eine Art YC-8:1-Format).
-     Da die Entwickler des VIC-II den Bitmap-Modus mit sowenig zusätzlichem Schaltungsaufwand wie möglich realisieren wollten
-     (der VIC-I hatte noch keinen Bitmap-Modus), ist die Bitmap etwas ungewöhnlich im Speicher abgelegt:
-     Im Gegensatz zu modernen Videochips, die die Bitmap linear aus dem Speicher lesen, bilden beim VIC jeweils 8 aufeinanderfolgende Bytes einen 8×8-Pixelblock
-     auf dem Bildschirm. Mit den Bits VM10-13 und CB13 aus Register $d018 lassen sich videomatrix und Bitmap im Speicher verschieben.
-     Im Standard-Bitmap-Modus entspricht jedes Bit in der Bitmap direkt einem Pixel auf dem Bildschirm.
-     Für jeden 8×8-Block können Vorder- und Hintergrundfarbe beliebig eingestellt werden.
+static void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
+	-------------------------------------------------
 
-     +----+----+----+----+----+----+----+----+
-     |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
-     +----+----+----+----+----+----+----+----+
-     |         8 Pixel (1 Bit/Pixel)         |
-     |                                       |
-     | "0": Farbe aus Bits 0-3 der c-Daten   |
-     | "1": Farbe aus Bits 4-7 der c-Daten   |
-     +---------------------------------------+
+	In this mode, the VIC reads the graphics data from a 320×200 pixel bitmap in
+	which each bit corresponds to one pixel on the screen. The data from the
+	video matrix is used for color information. As the video matrix is still
+	only a 40×25 matrix, you can only specify the colors for blocks of 8×8
+	pixels individually (sort of a YC 8:1 format). As the designers of the VIC
+	wanted to realize the bitmap mode with as little additional circuitry as
+	possible (the VIC-I didn't have a bitmap mode), the arrangement of the
+	bitmap in memory is somewhat weird: In contrast to modern video chips that
+	read the bitmap in a linear fashion from memory, the VIC forms an 8×8 pixel
+	block on the screen from 8 successive bytes of the bitmap. The video matrix
+	and the bitmap can be moved in memory with the bits VM10-VM13 and CB13 of
+	register $d018.
 
+	In standard bitmap mode, each bit in the bitmap directly corresponds to one
+	pixel on the screen. Foreground and background color can be arbitrarily set
+	for each 8×8 pixel block.
 
-     http://www.devili.iki.fi/Computers/Commodore/C64/Programmers_Reference/Chapter_3/page_127.html
-  */
+	 +----+----+----+----+----+----+----+----+
+	 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	 +----+----+----+----+----+----+----+----+
+	 |         8 pixels (1 bit/pixel)        |
+	 |                                       |
+	 | "0": Color from bits 0-3 of c-data    |
+	 | "1": Color from bits 4-7 of c-data    |
+	 +---------------------------------------+
+	 */
 
-  uint8_t chr;
-  uint16_t fgcol, pixel;
-  uint16_t bgcol;
-  uint8_t x = 0;
-  uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t chr;
+	uint16_t fgcol, pixel;
+	uint16_t bgcol;
+	uint8_t x = 0;
+	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
 
-  if (cpu.vic.lineHasSprites) {
-    do {
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-      BADLINE(x);
+	while (p < pe) {
 
-      uint8_t t = cpu.vic.lineMemChr[x];
-      fgcol = t >> 4;
-      bgcol = t & 0x0f;
-      chr = bP[x * 8];
+		BADLINE(x);
 
-      x++;
+		uint8_t t = cpu.vic.lineMemChr[x];
+		fgcol = t >> 4;
+		bgcol = t & 0x0f;
+		chr = bP[x * 8];
 
-      unsigned m = min(8, pe - p);
-      for (unsigned i = 0; i < m; i++) {
+		x++;
 
-        int sprite = *spl++;
+		char_sprites(p, spl, chr, fgcol, bgcol);
+		p += 8;
+		spl += 8;
 
-        if (sprite) {     // Sprite: Ja
-          /*
-             Sprite-Prioritäten (Anzeige)
-             MDP = 1: Grafikhintergrund, Sprite, Vordergrund
-             MDP = 0: Grafikhintergung, Vordergrund, Sprite
+	} while (p < pe);
 
-             Kollision:
-             Eine Kollision zwischen Sprites und anderen Grafikdaten wird erkannt,
-             sobald beim Bildaufbau ein nicht transparentes Spritepixel und ein Vordergrundpixel ausgegeben wird.
+nosprites:
 
-          */
-          int spritenum = SPRITENUM(sprite);
-          pixel = sprite & 0x0f; //Hintergrundgrafik
-          if (sprite & 0x4000) {   // MDP = 1
-            if (chr & 0x80) { //Vordergrundpixel ist gesetzt
-              cpu.vic.fgcollision |= spritenum;
-              pixel = fgcol;
-            }
-          } else {            // MDP = 0
-            if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-          }
+	while (p < pe) {
+		//color-ram not used!
+		BADLINE(x);
 
-        } else {            // Kein Sprite
-          pixel = (chr & 0x80) ? fgcol :cpu.vic.B0C;
-        }
+		uint8_t t = cpu.vic.lineMemChr[x];
+		fgcol = cpu.vic.palette[t >> 4];
+		bgcol = cpu.vic.palette[t & 0x0f];
+		chr = bP[x * 8];
+		x++;
 
-        *p++ = cpu.vic.palette[pixel];
-        chr = chr << 1;
-
-      }
-    } while (p < pe);
-    PRINTOVERFLOWS
-  } else { //Keine Sprites
-
-    while (p < pe - 8) {
-      //color-ram not used!
-      BADLINE(x);
-
-      uint8_t t = cpu.vic.lineMemChr[x];
-      fgcol = cpu.vic.palette[t >> 4];
-      bgcol = cpu.vic.palette[t & 0x0f];
-      chr = bP[x * 8];
-      x++;
-
-      *p++ = (chr & 0x80) ? fgcol : bgcol;
-      *p++ = (chr & 0x40) ? fgcol : bgcol;
-      *p++ = (chr & 0x20) ? fgcol : bgcol;
-      *p++ = (chr & 0x10) ? fgcol : bgcol;
-      *p++ = (chr & 0x08) ? fgcol : bgcol;
-      *p++ = (chr & 0x04) ? fgcol : bgcol;
-      *p++ = (chr & 0x02) ? fgcol : bgcol;
-      *p++ = (chr & 0x01) ? fgcol : bgcol;
-    };
-    while (p < pe) {
-      //color-ram not used!
-      BADLINE(x);
-
-      uint8_t t = cpu.vic.lineMemChr[x];
-      fgcol = cpu.vic.palette[t >> 4];
-      bgcol = cpu.vic.palette[t & 0x0f];
-      chr = bP[x * 8];
-
-      x++;
-
-      *p++ = (chr & 0x80) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x40) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x20) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x10) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x08) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x04) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x02) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x01) ? fgcol : bgcol;
-
-    };
-    PRINTOVERFLOW
-  }
-  while (x<40) {BADLINE(x); x++;}
+		for (unsigned i = 0; i < 8; i++) {
+			*p++ = (chr & 0x80) ? fgcol : bgcol;
+			chr <<= 1;
+		}
+	}
 }
+
 /*****************************************************************************************************/
 void mode3 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
   /*
