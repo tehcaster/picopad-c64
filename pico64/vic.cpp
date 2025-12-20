@@ -484,162 +484,95 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-void mode3 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  /*
-    Multicolor-Bitmap-Modus (ECM/BMM/MCM=0/1/1)
+static void mode3 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
+	---------------------------------------------------
 
-    Ähnlich wie beim Multicolor-Textmodus bilden auch in diesem Modus jeweils
-    zwei benachbarte Bits ein (doppelt so breites) Pixel. Die Auflösung
-    reduziert sich damit auf 160×200 Pixel.
+	Similar to the multicolor text mode, this mode also forms (twice as wide)
+	pixels by combining two adjacent bits each. So the resolution is reduced to
+	160×200 pixels.
 
-    Genau wie beim Multicolor-Textmodus wird die Bitkombination "01" für die
-    Spritepriorität und -kollisionserkennung zum "Hintergrund" gezählt.
+	The bit combination "01" is also treated as "background" for the sprite
+	priority and collision detection, as in multicolor text mode.
 
-    +----+----+----+----+----+----+----+----+
-    |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
-    +----+----+----+----+----+----+----+----+
-    |         4 Pixel (2 Bit/Pixel)         |
-    |                                       |
-    | "00": Hintergrundfarbe 0 ($d021)      |
-    | "01": Farbe aus Bits 4-7 der c-Daten  |
-    | "10": Farbe aus Bits 0-3 der c-Daten  |
-    | "11": Farbe aus Bits 8-11 der c-Daten |
-    +---------------------------------------+
+	+----+----+----+----+----+----+----+----+
+	|  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	+----+----+----+----+----+----+----+----+
+	|         4 pixels (2 bits/pixel)       |
+	|                                       |
+	| "00": Background color 0 ($d021)      |
+	| "01": Color from bits 4-7 of c-data   |
+	| "10": Color from bits 0-3 of c-data   |
+	| "11": Color from bits 8-11 of c-data  |
+	+---------------------------------------+
+	*/
+	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint16_t colors[4];
+	uint16_t pixel;
+	uint8_t chr, x;
 
-    POKE 53265,PEEK(53625)OR 32: POKE 53270,PEEK(53270)OR 16
-  */
-  uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
-  uint16_t colors[4];
-  uint16_t pixel;
-  uint8_t chr, x;
+	x = 0;
 
-  x = 0;
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-  if (cpu.vic.lineHasSprites) {
-    colors[0] = cpu.vic.B0C;
-    do {
+	colors[0] = cpu.vic.B0C;
+	while (p < pe) {
 
-	  if (cpu.vic.idle) {
-	    cpu_clock(1);
-	    colors[1] = colors[2] = colors[3] = 0;
-	    chr = cpu.RAM[cpu.vic.bank + 0x3fff];
-	  } else {
-        BADLINE(x);
-        uint8_t t = cpu.vic.lineMemChr[x];
-        colors[1] = t >> 4;//10
-        colors[2] = t & 0x0f; //01
-        colors[3] = cpu.vic.lineMemCol[x];
-  	    chr = bP[x * 8];
-  	  };
+		if (cpu.vic.idle) {
+			cpu_clock(1);
+			colors[1] = colors[2] = colors[3] = 0;
+			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
+		} else {
+			BADLINE(x);
+			uint8_t t = cpu.vic.lineMemChr[x];
+			colors[1] = t >> 4;//10
+			colors[2] = t & 0x0f; //01
+			colors[3] = cpu.vic.lineMemCol[x];
+			chr = bP[x * 8];
+		}
 
-      x++;
+		x++;
 
-      for (unsigned i = 0; i < 4; i++) {
-        if (p >= pe) break;
-        uint32_t c = (chr >> 6) & 0x03;
-        chr = chr << 2;
+		char_sprites_mc(p, spl, chr, &colors[0]);
+		p += 8;
+		spl += 8;
+	}
 
-        int sprite = *spl++;
+nosprites:
 
-        if (sprite) {    // Sprite: Ja
-          int spritenum = SPRITENUM(sprite);
-          pixel = sprite & 0x0f; //Hintergrundgrafik
-          if (sprite & 0x4000) {  // MDP = 1
-            if (c & 0x02) {  //Vordergrundpixel ist gesetzt
-              cpu.vic.fgcollision |= spritenum;
-              pixel = colors[c];
-            }
-          } else {          // MDP = 0
-            if (c & 0x02) cpu.vic.fgcollision |= spritenum; //Vordergundpixel ist gesetzt
-          }
-        } else { // Kein Sprite
-          pixel = colors[c];
-        }
+	while (p < pe) {
 
-        *p++ = cpu.vic.palette[pixel];
-        if (p >= pe) break;
+		colors[0] = cpu.vic.colors[1];
 
-        sprite = *spl++;
+		if (cpu.vic.idle) {
+			cpu_clock(1);
+			colors[1] = colors[2] = colors[3] = 0;
+			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
+		} else {
+			BADLINE(x);
 
-        if (sprite) {    // Sprite: Ja
-          int spritenum = SPRITENUM(sprite);
-          pixel = sprite & 0x0f; //Hintergrundgrafik
-          if (sprite & 0x4000) {  // MDP = 1
+			uint8_t t = cpu.vic.lineMemChr[x];
+			colors[1] = cpu.vic.palette[t >> 4];//10
+			colors[2] = cpu.vic.palette[t & 0x0f]; //01
+			colors[3] = cpu.vic.palette[cpu.vic.lineMemCol[x]];
+			chr = bP[x * 8];
+		}
 
-            if (c & 0x02) {  //Vordergrundpixel ist gesetzt
-              cpu.vic.fgcollision |= spritenum;
-              pixel = colors[c];
-            }
-          } else {          // MDP = 0
-            if (c & 0x02) cpu.vic.fgcollision |= spritenum; //Vordergundpixel ist gesetzt
-          }
-        } else { // Kein Sprite
-          pixel = colors[c];
-        }
+		x++;
 
-        *p++ = cpu.vic.palette[pixel];
+		for (unsigned i = 0; i < 4; i++) {
+			uint8_t col = (chr >> 6) & 0x03;
+			chr <<= 2;
 
-      }
-
-    } while (p < pe);
-    PRINTOVERFLOWS
-
-  } else { //Keine Sprites
-
-    while (p < pe - 8) {
-
-	  colors[0] = cpu.vic.colors[1];
-
-	  if (cpu.vic.idle) {
-	    cpu_clock(1);
-	    colors[1] = colors[2] = colors[3] = 0;
-	    chr = cpu.RAM[cpu.vic.bank + 0x3fff];
-	  } else {
-        BADLINE(x);
-
-        uint8_t t = cpu.vic.lineMemChr[x];
-        colors[1] = cpu.vic.palette[t >> 4];//10
-        colors[2] = cpu.vic.palette[t & 0x0f]; //01
-        colors[3] = cpu.vic.palette[cpu.vic.lineMemCol[x]];
-        chr = bP[x * 8];
-	  }
-
-      x++;
-      pixel = colors[(chr >> 6) & 0x03]; *p++ = pixel; *p++ = pixel;
-      pixel = colors[(chr >> 4) & 0x03]; *p++ = pixel; *p++ = pixel;
-      pixel = colors[(chr >> 2) & 0x03]; *p++ = pixel; *p++ = pixel;
-      pixel = colors[chr        & 0x03]; *p++ = pixel; *p++ = pixel;
-
-    };
-    while (p < pe) {
-
-	  colors[0] = cpu.vic.colors[1];
-
-	  if (cpu.vic.idle) {
-	    cpu_clock(1);
-	    colors[1] = colors[2] = colors[3] = 0;
-	    chr = cpu.RAM[cpu.vic.bank + 0x3fff];
-	  } else {
-        BADLINE(x);
-
-        uint8_t t = cpu.vic.lineMemChr[x];
-        colors[1] = cpu.vic.palette[t >> 4];//10
-        colors[2] = cpu.vic.palette[t & 0x0f]; //01
-        colors[3] = cpu.vic.palette[cpu.vic.lineMemCol[x]];
-        chr = bP[x * 8];
-	  }
-
-      x++;
-      pixel = colors[(chr >> 6) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel; if (p >= pe) break;
-      pixel = colors[(chr >> 4) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel; if (p >= pe) break;
-      pixel = colors[(chr >> 2) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel; if (p >= pe) break;
-      pixel = colors[chr        & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel;
-
-    };
-    PRINTOVERFLOW
-  }
-  while (x<40) {BADLINE(x); x++;}
+			*p++ = colors[col];
+			*p++ = colors[col];
+		}
+	}
 }
+
 /*****************************************************************************************************/
 void mode4 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
   //ECM-Textmodus (ECM/BMM/MCM=1/0/0)
