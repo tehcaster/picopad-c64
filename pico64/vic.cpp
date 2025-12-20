@@ -280,7 +280,7 @@ nosprites:
 };
 
 /*****************************************************************************************************/
-void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
@@ -357,93 +357,50 @@ void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
 
 nosprites:
 
-    while (p < pe - 8) {
+	while (p < pe) {
 
-	  int c;
+		int c;
 
-	  bgcol = cpu.vic.colors[1];
-	  colors[0] = bgcol;
+		bgcol = cpu.vic.colors[1];
+		colors[0] = bgcol;
 
-	  if (cpu.vic.idle) {
-		cpu_clock(1);
-		c = colors[1] = colors[2] = colors[3] = 0;
-		chr = cpu.RAM[cpu.vic.bank + 0x3fff];
-	  } else {
-        BADLINE(x);
+		if (cpu.vic.idle) {
+			cpu_clock(1);
+			c = colors[1] = colors[2] = colors[3] = 0;
+			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
+		} else {
+			BADLINE(x);
 
-	    colors[1] = cpu.vic.colors[2];
-  	    colors[2] = cpu.vic.colors[3];
+			colors[1] = cpu.vic.colors[2];
+			colors[2] = cpu.vic.colors[3];
 
-        chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
-        c = cpu.vic.lineMemCol[x];
-	  }
+			chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
+			c = cpu.vic.lineMemCol[x];
+		}
 
-      x++;
+		x++;
 
-      if ((c & 0x08) == 0) { //Zeichen ist HIRES
-        fgcol = cpu.vic.palette[c & 0x07];
-        *p++ = (chr & 0x80) ? fgcol : bgcol;
-        *p++ = (chr & 0x40) ? fgcol : bgcol;
-        *p++ = (chr & 0x20) ? fgcol : bgcol;
-        *p++ = (chr & 0x10) ? fgcol : bgcol;
-        *p++ = (chr & 0x08) ? fgcol : bgcol;
-        *p++ = (chr & 0x04) ? fgcol : bgcol;
-        *p++ = (chr & 0x02) ? fgcol : bgcol;
-        *p++ = (chr & 0x01) ? fgcol : bgcol;
-      } else {//Zeichen ist MULTICOLOR
+		/* MC flag 0 */
+		if ((c & 0x08) == 0) {
 
-        colors[3] = cpu.vic.palette[c & 0x07];
-        pixel = colors[(chr >> 6) & 0x03]; *p++ = pixel; *p++ = pixel;
-        pixel = colors[(chr >> 4) & 0x03]; *p++ = pixel; *p++ = pixel;
-        pixel = colors[(chr >> 2) & 0x03]; *p++ = pixel; *p++ = pixel;
-        pixel = colors[(chr     ) & 0x03]; *p++ = pixel; *p++ = pixel;
-      }
+			fgcol = cpu.vic.palette[c & 0x07];
 
-    };
+			for (unsigned i = 0; i < 8; i++) {
+				*p++ = (chr & 0x80) ? fgcol : bgcol;
+				chr <<= 1;
+			}
+		} else {
+			colors[3] = cpu.vic.palette[c & 0x07];
 
-    while (p < pe) {
+			for (unsigned i = 0; i < 4; i++) {
+				uint8_t col = (chr >> 6) & 0x03;
+				chr <<= 2;
 
-	  int c;
-
-	  bgcol = cpu.vic.colors[1];
-	  colors[0] = bgcol;
-
-	  if (cpu.vic.idle) {
-		cpu_clock(1);
-		c = colors[1] = colors[2] = colors[3] = 0;
-		chr = cpu.RAM[cpu.vic.bank + 0x3fff];
-	  } else {
-        BADLINE(x);
-
-	    colors[1] = cpu.vic.colors[2];
-  	    colors[2] = cpu.vic.colors[3];
-
-        chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
-        c = cpu.vic.lineMemCol[x];
-	  }
-
-      x++;
-
-      if ((c & 0x08) == 0) { //Zeichen ist HIRES
-        fgcol = cpu.vic.palette[c & 0x07];
-        *p++ = (chr & 0x80) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x40) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x20) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x10) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x08) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x04) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x02) ? fgcol : bgcol; if (p >= pe) break;
-        *p++ = (chr & 0x01) ? fgcol : bgcol;
-      } else {//Zeichen ist MULTICOLOR
-
-        colors[3] = cpu.vic.palette[c & 0x07];
-        pixel = colors[(chr >> 6) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel; if (p >= pe) break;
-        pixel = colors[(chr >> 4) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel; if (p >= pe) break;
-        pixel = colors[(chr >> 2) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel; if (p >= pe) break;
-        pixel = colors[(chr     ) & 0x03]; *p++ = pixel; if (p >= pe) break; *p++ = pixel;
-      }
-
-    };
+				*p++ = colors[col];
+				*p++ = colors[col];
+			}
+		}
+	}
 }
 
 /*****************************************************************************************************/
