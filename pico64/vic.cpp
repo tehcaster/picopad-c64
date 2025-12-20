@@ -140,7 +140,7 @@ static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol)
 {
 	for (unsigned i = 0; i < 8; i++) {
 		uint16_t pixel;
-		int sprite = *spl++;
+		uint16_t sprite = *spl++;
 
 		if (sprite) {
 			int spritenum = SPRITENUM(sprite);
@@ -163,6 +163,45 @@ static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol)
 
 		*p++ = cpu.vic.palette[pixel];
 		chr <<= 1;
+	}
+}
+
+static void char_sprites_mc(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t *colors)
+{
+	for (int i = 0; i < 4; i++) {
+		uint8_t c = (chr >> 6) & 0x03;
+		chr <<= 2;
+
+		for (int j = 0; j < 2; j++) {
+			uint16_t pixel;
+			uint16_t sprite = *spl++;
+
+			if (sprite) {
+				int spritenum = SPRITENUM(sprite);
+				pixel = sprite & 0x0f;
+
+				/* sprite behind foreground, MDP = 1 */
+				if (sprite & 0x4000) {  // MDP = 1
+					/*
+					 * "It is interesting to note that not
+					 * only the bit combination "00" but
+					 * also "01" is regarded as "background"
+					 * for the purposes of sprite priority
+					 * and collision detection."
+					 */
+					if (c > 1) {
+						cpu.vic.fgcollision |= spritenum;
+						pixel = colors[c];
+					}
+				} else {
+					if (c > 1)
+						cpu.vic.fgcollision |= spritenum;
+				}
+			} else {
+				pixel = colors[c];
+			}
+			*p++ = cpu.vic.palette[pixel];
+		}
 	}
 }
 
@@ -241,168 +280,82 @@ nosprites:
 };
 
 /*****************************************************************************************************/
-void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  /*
-    Multicolor-Textmodus (ECM/BMM/MCM=0/0/1)
-    Dieser Modus ermöglicht es, auf Kosten der horizontalen Auflösung vierfarbige Zeichen darzustellen.
-    Ist Bit 11 der c-Daten Null, wird das Zeichen wie im Standard-Textmodus dargestellt, wobei aber nur die
-    Farben 0-7 für den Vordergrund zur Verfügung stehen. Ist Bit 11 gesetzt, bilden jeweils zwei horizontal
-    benachbarte Bits der Punktmatrix ein Pixel. Dadurch ist die Auflösung des Zeichens auf 4×8 reduziert
-    (die Pixel sind doppelt so breit, die Gesamtbreite der Zeichen ändert sich also nicht).
-    Interessant ist, daß nicht nur die Bitkombination „00”, sondern auch „01” für die Spritepriorität
-    und -kollisionserkennung zum "Hintergrund" gezählt wird.
+void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
+	-------------------------------------------------
 
-    +----+----+----+----+----+----+----+----+
-    |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
-    +----+----+----+----+----+----+----+----+
-    |         8 Pixel (1 Bit/Pixel)         |
-    |                                       | MC-Flag = 0
-    | "0": Hintergrundfarbe 0 ($d021)       |
-    | "1": Farbe aus Bits 8-10 der c-Daten  |
-    +---------------------------------------+
-    |         4 Pixel (2 Bit/Pixel)         |
-    |                                       |
-    | "00": Hintergrundfarbe 0 ($d021)      | MC-Flag = 1
-    | "01": Hintergrundfarbe 1 ($d022)      |
-    | "10": Hintergrundfarbe 2 ($d023)      |
-    | "11": Farbe aus Bits 8-10 der c-Daten |
-    +---------------------------------------+
+	This mode allows displaying four-colored characters at the expense of
+	horizontal resolution. If bit 11 of the c-data is zero, the character is
+	displayed as in standard text mode with only the colors 0-7 available for
+	the foreground. If bit 11 is set, two adjacent bits each of the dot matrix
+	form one pixel. In this way, the resolution of a character is effectively
+	reduced to 4×8 pixels, with each pixel being twice as wide so the total
+	width of the characters remains the same.
 
-  */
+	It is interesting to note that not only the bit combination "00" but also
+	"01" is regarded as "background" for the purposes of sprite priority and
+	collision detection.
 
-  // POKE 53270,PEEK(53270) OR 16
-  // poke 53270,peek(53270) or 16
+	 +----+----+----+----+----+----+----+----+
+	 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	 +----+----+----+----+----+----+----+----+
+	 |         8 pixels (1 bit/pixel)        |
+	 |                                       | MC flag = 0
+	 | "0": Background color 0 ($d021)       |
+	 | "1": Color from bits 8-10 of c-data   |
+	 +---------------------------------------+
+	 |         4 pixels (2 bits/pixel)       |
+	 |                                       |
+	 | "00": Background color 0 ($d021)      | MC flag = 1
+	 | "01": Background color 1 ($d022)      |
+	 | "10": Background color 2 ($d023)      |
+	 | "11": Color from bits 8-10 of c-data  |
+	 +---------------------------------------+
+	 */
+	uint16_t bgcol, fgcol, pixel;
+	uint16_t colors[4];
+	uint8_t chr;
+	uint8_t x = 0;
 
-  uint16_t bgcol, fgcol, pixel;
-  uint16_t colors[4];
-  uint8_t chr;
-  uint8_t x = 0;
+	CHARSETPTR();
 
-  CHARSETPTR();
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-  if (cpu.vic.lineHasSprites) {
+	colors[0] = cpu.vic.B0C;
 
-    colors[0] = cpu.vic.B0C;
+	while (p < pe) {
 
-    do {
+		if (cpu.vic.idle) {
+			cpu_clock(1);
+			fgcol = colors[1] = colors[2] = colors[3] = 0;
+			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
+		} else {
+			BADLINE(x);
+			fgcol = cpu.vic.lineMemCol[x];
+			colors[1] = cpu.vic.R[0x22];
+			colors[2] = cpu.vic.R[0x23];
+			colors[3] = fgcol & 0x07;
+			chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
+		}
 
-	  if (cpu.vic.idle) {
-		cpu_clock(1);
-		fgcol = colors[1] = colors[2] = colors[3] = 0;
-		chr = cpu.RAM[cpu.vic.bank + 0x3fff];
-	  } else {
-        BADLINE(x);
-        fgcol = cpu.vic.lineMemCol[x];
-	    colors[1] = cpu.vic.R[0x22];
-        colors[2] = cpu.vic.R[0x23];
-        colors[3] = fgcol & 0x07;
-		chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
-	  }
+		x++;
 
-      x++;
+		/* MC flag 0 */
+		if ((fgcol & 0x08) == 0)
+			char_sprites(p, spl, chr, colors[3]);
+		else
+			char_sprites_mc(p, spl, chr, &colors[0]);
 
-      if ((fgcol & 0x08) == 0) { //Zeichen ist HIRES
+		p += 8;
+		spl += 8;
+	}
 
-        unsigned m = min(8, pe - p);
-        for (unsigned i = 0; i < m; i++) {
+	return;
 
-          int sprite = *spl++;
-
-          if (sprite) {     // Sprite: Ja
-
-            /*
-              Sprite-Prioritäten (Anzeige)
-              MDP = 1: Grafikhintergrund, Sprite, Vordergrund
-              MDP = 0: Grafikhintergrund, Vordergrund, Sprite
-
-              Kollision:
-              Eine Kollision zwischen Sprites und anderen Grafikdaten wird erkannt,
-              sobald beim Bildaufbau ein nicht transparentes Spritepixel und ein Vordergrundpixel ausgegeben wird.
-
-            */
-            int spritenum = SPRITENUM(sprite);
-            pixel = sprite & 0x0f; //Hintergrundgrafik
-            if (sprite & 0x4000) {   // MDP = 1
-              if (chr & 0x80) { //Vordergrundpixel ist gesetzt
-                cpu.vic.fgcollision |= spritenum;
-                pixel = colors[3];
-              }
-            } else {            // MDP = 0
-              if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-            }
-
-          } else {            // Kein Sprite
-            pixel = (chr >> 7) ? colors[3] : colors[0];
-          }
-
-          *p++ = cpu.vic.palette[pixel];
-
-          chr = chr << 1;
-        }
-
-      } else {//Zeichen ist MULTICOLOR
-
-        for (unsigned i = 0; i < 4; i++) {
-          if (p >= pe) break;
-          int c = (chr >> 6) & 0x03;
-          chr = chr << 2;
-
-          int sprite = *spl++;
-
-          if (sprite) {    // Sprite: Ja
-            int spritenum = SPRITENUM(sprite);
-			pixel = sprite & 0x0f; //Hintergrundgrafik
-            if (sprite & 0x4000) {  // MDP = 1
-
-
-              /*
-               * "It is interesting to note that not only the bit combination "00" but also
-               * "01" is regarded as "background" for the purposes of sprite priority and
-               * collision detection."
-               */
-              if (c > 1) {  //Vordergrundpixel ist gesetzt
-                cpu.vic.fgcollision |= spritenum;
-                pixel = colors[c];
-              }
-
-            } else {          // MDP = 0
-              if (c > 1) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-            }
-
-          } else { // Kein Sprite
-            pixel = colors[c];
-
-          }
-          *p++ = cpu.vic.palette[pixel];
-          if (p >= pe) break;
-
-          sprite = *spl++;
-
-          //Das gleiche nochmal für das nächste Pixel
-          if (sprite) {    // Sprite: Ja
-            int spritenum = SPRITENUM(sprite);
-			pixel =  sprite & 0x0f; //Hintergrundgrafik
-            if (sprite & 0x4000) {  // MDP = 1
-
-              if (c > 1) { //Vordergrundpixel ist gesetzt
-                cpu.vic.fgcollision |= spritenum;
-                pixel = colors[c];
-              }
-            } else {          // MDP = 0
-              if (c > 1) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-            }
-          } else { // Kein Sprite
-            pixel = colors[c];
-          }
-          *p++ = cpu.vic.palette[pixel];
-
-        }
-
-      }
-
-    } while (p < pe);
-    PRINTOVERFLOWS
-  } else { //Keine Sprites
+nosprites:
 
     while (p < pe - 8) {
 
@@ -491,9 +444,6 @@ void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
       }
 
     };
-    PRINTOVERFLOW
-  }
-  while (x<40) {BADLINE(x); x++;}
 }
 
 /*****************************************************************************************************/
