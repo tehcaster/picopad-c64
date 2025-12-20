@@ -136,8 +136,41 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
 #define PRINTOVERFLOWS
 #endif
 
+static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol)
+{
+	for (unsigned i = 0; i < 8; i++) {
+		uint16_t pixel;
+		int sprite = *spl++;
+
+		if (sprite) {
+			int spritenum = SPRITENUM(sprite);
+			int spritepixel = sprite & 0x0f;
+
+			/* sprite behind foreground, MDP = 1 */
+			if (sprite & 0x4000) {
+				if (chr & 0x80) {
+					cpu.vic.fgcollision |= spritenum;
+					pixel = fgcol;
+				} else {
+					pixel = spritepixel;
+				}
+			} else {
+				/* sprite in front of foreground */
+				if (chr & 0x80)
+					cpu.vic.fgcollision |= spritenum;
+				pixel = spritepixel;
+			}
+		} else {
+			pixel = (chr & 0x80) ? fgcol : cpu.vic.B0C;
+		}
+
+		*p++ = cpu.vic.palette[pixel];
+		chr <<= 1;
+	}
+}
+
 /*****************************************************************************************************/
-void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
@@ -184,35 +217,9 @@ void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
 		fgcol = cpu.vic.lineMemCol[x];
 		x++;
 
-		for (unsigned i = 0; i < 8; i++) {
-			int sprite = *spl++;
-
-			if (sprite) {
-				int spritenum = SPRITENUM(sprite);
-				int spritepixel = sprite & 0x0f;
-
-				/* sprite behind foreground, MDP = 1 */
-				if (sprite & 0x4000) {
-					if (chr & 0x80) {
-						cpu.vic.fgcollision |= spritenum;
-						pixel = fgcol;
-					} else {
-						pixel = spritepixel;
-					}
-				} else {
-					/* sprite in front of foreground */
-					if (chr & 0x80)
-						cpu.vic.fgcollision |= spritenum;
-					pixel = spritepixel;
-				}
-			} else {
-				pixel = (chr & 0x80) ? fgcol : cpu.vic.B0C;
-			}
-
-			*p++ = cpu.vic.palette[pixel];
-			chr <<= 1;
-
-		}
+		char_sprites(p, spl, chr, fgcol);
+		p += 8;
+		spl += 8;
 	}
 
 	return;
