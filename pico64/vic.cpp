@@ -144,21 +144,18 @@ static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol)
 
 		if (sprite) {
 			int spritenum = SPRITENUM(sprite);
-			int spritepixel = sprite & 0x0f;
+			pixel = sprite & 0x0f;
 
 			/* sprite behind foreground, MDP = 1 */
 			if (sprite & 0x4000) {
 				if (chr & 0x80) {
 					cpu.vic.fgcollision |= spritenum;
 					pixel = fgcol;
-				} else {
-					pixel = spritepixel;
 				}
 			} else {
 				/* sprite in front of foreground */
 				if (chr & 0x80)
 					cpu.vic.fgcollision |= spritenum;
-				pixel = spritepixel;
 			}
 		} else {
 			pixel = (chr & 0x80) ? fgcol : cpu.vic.B0C;
