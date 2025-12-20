@@ -1,4 +1,3 @@
-// vim: set shiftwidth=2 smarttab expandtab:
 /*
   Copyright Frank Bösing, 2017
 
@@ -138,117 +137,103 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
 #endif
 
 /*****************************************************************************************************/
-void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  // Standard-Textmodus(ECM/BMM/MCM=0/0/0)
-  /*
-    Standard-Textmodus (ECM / BMM / MCM = 0/0/0)
-    In diesem Modus (wie in allen Textmodi) liest der VIC aus der videomatrix 8-Bit-Zeichenzeiger,
-    die die Adresse der Punktmatrix des Zeichens im Zeichengenerator angibt. Damit ist ein Zeichensatz
-    von 256 Zeichen verfügbar, die jeweils aus 8×8 Pixeln bestehen, die in 8 aufeinanderfolgenden Bytes
-    im Zeichengenerator abgelegt sind. Mit den Bits VM10-13 und CB11-13 aus Register $d018 lassen sich
-    videomatrix und Zeichengenerator im Speicher verschieben. Im Standard-Textmodus entspricht jedes Bit
-    im Zeichengenerator direkt einem Pixel auf dem Bildschirm. Die Vordergrundfarbe ist für jedes Zeichen
-    im Farbnibble aus der videomatrix angegeben, die Hintergrundfarbe wird global durch Register $d021 festgelegt.
+void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
+	-----------------------------------------------
 
-    +----+----+----+----+----+----+----+----+
-    |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
-    +----+----+----+----+----+----+----+----+
-    |         8 Pixel (1 Bit/Pixel)         |
-    |                                       |
-    | "0": Hintergrundfarbe 0 ($d021)       |
-    | "1": Farbe aus Bits 8-11 der c-Daten  |
-    +---------------------------------------+
+	In this mode (as in all text modes), the VIC reads 8-bit character pointers
+	from the video matrix that specify the address of the dot matrix of the
+	character within the character generator. A character set of 256 characters
+	is available, each consisting of 8×8 pixels which are stored in 8 successive
+	bytes in the character generator. Both video matrix and character generator
+	can be moved in memory with the bits VM10-VM13 and CB11-CB13 of register
+	$d018.
 
-  */
+	In standard text mode, each bit in the character generator directly
+	corresponds to one pixel on the screen. The foreground color is given by the
+	color nybble from the video matrix for each character, the background color
+	is set globally with register $d021.
 
-  uint8_t chr, pixel;
-  uint16_t fgcol;
-  uint16_t bgcol;
-  uint16_t  x = 0;
+	+----+----+----+----+----+----+----+----+
+	|  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	+----+----+----+----+----+----+----+----+
+	|         8 pixels (1 bit/pixel)        |
+	|                                       |
+	| "0": Background color 0 ($d021)       |
+	| "1": Color from bits 8-11 of c-data   |
+	+---------------------------------------+
+	*/
 
-  CHARSETPTR();
+	uint8_t chr, pixel;
+	uint16_t fgcol;
+	uint16_t bgcol;
+	uint16_t x = 0;
 
-  if (cpu.vic.lineHasSprites) {
+	CHARSETPTR();
 
-    do {
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-      BADLINE(x);
+	while (p < pe) {
 
-      chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
-      fgcol = cpu.vic.lineMemCol[x];
-	  x++;
-      unsigned m = min(8, pe - p);
-      for (unsigned i = 0; i < m; i++) {
-        int sprite = *spl++;
+		BADLINE(x);
 
-        if (sprite) {     // Sprite: Ja
-		  int spritenum = SPRITENUM(sprite);
-          int spritepixel = sprite & 0x0f;
+		chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
+		fgcol = cpu.vic.lineMemCol[x];
+		x++;
 
-          if (sprite & 0x4000) {   // Sprite: Hinter Text  MDP = 1
-            if (chr & 0x80) {
-              cpu.vic.fgcollision |= spritenum;
-              pixel = fgcol;
-            } else {
-              pixel = spritepixel;
-            }
-          } else {            // Sprite: Vor Text //MDP = 0
-            if (chr & 0x80) cpu.vic.fgcollision |= spritenum;
-            pixel = spritepixel;
-          }
-        } else {            // Kein Sprite
-          pixel = (chr & 0x80) ? fgcol : cpu.vic.B0C;
-        }
+		for (unsigned i = 0; i < 8; i++) {
+			int sprite = *spl++;
 
-        *p++ = cpu.vic.palette[pixel];
-        chr = chr << 1;
+			if (sprite) {
+				int spritenum = SPRITENUM(sprite);
+				int spritepixel = sprite & 0x0f;
 
-      }
-    } while (p < pe);
-    PRINTOVERFLOWS
-  } else { //Keine Sprites
+				/* sprite behind foreground, MDP = 1 */
+				if (sprite & 0x4000) {
+					if (chr & 0x80) {
+						cpu.vic.fgcollision |= spritenum;
+						pixel = fgcol;
+					} else {
+						pixel = spritepixel;
+					}
+				} else {
+					/* sprite in front of foreground */
+					if (chr & 0x80)
+						cpu.vic.fgcollision |= spritenum;
+					pixel = spritepixel;
+				}
+			} else {
+				pixel = (chr & 0x80) ? fgcol : cpu.vic.B0C;
+			}
 
-    while (p < pe - 8) {
+			*p++ = cpu.vic.palette[pixel];
+			chr <<= 1;
 
-      BADLINE(x)
+		}
+	}
 
-      chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
-      fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
-	  bgcol = cpu.vic.colors[1];
-      x++;
+	return;
 
-      *p++ = (chr & 0x80) ? fgcol : bgcol;
-      *p++ = (chr & 0x40) ? fgcol : bgcol;
-      *p++ = (chr & 0x20) ? fgcol : bgcol;
-      *p++ = (chr & 0x10) ? fgcol : bgcol;
-      *p++ = (chr & 0x08) ? fgcol : bgcol;
-      *p++ = (chr & 0x04) ? fgcol : bgcol;
-      *p++ = (chr & 0x02) ? fgcol : bgcol;
-      *p++ = (chr & 0x01) ? fgcol : bgcol;
+nosprites:
 
-    };
+	while (p < pe) {
 
-    while (p < pe) {
+		BADLINE(x);
 
-      BADLINE(x)
+		chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
+		fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
+		bgcol = cpu.vic.colors[1];
+		x++;
 
-      chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
-      fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
-	  bgcol = cpu.vic.colors[1];
-      x++;
+		for (unsigned i = 0; i < 8; i++) {
+			*p++ = (chr & 0x80) ? fgcol : bgcol;
+			chr <<= 1;
+		}
 
-      *p++ = (chr & 0x80) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x40) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x20) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x10) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x08) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x04) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x02) ? fgcol : bgcol; if (p >= pe) break;
-      *p++ = (chr & 0x01) ? fgcol : bgcol;
-    };
-    PRINTOVERFLOW
-  }
-  while (x<40) {BADLINE(x); x++;}
+	}
 };
 
 /*****************************************************************************************************/
