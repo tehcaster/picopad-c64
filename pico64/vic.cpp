@@ -118,24 +118,6 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
     *p++ = col; \
   }
 
-
-#if 0
-#define PRINTOVERFLOW   \
-  if (p>pe) { \
-    Serial.print("VIC overflow Mode "); \
-    Serial.println(mode); \
-  }
-
-#define PRINTOVERFLOWS  \
-  if (p>pe) { \
-    Serial.print("VIC overflow (Sprite) Mode ");  \
-    Serial.println(mode); \
-  }
-#else
-#define PRINTOVERFLOW
-#define PRINTOVERFLOWS
-#endif
-
 static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol,
 			 uint16_t bgcol)
 {
