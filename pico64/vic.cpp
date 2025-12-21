@@ -463,6 +463,8 @@ static void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 
 	} while (p < pe);
 
+	return;
+
 nosprites:
 
 	while (p < pe) {
@@ -539,6 +541,8 @@ static void mode3 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 		p += 8;
 		spl += 8;
 	}
+
+	return;
 
 nosprites:
 
@@ -625,6 +629,8 @@ static void mode4 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 		spl += 8;
 	}
 
+	return;
+
 nosprites:
 	while (p < pe) {
 
@@ -645,165 +651,91 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-/* Ungültige Modi ************************************************************************************/
+/* Invalid Modes *************************************************************************************/
 /*****************************************************************************************************/
 
-void mode5 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  /*
-    Ungültiger Textmodus (ECM/BMM/MCM=1/0/1)
+static void mode5 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	3.7.3.6. Invalid text mode (ECM/BMM/MCM=1/0/1)
+	----------------------------------------------
 
-    Das gleichzeitige Setzen der ECM- und MCM-Bits wählt keinen der
-    "offiziellen" Grafikmodi des VIC, sondern erzeugt nur schwarze Pixel.
-    Nichtsdestotrotz erzeugt der Grafikdatensequenzer auch in diesem Modus
-    intern gültige Grafikdaten, die die Spritekollisionserkennung triggern
-    können. Über den Umweg der Spritekollisionen kann man die erzeugten Daten
-    auch auslesen (sehen kann man nichts, das Bild ist schwarz). Man kann so
-    allerdings nur Vordergrund- und Hintergrundpixel unterscheiden, die
-    Farbinformation läßt sich aus den Spritekollisionen nicht gewinnen.
+	Setting the ECM and MCM bits simultaneously doesn't select one of the
+	"official" graphics modes of the VIC but creates only black pixels.
+	Nevertheless, the graphics data sequencer internally generates valid
+	graphics data that can trigger sprite collisions even in this mode. By using
+	sprite collisions you can also read out the generated data (but you cannot
+	see anything; the screen is black). You can, however, only distinguish
+	foreground and background pixels as you cannot get color information from
+	sprite collisions.
 
-    Die erzeugte Grafik entspricht der des Multicolor-Textmodus, allerdings ist
-    der Zeichenvorrat genau wie im ECM-Modus auf 64 Zeichen eingeschränkt.
-  */
-  CHARSETPTR();
+	The generated graphics is similar to that of the multicolor text mode, but
+	the character set is limited to 64 characters as in ECM mode.
 
-  uint8_t chr, pixel;
-  uint16_t fgcol;
-  uint8_t x = 0;
+	 +----+----+----+----+----+----+----+----+
+	 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	 +----+----+----+----+----+----+----+----+
+	 |         8 pixels (1 bit/pixel)        |
+	 |                                       | MC flag = 0
+	 | "0": Black (background)               |
+	 | "1": Black (foreground)               |
+	 +---------------------------------------+
+	 |         4 pixels (2 bits/pixel)       |
+	 |                                       |
+	 | "00": Black (background)              | MC flag = 1
+	 | "01": Black (background)              |
+	 | "10": Black (foreground)              |
+	 | "11": Black (foreground)              |
+	 +---------------------------------------+
+	 */
 
-  if (cpu.vic.lineHasSprites) {
+	CHARSETPTR();
 
-    do {
+	uint8_t chr, pixel;
+	uint16_t fgcol;
+	uint8_t x = 0;
+	uint16_t colors[4] = { 0, 0, 0, 0};
 
-      BADLINE(x);
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-      chr = cpu.vic.charsetPtr[(cpu.vic.lineMemChr[x] & 0x3F) * 8];
-      fgcol = cpu.vic.lineMemCol[x];
+	while (p < pe) {
 
-      x++;
+		BADLINE(x);
 
-      if ((fgcol & 0x08) == 0) { //Zeichen ist HIRES
+		uint8_t td = cpu.vic.lineMemChr[x];
 
-        unsigned m = min(8, pe - p);
-        for (unsigned i = 0; i < m; i++) {
+		chr = cpu.vic.charsetPtr[(td & 0x3f) * 8];
+		fgcol = cpu.vic.lineMemCol[x];
 
-          int sprite = *spl;
-		  *spl++ = 0;
+		x++;
 
-          if (sprite) {     // Sprite: Ja
+		if ((fgcol & 0x08) == 0)
+			char_sprites(p, spl, chr, 0, 0);
+		else
+			char_sprites_mc(p, spl, chr, &colors[0]);
 
-            /*
-              Sprite-Prioritäten (Anzeige)
-              MDP = 1: Grafikhintergrund, Sprite, Vordergrund
-              MDP = 0: Grafikhintergrund, Vordergrund, Sprite
+		p += 8;
+		spl += 8;
+	}
 
-              Kollision:
-              Eine Kollision zwischen Sprites und anderen Grafikdaten wird erkannt,
-              sobald beim Bildaufbau ein nicht transparentes Spritepixel und ein Vordergrundpixel ausgegeben wird.
+	return;
 
-            */
-            int spritenum = SPRITENUM(sprite);
-            pixel = sprite & 0x0f; //Hintergrundgrafik
+nosprites:
 
-            if (sprite & 0x4000) {   // MDP = 1
-              if (chr & 0x80) { //Vordergrundpixel ist gesetzt
-                cpu.vic.fgcollision |= spritenum;
-                pixel = 0;
-              }
-            } else {            // MDP = 0
-              if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-            }
+	const uint16_t bgcol = palette[0];
 
-          } else {            // Kein Sprite
-            pixel = 0;
-          }
+	while (p < pe) {
 
-          *p++ = cpu.vic.palette[pixel];
+		BADLINE(x);
+		x++;
 
-          chr = chr << 1;
-        }
-
-      } else {//Zeichen ist MULTICOLOR
-
-        for (unsigned i = 0; i < 4; i++) {
-          if (p >= pe) break;
-
-          int sprite = *spl;
-		  *spl++ = 0;
-
-          if (sprite) {    // Sprite: Ja
-            int spritenum = SPRITENUM(sprite);
-            pixel = sprite & 0x0f; //Hintergrundgrafik
-            if (sprite & 0x4000) {  // MDP = 1
-
-              if (chr & 0x80) {  //Vordergrundpixel ist gesetzt
-                cpu.vic.fgcollision |= spritenum;
-                pixel = 0;
-              }
-            } else {          // MDP = 0
-              if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-            }
-
-          } else { // Kein Sprite
-            pixel = 0;
-
-          }
-          *p++ = cpu.vic.palette[pixel];
-          if (p >= pe) break;
-
-          sprite = *spl;
-		  *spl++ = 0;
-          //Das gleiche nochmal für das nächste Pixel
-          if (sprite) {    // Sprite: Ja
-            int spritenum = SPRITENUM(sprite);
-            pixel = sprite & 0x0f; //Hintergrundgrafik
-            if (sprite & 0x4000) {  // MDP = 1
-              if (chr & 0x80) { //Vordergrundpixel ist gesetzt
-                cpu.vic.fgcollision |= spritenum;
-                pixel = 0;
-              }
-            } else {          // MDP = 0
-              if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-            }
-          } else { // Kein Sprite
-            pixel = 0;
-          }
-          *p++ = cpu.vic.palette[pixel];
-
-          chr = chr << 2;
-        }
-
-      }
-
-    } while (p < pe);
-    PRINTOVERFLOWS
-
-  } else { //Keine Sprites
-    //Farbe immer schwarz
-    const uint16_t bgcol = palette[0];
-    while (p < pe - 8) {
-
-      BADLINE(x);
-      x++;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-
-    };
-    while (p < pe) {
-
-      BADLINE(x);
-      x++;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol;
-
-    };
-    PRINTOVERFLOW
-  }
-  while (x<40) {BADLINE(x); x++;}
+		for (unsigned i = 0; i < 8; i++) {
+			*p++ = bgcol;
+		}
+	}
 }
+
 /*****************************************************************************************************/
 void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
   /*
