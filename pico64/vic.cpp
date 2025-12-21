@@ -762,7 +762,7 @@ static void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 
 	uint8_t chr;
 	uint8_t x = 0;
-	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t * bP = cpu.vic.bitmapPtr + (vc & 0xff3f) * 8 + cpu.vic.rc;
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
@@ -826,7 +826,7 @@ static void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 	 */
 
 
-	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t * bP = cpu.vic.bitmapPtr + (vc & 0xff3f) * 8 + cpu.vic.rc;
 	uint8_t chr;
 	uint8_t x = 0;
 	uint16_t colors[4] = { 0, 0, 0, 0};
