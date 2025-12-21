@@ -855,6 +855,121 @@ const modes_t modes[8] = {mode0, mode1, mode2, mode3, mode4, mode5, mode6, mode7
 /* extend by max xscroll rounded up */
 static tpixel linebuffer[SCREEN_WIDTH + 8];
 
+unsigned char process_sprite(unsigned int spriteData, unsigned int x, unsigned short i)
+{
+	unsigned b = 1 << i;
+	unsigned char collision = 0;
+
+          spriteData = reverse(spriteData);
+          cpu.vic.lineHasSprites = 1;
+
+          uint16_t * slp = &cpu.vic.spriteLine[x]; //Sprite-Line-Pointer
+          unsigned short upperByte = ( 0x80 | ( (cpu.vic.MDP & b) ? 0x40 : 0 ) | i ) << 8; //Bit7 = Sprite "da", Bit 6 = Sprite-Priorität vor Grafik/Text, Bits 3..0 = Spritenummer
+
+          //if (config.single_frame_mode)
+          //  printf("upperByte %x color %u\n", upperByte, cpu.vic.R[0x27 + i]);
+
+          //Sprite in Spritezeile schreiben:
+          if ((cpu.vic.MMC & b) == 0) { // NO MULTICOLOR
+
+            uint16_t color = upperByte | cpu.vic.R[0x27 + i];
+
+            if ((cpu.vic.MXE & b) == 0) { // NO MULTICOLOR, NO SPRITE-EXPANSION
+              for (unsigned cnt = 0; cnt < 24; cnt++) {
+                int c = spriteData & 0x01;
+                spriteData >>= 1;
+
+                if (c) {
+                  if (*slp == 0) *slp = color;
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                }
+                slp++;
+
+              }
+
+            } else {    // NO MULTICOLOR, SPRITE-EXPANSION
+	      for (unsigned cnt = 0; cnt < 24; cnt++) {
+                int c = spriteData & 0x01;
+                spriteData >>= 1;
+                //So wie oben, aber zwei gleiche Pixel
+
+                if (c) {
+                  if (*slp == 0) *slp = color;
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                  if (*slp == 0) *slp = color;
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                } else {
+                  slp += 2;
+                }
+
+              }
+            }
+
+
+
+          } else { // MULTICOLOR
+            /* Im Mehrfarbenmodus (Multicolor-Modus) bekommen alle Sprites zwei zusätzliche gemeinsame Farben.
+              Die horizontale Auflösung wird von 24 auf 12 halbiert, da bei der Sprite-Definition jeweils zwei Bits zusammengefasst werden.
+            */
+            uint16_t colors[4];
+            colors[0] = 0; //dummy, color 0 is transparent
+            colors[1] = upperByte | cpu.vic.R[0x27 + i];
+            colors[2] = upperByte | cpu.vic.R[0x25];
+            colors[3] = upperByte | cpu.vic.R[0x26];
+
+            if ((cpu.vic.MXE & b) == 0) { // MULTICOLOR, NO SPRITE-EXPANSION
+              for (unsigned cnt = 0; cnt < 12; cnt++) {
+                int c = spriteData & 0x03;
+                spriteData >>= 2;
+
+                if (c) {
+                  if (*slp == 0) *slp = colors[c];
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                  if (*slp == 0) *slp = colors[c];
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                } else {
+                  slp += 2;
+                }
+
+              }
+
+            } else {    // MULTICOLOR, SPRITE-EXPANSION
+              for (unsigned cnt = 0; cnt < 12; cnt++) {
+                int c = spriteData & 0x03;
+                spriteData >>= 2;
+
+                //So wie oben, aber vier gleiche Pixel
+                if (c) {
+                  if (*slp == 0) *slp = colors[c];
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                  if (*slp == 0) *slp = colors[c];
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                  if (*slp == 0) *slp = colors[c];
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                  if (*slp == 0) *slp = colors[c];
+                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
+                  slp++;
+                } else {
+                  slp += 4;
+                }
+
+              }
+
+            }
+
+
+
+}
+	return collision;
+}
+
 void vic_do(void) {
 
   uint16_t vc;
@@ -1222,174 +1337,91 @@ noDisplayIncRC:
     memset(cpu.vic.spriteLine, 0, sizeof(cpu.vic.spriteLine) );
   }
 
-  uint32_t spriteYCheck = cpu.vic.R[0x15]; //Sprite enabled Register
+	uint8_t spritesEnabled = cpu.vic.R[0x15]; //Sprite enabled Register
+	unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
+	unsigned char collision = 0;
+	short lastSpriteNum = 0;
 
-  if (spriteYCheck) {
+	if (!spritesEnabled)
+		goto sprites_loaded;
 
-    unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
-    unsigned char collision = 0;
-    short lastSpriteNum = 0;
+	for (unsigned short i = 0; i < 8; i++) {
 
-    for (unsigned short i = 0; i < 8; i++) {
-      if (!spriteYCheck) break;
+		unsigned b = 1 << i;
 
-      unsigned b = 1 << i;
+		if (!(spritesEnabled & b))
+			continue;
 
-      if (spriteYCheck & b )  {
-        spriteYCheck &= ~b;
-        short y = cpu.vic.R[i * 2 + 1];
+		short y = cpu.vic.R[i * 2 + 1];
 
-        if ( (r >= y ) && //y-Position > Sprite-y ?
-             (((r < y + 21) && (~R17 & b )) || // ohne y-expansion
-              ((r < y + 2 * 21 ) && (R17 & b ))) ) //mit y-expansion
-        {
+		if (r < y) {
+			lastSpriteNum = 0;
+			continue;
+		}
 
-          //Sprite Cycles
-          if (i < 3) {
-            if (!lastSpriteNum) cpu.vic.spriteCycles0_2 += 1;
-            cpu.vic.spriteCycles0_2 += 2;
-          } else {
-            if (!lastSpriteNum) cpu.vic.spriteCycles3_7 += 1;
-            cpu.vic.spriteCycles3_7 += 2;
-          }
-          lastSpriteNum = i;
-          //Sprite Cycles END
+		/* without y-expansion */
+		if (!(R17 & b) && r >= y + 21) {
+			lastSpriteNum = 0;
+			continue;
+		}
 
+		/* with y-expansion */
+		if ((R17 & b) && r >= y + 2 * 21) {
+			lastSpriteNum = 0;
+			continue;
+		}
 
-          if (r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE ) continue;
+		//Sprite Cycles
+		if (i < 3) {
+			if (!lastSpriteNum)
+				cpu.vic.spriteCycles0_2 += 1;
+			cpu.vic.spriteCycles0_2 += 2;
+		} else {
+			if (!lastSpriteNum)
+				cpu.vic.spriteCycles3_7 += 1;
+			cpu.vic.spriteCycles3_7 += 2;
+		}
+		lastSpriteNum = i;
+		//Sprite Cycles END
 
-          uint16_t x =  (((cpu.vic.R[0x10] >> i) & 1) << 8) | cpu.vic.R[i * 2];
-          if (x >= SPRITE_MAX_X) continue;
+		if (r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE )
+			continue;
 
-          //DEBUG
-          //if (config.single_frame_mode)
-          //  printf("line %d mode %u sprite %u x %u y %u\n", r, mode, i, x, y);
-
-          unsigned short lineOfSprite = r - y;
-          if (R17 & b) lineOfSprite = lineOfSprite / 2; // Y-Expansion
-          unsigned short spriteadr = cpu.vic.bank | cpu.RAM[cpu.vic.videomatrix + (1024 - 8) + i] << 6 | (lineOfSprite * 3);
-          unsigned spriteData = ((unsigned)cpu.RAM[ spriteadr ] << 24) | ((unsigned)cpu.RAM[ spriteadr + 1 ] << 16) | ((unsigned)cpu.RAM[ spriteadr + 2 ] << 8);
-
-          if (!spriteData) continue;
-          spriteData = reverse(spriteData);
-          cpu.vic.lineHasSprites = 1;
-
-          uint16_t * slp = &cpu.vic.spriteLine[x]; //Sprite-Line-Pointer
-          unsigned short upperByte = ( 0x80 | ( (cpu.vic.MDP & b) ? 0x40 : 0 ) | i ) << 8; //Bit7 = Sprite "da", Bit 6 = Sprite-Priorität vor Grafik/Text, Bits 3..0 = Spritenummer
-
-          //if (config.single_frame_mode)
-          //  printf("upperByte %x color %u\n", upperByte, cpu.vic.R[0x27 + i]);
-
-          //Sprite in Spritezeile schreiben:
-          if ((cpu.vic.MMC & b) == 0) { // NO MULTICOLOR
-
-            uint16_t color = upperByte | cpu.vic.R[0x27 + i];
-
-            if ((cpu.vic.MXE & b) == 0) { // NO MULTICOLOR, NO SPRITE-EXPANSION
-              for (unsigned cnt = 0; cnt < 24; cnt++) {
-                int c = spriteData & 0x01;
-                spriteData >>= 1;
-
-                if (c) {
-                  if (*slp == 0) *slp = color;
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                }
-                slp++;
-
-              }
-
-            } else {    // NO MULTICOLOR, SPRITE-EXPANSION
-	      for (unsigned cnt = 0; cnt < 24; cnt++) {
-                int c = spriteData & 0x01;
-                spriteData >>= 1;
-                //So wie oben, aber zwei gleiche Pixel
-
-                if (c) {
-                  if (*slp == 0) *slp = color;
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                  if (*slp == 0) *slp = color;
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                } else {
-                  slp += 2;
-                }
-
-              }
-            }
+		uint16_t x = (((cpu.vic.R[0x10] >> i) & 1) << 8) | cpu.vic.R[i * 2];
+		if (x >= SPRITE_MAX_X)
+			continue;
 
 
+		//DEBUG
+		//if (config.single_frame_mode)
+		//  printf("line %d mode %u sprite %u x %u y %u\n", r, mode, i, x, y);
 
-          } else { // MULTICOLOR
-            /* Im Mehrfarbenmodus (Multicolor-Modus) bekommen alle Sprites zwei zusätzliche gemeinsame Farben.
-              Die horizontale Auflösung wird von 24 auf 12 halbiert, da bei der Sprite-Definition jeweils zwei Bits zusammengefasst werden.
-            */
-            uint16_t colors[4];
-            colors[0] = 0; //dummy, color 0 is transparent
-            colors[1] = upperByte | cpu.vic.R[0x27 + i];
-            colors[2] = upperByte | cpu.vic.R[0x25];
-            colors[3] = upperByte | cpu.vic.R[0x26];
+		unsigned short lineOfSprite = r - y;
+		if (R17 & b) lineOfSprite = lineOfSprite / 2; // Y-Expansion
 
-            if ((cpu.vic.MXE & b) == 0) { // MULTICOLOR, NO SPRITE-EXPANSION
-              for (unsigned cnt = 0; cnt < 12; cnt++) {
-                int c = spriteData & 0x03;
-                spriteData >>= 2;
+		unsigned short spriteaddr = cpu.vic.bank
+			| cpu.RAM[cpu.vic.videomatrix + (1024 - 8) + i] << 6
+			| (lineOfSprite * 3);
 
-                if (c) {
-                  if (*slp == 0) *slp = colors[c];
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                  if (*slp == 0) *slp = colors[c];
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                } else {
-                  slp += 2;
-                }
+		unsigned int spriteData = ((unsigned)cpu.RAM[ spriteaddr ] << 24)
+			| ((unsigned)cpu.RAM[ spriteaddr + 1 ] << 16)
+			| ((unsigned)cpu.RAM[ spriteaddr + 2 ] << 8);
 
-              }
+		if (!spriteData)
+			continue;
 
-            } else {    // MULTICOLOR, SPRITE-EXPANSION
-              for (unsigned cnt = 0; cnt < 12; cnt++) {
-                int c = spriteData & 0x03;
-                spriteData >>= 2;
+		collision |= process_sprite(spriteData, x, i);
 
-                //So wie oben, aber vier gleiche Pixel
-                if (c) {
-                  if (*slp == 0) *slp = colors[c];
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                  if (*slp == 0) *slp = colors[c];
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                  if (*slp == 0) *slp = colors[c];
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                  if (*slp == 0) *slp = colors[c];
-                  else collision |= b | (1 << ((*slp >> 8) & 0x07));
-                  slp++;
-                } else {
-                  slp += 4;
-                }
+	}
 
-              }
+	if (collision) {
+		if (cpu.vic.MM == 0) {
+			cpu.vic.R[0x19] |= 4 | ((cpu.vic.R[0x1a] & 4) << 5 );
+		}
+		cpu.vic.MM |= collision;
+	}
 
-            }
-          }
-
-        }
-        else lastSpriteNum = 0;
-      }
-
-    }
-
-    if (collision) {
-      if (cpu.vic.MM == 0) {
-        cpu.vic.R[0x19] |= 4 | ((cpu.vic.R[0x1a] & 4) << 5 );
-      }
-      cpu.vic.MM |= collision;
-    }
-
-  }
+sprites_loaded:
   /*****************************************************************************************************/
 #if 0
   {
