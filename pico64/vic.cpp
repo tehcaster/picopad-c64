@@ -314,7 +314,7 @@ static void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 	 | "11": Color from bits 8-10 of c-data  |
 	 +---------------------------------------+
 	 */
-	uint16_t bgcol, fgcol, pixel;
+	uint16_t bgcol, fgcol;
 	uint16_t colors[4];
 	uint8_t chr;
 	uint8_t x = 0;
@@ -438,7 +438,7 @@ static void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 	 */
 
 	uint8_t chr;
-	uint16_t fgcol, pixel;
+	uint16_t fgcol;
 	uint16_t bgcol;
 	uint8_t x = 0;
 	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
@@ -511,7 +511,6 @@ static void mode3 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 	*/
 	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
 	uint16_t colors[4];
-	uint16_t pixel;
 	uint8_t chr, x;
 
 	x = 0;
@@ -602,7 +601,7 @@ static void mode4 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 	 +---------------------------------------+
 	 */
 
-	uint8_t chr, pixel;
+	uint8_t chr;
 	uint16_t fgcol;
 	uint16_t bgcol;
 	uint8_t x = 0;
@@ -691,7 +690,7 @@ static void mode5 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 
 	CHARSETPTR();
 
-	uint8_t chr, pixel;
+	uint8_t chr;
 	uint16_t fgcol;
 	uint8_t x = 0;
 	uint16_t colors[4] = { 0, 0, 0, 0};
@@ -761,7 +760,7 @@ static void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc
 	 +---------------------------------------+
 	 */
 
-	uint8_t chr, pixel;
+	uint8_t chr;
 	uint8_t x = 0;
 	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
 
@@ -800,116 +799,70 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  /*
-    Ungültiger Bitmap-Modus 2 (ECM/BMM/MCM=1/1/1)
+static void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
 
-    Der letzte ungültige Modus liefert auch ein schwarzes Bild, das sich jedoch
-    genauso mit Hilfe der Sprite-Grafik-Kollisionen "abtasten" läßt.
+	/*
+	3.7.3.8. Invalid bitmap mode 2 (ECM/BMM/MCM=1/1/1)
+	--------------------------------------------------
+	The last invalid mode also creates a black screen that can be "scanned" with
+	sprite-graphics collisions.
 
-    Der Aufbau der Grafik ist im Prinzip wie im Multicolor-Bitmap-Modus, aber
-    die Bits 9 und 10 der g-Adressen sind wegen dem gesetzten ECM-Bit immer
-    Null, was sich in der Darstellung genauso wie beim ersten ungültigen
-    Bitmap-Modus wiederspiegelt. Die Bitkombination "01" wird wie gewohnt zum
-    Hintergrund gezählt.
+	The structure of the graphics is basically as in multicolor bitmap mode, but
+	the bits 9 and 10 of the g-addresses are always zero due to the set ECM bit,
+	with the same results as in the first invalid bitmap mode. As usual, the bit
+	combination "01" is part of the background.
 
-  */
-
-  uint8_t chr;
-  uint8_t x = 0;
-  uint16_t pixel;
-  uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
-
-  if (cpu.vic.lineHasSprites) {
-
-    do {
-
-      BADLINE(x);
-
-      chr = bP[x * 8];
-      x++;
-
-      for (unsigned i = 0; i < 4; i++) {
-        if (p >= pe) break;
-
-        int sprite = *spl;
-		*spl++ = 0;
-
-        if (sprite) {    // Sprite: Ja
-          int spritenum = SPRITENUM(sprite);
-          pixel = sprite & 0x0f;//Hintergrundgrafik
-          if (sprite & 0x4000) {  // MDP = 1
-
-            if (chr & 0x80) {  //Vordergrundpixel ist gesetzt
-              cpu.vic.fgcollision |= spritenum;
-              pixel = 0;
-            }
-          } else {          // MDP = 0
-            if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergundpixel ist gesetzt
-          }
-        } else { // Kein Sprite
-          pixel = 0;
-        }
-
-        *p++ = cpu.vic.palette[pixel];
-        if (p >= pe) break;
-
-        sprite = *spl;
-        *spl++ = 0;
-
-        if (sprite) {    // Sprite: Ja
-          int spritenum = SPRITENUM(sprite);
-          pixel = sprite & 0x0f;//Hintergrundgrafik
-          if (sprite & 0x4000) {  // MDP = 1
-
-            if (chr & 0x80) {  //Vordergrundpixel ist gesetzt
-              cpu.vic.fgcollision |= spritenum;
-              pixel = 0;
-            }
-          } else {          // MDP = 0
-            if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergundpixel ist gesetzt
-          }
-        } else { // Kein Sprite
-          pixel = 0;
-        }
-
-        *p++ = cpu.vic.palette[pixel];
-        chr = chr << 2;
+	 +----+----+----+----+----+----+----+----+
+	 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	 +----+----+----+----+----+----+----+----+
+	 |         4 pixels (2 bits/pixel)       |
+	 |                                       |
+	 | "00": Black (background)              |
+	 | "01": Black (background)              |
+	 | "10": Black (foreground)              |
+	 | "11": Black (foreground)              |
+	 +---------------------------------------+
+	 */
 
 
-      }
+	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t chr;
+	uint8_t x = 0;
+	uint16_t colors[4] = { 0, 0, 0, 0};
 
-    } while (p < pe);
-    PRINTOVERFLOWS
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-  } else { //Keine Sprites
+	while (p < pe) {
 
-    const uint16_t bgcol = palette[0];
-    while (p < pe - 8) {
+		BADLINE(x);
 
-      BADLINE(x);
-      x++;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
+		chr = bP[x * 8];
+		x++;
 
-    };
-    while (p < pe) {
+		char_sprites_mc(p, spl, chr, &colors[0]);
+		p += 8;
+		spl += 8;
+	}
 
-      BADLINE(x);
-      x++;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol;
+	return;
 
-    };
-    PRINTOVERFLOW
+nosprites:
 
-  }
-  while (x<40) {BADLINE(x); x++;}
+	const uint16_t bgcol = palette[0];
+
+	while (p < pe) {
+
+		BADLINE(x);
+		x++;
+
+		for (unsigned i = 0; i < 8; i++) {
+			*p++ = bgcol;
+		}
+	}
 }
+
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 /*****************************************************************************************************/
