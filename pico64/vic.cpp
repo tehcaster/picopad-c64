@@ -737,101 +737,68 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  /*
-    Ungültiger Bitmap-Modus 1 (ECM/BMM/MCM=1/1/0)
+static void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	3.7.3.7. Invalid bitmap mode 1 (ECM/BMM/MCM=1/1/0)
+	--------------------------------------------------
 
-    Dieser Modus erzeugt nur ebenfalls nur ein schwarzes Bild, die Pixel lassen
-    sich allerdings auch hier mit dem Spritekollisionstrick auslesen.
+	This mode also only displays a black screen, but the pixels can still be
+	read out with the sprite collision trick.
 
-    Der Aufbau der Grafik ist im Prinzip wie im Standard-Bitmap-Modus, aber die
-    Bits 9 und 10 der g-Adressen sind wegen dem gesetzten ECM-Bit immer Null,
-    entsprechend besteht auch die Grafik - grob gesagt - aus vier
-    "Abschnitten", die jeweils viermal wiederholt dargestellt werden.
+	The structure of the graphics is basically as in standard bitmap mode, but
+	the bits 9 and 10 of the g-addresses are always zero due to the set ECM bit
+	and so the graphics are, roughly said, made up of four "sections" each of
+	which is repeated four times.
 
-  */
+	 +----+----+----+----+----+----+----+----+
+	 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	 +----+----+----+----+----+----+----+----+
+	 |         8 pixels (1 bit/pixel)        |
+	 |                                       |
+	 | "0": Black (background)               |
+	 | "1": Black (foreground)               |
+	 +---------------------------------------+
+	 */
 
-  uint8_t chr, pixel;
-  uint8_t x = 0;
-  uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t chr, pixel;
+	uint8_t x = 0;
+	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
 
-  if (cpu.vic.lineHasSprites) {
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-    do {
+	while (p < pe) {
 
-      BADLINE(x);
+		BADLINE(x);
 
-      chr = bP[x * 8];
+		chr = bP[x * 8];
 
-      x++;
+		x++;
 
-      unsigned m = min(8, pe - p);
-      for (unsigned i = 0; i < m; i++) {
+		char_sprites(p, spl, chr, 0, 0);
+		p += 8;
+		spl += 8;
 
-        int sprite = *spl;
-        *spl++ = 0;
+	}
 
-        if (sprite) {     // Sprite: Ja
-          /*
-             Sprite-Prioritäten (Anzeige)
-             MDP = 1: Grafikhintergrund, Sprite, Vordergrund
-             MDP = 0: Grafikhintergung, Vordergrund, Sprite
+	return;
 
-             Kollision:
-             Eine Kollision zwischen Sprites und anderen Grafikdaten wird erkannt,
-             sobald beim Bildaufbau ein nicht transparentes Spritepixel und ein Vordergrundpixel ausgegeben wird.
+nosprites:
 
-          */
-          int spritenum = SPRITENUM(sprite);
-          pixel = sprite & 0x0f; //Hintergrundgrafik
-          if (sprite & 0x4000) {   // MDP = 1
-            if (chr & 0x80) { //Vordergrundpixel ist gesetzt
-              cpu.vic.fgcollision |= spritenum;
-              pixel = 0;
-            }
-          } else {            // MDP = 0
-            if (chr & 0x80) cpu.vic.fgcollision |= spritenum; //Vordergrundpixel ist gesetzt
-          }
+	const uint16_t bgcol = palette[0];
 
-        } else {            // Kein Sprite
-          pixel = 0;
-        }
+	while (p < pe) {
 
-        *p++ = cpu.vic.palette[pixel];
-        chr = chr << 1;
+		BADLINE(x);
+		x++;
 
-      }
-
-    } while (p < pe);
-    PRINTOVERFLOWS
-
-  } else { //Keine Sprites
-    //Farbe immer schwarz
-    const uint16_t bgcol = palette[0];
-    while (p < pe - 8) {
-
-      BADLINE(x);
-      x++;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-      *p++ = bgcol; *p++ = bgcol;
-
-    };
-    while (p < pe) {
-
-      BADLINE(x);
-      x++;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol; if (p >= pe) break;
-      *p++ = bgcol; if (p >= pe) break; *p++ = bgcol;
-
-    };
-    PRINTOVERFLOW
-  }
-  while (x<40) {BADLINE(x); x++;}
+		for (unsigned i = 0; i < 8; i++) {
+			*p++ = bgcol;
+		}
+	}
 }
+
 /*****************************************************************************************************/
 void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
   /*
