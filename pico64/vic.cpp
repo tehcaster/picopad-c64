@@ -276,7 +276,6 @@ nosprites:
 			*p++ = (chr & 0x80) ? fgcol : bgcol;
 			chr <<= 1;
 		}
-
 	}
 };
 
@@ -574,118 +573,75 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-void mode4 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc) {
-  //ECM-Textmodus (ECM/BMM/MCM=1/0/0)
-  /*
-    Dieser Textmodus entspricht dem Standard-Textmodus, erlaubt es aber, für
-    jedes einzelne Zeichen eine von vier Hintergrundfarben auszuwählen. Die
-    Auswahl geschieht über die oberen beiden Bits des Zeichenzeigers. Dadurch
-    reduziert sich der Zeichenvorrat allerdings von 256 auf 64 Zeichen.
+static void mode4 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+{
+	/*
+	 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
+	 ------------------------------------------
 
-    +----+----+----+----+----+----+----+----+
-    |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
-    +----+----+----+----+----+----+----+----+
-    |         8 Pixel (1 Bit/Pixel)         |
-    |                                       |
-    | "0": Je nach Bits 6/7 der c-Daten     |
-    |      00: Hintergrundfarbe 0 ($d021)   |
-    |      01: Hintergrundfarbe 1 ($d022)   |
-    |      10: Hintergrundfarbe 2 ($d023)   |
-    |      11: Hintergrundfarbe 3 ($d024)   |
-    | "1": Farbe aus Bits 8-11 der c-Daten  |
-    +---------------------------------------+
-  */
-  // https://www.c64-wiki.de/wiki/Hintergrundfarbe
-  // POKE 53265, PEEK(53265) OR 64:REM CURSOR BLINKT ROT abc
+	 This text mode is the same as the standard text mode, but it allows the
+	 selection of one of four background colors for every single character. The
+	 selection is made with the upper two bits of the character pointer. This,
+	 however, reduces the available character set from 256 to 64 characters.
 
-  uint8_t chr, pixel;
-  uint16_t fgcol;
-  uint16_t bgcol;
-  uint8_t x = 0;
+	 +----+----+----+----+----+----+----+----+
+	 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
+	 +----+----+----+----+----+----+----+----+
+	 |         8 pixels (1 bit/pixel)        |
+	 |                                       |
+	 | "0": Depending on bits 6/7 of c-data  |
+	 |      00: Background color 0 ($d021)   |
+	 |      01: Background color 1 ($d022)   |
+	 |      10: Background color 2 ($d023)   |
+	 |      11: Background color 3 ($d024)   |
+	 | "1": Color from bits 8-11 of c-data   |
+	 +---------------------------------------+
+	 */
 
-  CHARSETPTR();
-  if (cpu.vic.lineHasSprites) {
-    do {
+	uint8_t chr, pixel;
+	uint16_t fgcol;
+	uint16_t bgcol;
+	uint8_t x = 0;
 
-      BADLINE(x);
+	CHARSETPTR();
 
-      uint32_t td = cpu.vic.lineMemChr[x];
-      bgcol = cpu.vic.R[0x21 + ((td >> 6) & 0x03)];
-      chr = cpu.vic.charsetPtr[(td & 0x3f) * 8];
-      fgcol = cpu.vic.lineMemCol[x];
+	if (!cpu.vic.lineHasSprites)
+		goto nosprites;
 
-      x++;
+	while (p < pe) {
 
-      unsigned m = min(8, pe - p);
-      for (unsigned i = 0; i < m; i++) {
+		BADLINE(x);
 
-        int sprite = *spl++;
+		uint8_t td = cpu.vic.lineMemChr[x];
 
-        if (sprite) {     // Sprite: Ja
-          int spritenum = SPRITENUM(sprite);
-          if (sprite & 0x4000) {   // Sprite: Hinter Text
-            if (chr & 0x80) {
-              cpu.vic.fgcollision |= spritenum;
-              pixel = fgcol;
-            } else pixel = bgcol;
-          } else {              // Sprite: Vor Text
-            if (chr & 0x80) cpu.vic.fgcollision |= spritenum;
-            pixel = sprite & 0x0f;
-          }
-        } else {                // Kein Sprite
-          pixel = (chr & 0x80) ? fgcol : bgcol;
-        }
+		bgcol = cpu.vic.R[0x21 + (td >> 6)];
+		chr = cpu.vic.charsetPtr[(td & 0x3f) * 8];
+		fgcol = cpu.vic.lineMemCol[x];
 
-        chr = chr << 1;
-        *p++ = cpu.vic.palette[pixel];
-      }
-    } while (p < pe);
-    PRINTOVERFLOWS
-  }
-  else //Keine Sprites
-    while (p < pe - 8) {
+		x++;
 
-      BADLINE(x);
+		char_sprites(p, spl, chr, fgcol, bgcol);
+		p += 8;
+		spl += 8;
+	}
 
-      uint32_t td = cpu.vic.lineMemChr[x];
-      bgcol = cpu.vic.palette[cpu.vic.R[0x21 + ((td >> 6) & 0x03)]];
-      chr = cpu.vic.charsetPtr[(td & 0x3f) * 8];
-      fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
-      x++;
+nosprites:
+	while (p < pe) {
 
-      *p++ = (chr & 0x80) ? fgcol : bgcol;
-      *p++ = (chr & 0x40) ? fgcol : bgcol;
-      *p++ = (chr & 0x20) ? fgcol : bgcol;
-      *p++ = (chr & 0x10) ? fgcol : bgcol;
-      *p++ = (chr & 0x08) ? fgcol : bgcol;
-      *p++ = (chr & 0x04) ? fgcol : bgcol;
-      *p++ = (chr & 0x02) ? fgcol : bgcol;
-      *p++ = (chr & 0x01) ? fgcol : bgcol;
+		BADLINE(x);
 
-    };
-  while (p < pe) {
+		uint8_t td = cpu.vic.lineMemChr[x];
 
-    BADLINE(x);
+		bgcol = cpu.vic.colors[1 + (td >> 6)];
+		chr = cpu.vic.charsetPtr[(td & 0x3f) * 8];
+		fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
+		x++;
 
-    uint32_t td = cpu.vic.lineMemChr[x];
-    bgcol = cpu.vic.palette[cpu.vic.R[0x21 + ((td >> 6) & 0x03)]];
-    chr = cpu.vic.charsetPtr[(td & 0x3f) * 8];
-    fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
-
-    x++;
-
-    *p++ = (chr & 0x80) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x40) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x20) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x10) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x08) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x04) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x02) ? fgcol : bgcol; if (p >= pe) break;
-    *p++ = (chr & 0x01) ? fgcol : bgcol;
-
-  };
-  PRINTOVERFLOW
-  while (x<40) {BADLINE(x); x++;}
+		for (unsigned i = 0; i < 8; i++) {
+			*p++ = (chr & 0x80) ? fgcol : bgcol;
+			chr <<= 1;
+		}
+	}
 }
 
 /*****************************************************************************************************/
