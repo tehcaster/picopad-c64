@@ -52,6 +52,16 @@ struct tsprite {
 };
 */
 
+union sprite_data {
+	uint16_t raw;
+	struct {
+		uint8_t sprite_num : 4, : 2, MDP : 1, active: 1;
+		uint8_t color : 4, : 4;
+	};
+};
+
+typedef union sprite_data sprite_data_t;
+
 struct tvic {
   uint32_t timeStart, neededTime;
   int intRasterLine; //Interruptsetting
@@ -123,7 +133,7 @@ struct tvic {
   //tsprite spriteInfo[8];//todo
 
   /* extend by max xscroll rounded up */
-  uint16_t spriteLine[SPRITE_MAX_X + 48 + 8];
+  sprite_data_t spriteLine[SPRITE_MAX_X + 48 + 8];
 
   uint8_t lineMemChr[40];
   uint8_t lineMemCol[40];

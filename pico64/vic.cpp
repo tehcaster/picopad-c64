@@ -85,7 +85,7 @@ u32 nFramesC64 = 0;
 /*****************************************************************************************************/
 
 inline __attribute__((always_inline))
-void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, uint16_t * spl);
+void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data * spl);
 inline __attribute__((always_inline))
 void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col);
 inline __attribute__((always_inline))
@@ -96,7 +96,6 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-#define SPRITENUM(data) (1 << ((data >> 8) & 0x07))
 #define CHARSETPTR() cpu.vic.charsetPtr = cpu.vic.charsetPtrBase + cpu.vic.rc;
 #define CYCLES(x) {if (cpu.vic.badline) {cia_clockt(x);} else {cpu_clock(x);} }
 
@@ -112,33 +111,33 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
 
 #define SPRITEORFIXEDCOLOR() \
   sprite = *spl++; \
-  if (sprite) { \
-    *p++ = cpu.vic.palette[sprite & 0x0f]; \
+  if (sprite.raw) { \
+    *p++ = cpu.vic.palette[sprite.color]; \
   } else { \
     *p++ = col; \
   }
 
-static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol,
+static void char_sprites(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t fgcol,
 			 uint16_t bgcol)
 {
 	for (unsigned i = 0; i < 8; i++) {
 		uint16_t pixel;
-		uint16_t sprite = *spl++;
+		sprite_data_t sprite = *spl++;
 
-		if (sprite) {
-			int spritenum = SPRITENUM(sprite);
-			pixel = sprite & 0x0f;
+		if (sprite.raw) {
+			int b = 1 << sprite.sprite_num;
+			pixel = sprite.color;
 
 			/* sprite behind foreground, MDP = 1 */
-			if (sprite & 0x4000) {
+			if (sprite.MDP) {
 				if (chr & 0x80) {
-					cpu.vic.fgcollision |= spritenum;
+					cpu.vic.fgcollision |= b;
 					pixel = fgcol;
 				}
 			} else {
 				/* sprite in front of foreground */
 				if (chr & 0x80)
-					cpu.vic.fgcollision |= spritenum;
+					cpu.vic.fgcollision |= b;
 			}
 		} else {
 			pixel = (chr & 0x80) ? fgcol : bgcol;
@@ -149,7 +148,7 @@ static void char_sprites(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t fgcol,
 	}
 }
 
-static void char_sprites_mc(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t *colors)
+static void char_sprites_mc(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t *colors)
 {
 	for (int i = 0; i < 4; i++) {
 		uint8_t c = (chr >> 6) & 0x03;
@@ -157,14 +156,14 @@ static void char_sprites_mc(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t *col
 
 		for (int j = 0; j < 2; j++) {
 			uint16_t pixel;
-			uint16_t sprite = *spl++;
+			sprite_data_t sprite = *spl++;
 
-			if (sprite) {
-				int spritenum = SPRITENUM(sprite);
-				pixel = sprite & 0x0f;
+			if (sprite.raw) {
+				int b = 1 << sprite.sprite_num;
+				pixel = sprite.color;
 
 				/* sprite behind foreground, MDP = 1 */
-				if (sprite & 0x4000) {  // MDP = 1
+				if (sprite.MDP) {  // MDP = 1
 					/*
 					 * "It is interesting to note that not
 					 * only the bit combination "00" but
@@ -173,12 +172,12 @@ static void char_sprites_mc(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t *col
 					 * and collision detection."
 					 */
 					if (c > 1) {
-						cpu.vic.fgcollision |= spritenum;
+						cpu.vic.fgcollision |= b;
 						pixel = colors[c];
 					}
 				} else {
 					if (c > 1)
-						cpu.vic.fgcollision |= spritenum;
+						cpu.vic.fgcollision |= b;
 				}
 			} else {
 				pixel = colors[c];
@@ -189,7 +188,7 @@ static void char_sprites_mc(tpixel *p, uint16_t *spl, uint8_t chr, uint16_t *col
 }
 
 /*****************************************************************************************************/
-static void mode0 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode0 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
@@ -262,7 +261,7 @@ nosprites:
 };
 
 /*****************************************************************************************************/
-static void mode1 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode1 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
@@ -386,7 +385,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode2 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode2 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
@@ -467,7 +466,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode3 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode3 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
@@ -558,7 +557,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode4 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode4 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
@@ -635,7 +634,7 @@ nosprites:
 /* Invalid Modes *************************************************************************************/
 /*****************************************************************************************************/
 
-static void mode5 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode5 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.6. Invalid text mode (ECM/BMM/MCM=1/0/1)
@@ -718,7 +717,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode6 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode6 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 	/*
 	3.7.3.7. Invalid bitmap mode 1 (ECM/BMM/MCM=1/1/0)
@@ -781,7 +780,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode7 (tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc)
+static void mode7 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
 {
 
 	/*
@@ -849,13 +848,23 @@ nosprites:
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-typedef void (*modes_t)( tpixel *p, const tpixel *pe, uint16_t *spl, const uint16_t vc ); //Funktionspointer
+typedef void (*modes_t)( tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc ); //Funktionspointer
 const modes_t modes[8] = {mode0, mode1, mode2, mode3, mode4, mode5, mode6, mode7};
 
 /* extend by max xscroll rounded up */
 static tpixel linebuffer[SCREEN_WIDTH + 8];
 
-unsigned char process_sprite(uint32_t spriteData, unsigned int x, unsigned short i)
+static inline unsigned char slp_update(sprite_data_t *old, const sprite_data_t _new, uint8_t b)
+{
+	if ((*old).raw == 0) {
+		*old = _new;
+		return 0;
+	} else {
+		return b | 1 << (*old).sprite_num;
+	}
+}
+
+unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 {
 	uint8_t b = 1 << i;
 	unsigned char collision = 0;
@@ -864,30 +873,27 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, unsigned short
 	spriteData = reverse(spriteData);
 	cpu.vic.lineHasSprites = 1;
 
-	uint16_t * slp = &cpu.vic.spriteLine[x];
-	/*
-	 * bit 7 - sprite pixel active
-	 * bit 6 - sprite behind foreground
-	 * bits 0-3 - number of sprite
-	 */
-	uint16_t upperByte = ( 0x80 | ( (cpu.vic.MDP & b) ? 0x40 : 0 ) | i ) << 8;
+	sprite_data_t * slp = &cpu.vic.spriteLine[x];
+	sprite_data_t sprite = {
+		.sprite_num = i,
+		.active = 1,
+	};
+
+	if (cpu.vic.MDP & b)
+		sprite.MDP = 1;
 
 	//if (config.single_frame_mode)
 	//  printf("upperByte %x color %u\n", upperByte, cpu.vic.R[0x27 + i]);
 
 	if ((cpu.vic.MMC & b) == 0) { // NO MULTICOLOR
 
-		uint16_t color = upperByte | cpu.vic.R[0x27 + i];
+		sprite.color = cpu.vic.R[0x27 + i];
 
 		if ((cpu.vic.MXE & b) == 0) { // NO MULTICOLOR, NO SPRITE-EXPANSION
 			for (int cnt = 0; cnt < 24; cnt++) {
 
 				if (spriteData & 0x01) {
-					if (*slp == 0) {
-						*slp = color;
-					} else {
-						collision |= b | (1 << ((*slp >> 8) & 0x07));
-					}
+					collision |= slp_update(slp, sprite, b);
 				}
 
 				spriteData >>= 1;
@@ -899,11 +905,7 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, unsigned short
 
 				if (spriteData & 0x01) {
 					for (int j = 0; j < 2; j++) {
-						if (*slp == 0) {
-							*slp = color;
-						} else {
-							collision |= b | (1 << ((*slp >> 8) & 0x07));
-						}
+						collision |= slp_update(slp, sprite, b);
 						slp++;
 					}
 				} else {
@@ -938,11 +940,11 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, unsigned short
 		 * note we have colors[1] and [2] swapped because the
 		 * spriteData bits are reversed
 		 */
-		uint16_t colors[4];
+		uint8_t colors[4];
 		colors[0] = 0; //dummy, color 0 is transparent
-		colors[1] = upperByte | cpu.vic.R[0x27 + i];
-		colors[2] = upperByte | cpu.vic.R[0x25];
-		colors[3] = upperByte | cpu.vic.R[0x26];
+		colors[1] = cpu.vic.R[0x27 + i];
+		colors[2] = cpu.vic.R[0x25];
+		colors[3] = cpu.vic.R[0x26];
 
 		if ((cpu.vic.MXE & b) == 0) { // MULTICOLOR, NO SPRITE-EXPANSION
 			for (unsigned cnt = 0; cnt < 12; cnt++) {
@@ -951,11 +953,8 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, unsigned short
 
 				if (c) {
 					for (int j = 0; j < 2; j++) {
-						if (*slp == 0) {
-							*slp = colors[c];
-						} else {
-							collision |= b | (1 << ((*slp >> 8) & 0x07));
-						}
+						sprite.color = colors[c];
+						collision |= slp_update(slp, sprite, b);
 						slp++;
 					}
 				} else {
@@ -969,11 +968,8 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, unsigned short
 
 				if (c) {
 					for (int j = 0; j < 4; j++) {
-						if (*slp == 0) {
-							*slp = colors[c];
-						} else {
-							collision |= b | (1 << ((*slp >> 8) & 0x07));
-						}
+						sprite.color = colors[c];
+						collision |= slp_update(slp, sprite, b);
 						slp++;
 					}
 				} else {
@@ -992,7 +988,7 @@ void vic_do(void) {
   uint16_t xscroll;
   tpixel *pe;
   tpixel *p;
-  uint16_t *spl;
+  sprite_data_t *spl;
   uint8_t mode;
   bool csel_left;
   uint16_t bdcol_left;
@@ -1157,7 +1153,7 @@ void vic_do(void) {
   if (xscroll > 0) {
     if (csel_left) {
       /* we don't have the extra border to cover the bg/sprites so render them */
-      uint16_t sprite;
+      sprite_data_t sprite;
       uint16_t col = cpu.vic.colors[1]; /* B0C */
 
       for (int i = 0; i < xscroll; i++) {
@@ -1361,7 +1357,7 @@ noDisplayIncRC:
 	if (!spritesEnabled)
 		goto sprites_loaded;
 
-	for (unsigned short i = 0; i < 8; i++) {
+	for (uint8_t i = 0; i < 8; i++) {
 
 		unsigned b = 1 << i;
 
@@ -1488,10 +1484,10 @@ void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col) {
 
 }
 
-void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, uint16_t *  spl) {
+void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data_t * spl) {
   if (spl != NULL && cpu.vic.lineHasSprites) {
 	int i = 0;
-	uint16_t sprite;
+	sprite_data_t sprite;
     while ( p < pe ) {
 		SPRITEORFIXEDCOLOR();
 		i = (i + 1) & 0x07;
