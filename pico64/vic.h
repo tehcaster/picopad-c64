@@ -55,8 +55,8 @@ struct tsprite {
 union sprite_data {
 	uint16_t raw;
 	struct {
-		uint8_t sprite_num : 4, : 2, MDP : 1, active: 1;
-		uint8_t color : 4, : 4;
+		uint8_t active_mask;
+		uint8_t color : 4, MDP: 1, collision : 1, : 1;
 	};
 };
 
@@ -80,7 +80,6 @@ struct tvic {
   uint8_t lineHasSprites;
   int8_t spriteCycles0_2;
   int8_t spriteCycles3_7;
-  int fgcollision;
 
   uint8_t * charsetPtrBase;
   uint8_t * charsetPtr;

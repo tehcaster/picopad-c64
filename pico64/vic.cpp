@@ -117,28 +117,46 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
     *p++ = col; \
   }
 
+static void trigger_fgcol(uint8_t fgcol)
+{
+	if (cpu.vic.MD == 0) {
+		cpu.vic.IMBC = 1;
+		if (cpu.vic.EMBC)
+			cpu.vic.IRQ = 1;
+	}
+	cpu.vic.MD |= fgcol;
+}
+
+static void trigger_sprcol(uint8_t sprcol)
+{
+	if (cpu.vic.MM == 0) {
+		cpu.vic.IMMC = 1;
+		if (cpu.vic.EMMC)
+			cpu.vic.IRQ = 1;
+	}
+	cpu.vic.MM |= sprcol;
+}
+
 static void char_sprites(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t fgcol,
 			 uint16_t bgcol)
 {
+	uint8_t fg_collision = 0;
+	uint8_t sprite_collision = 0;
+
 	for (unsigned i = 0; i < 8; i++) {
 		uint16_t pixel;
 		sprite_data_t sprite = *spl++;
 
 		if (sprite.raw) {
-			int b = 1 << sprite.sprite_num;
 			pixel = sprite.color;
 
-			/* sprite behind foreground, MDP = 1 */
-			if (sprite.MDP) {
-				if (chr & 0x80) {
-					cpu.vic.fgcollision |= b;
+			if (chr & 0x80) {
+				fg_collision |= sprite.active_mask;
+				if (sprite.MDP)
 					pixel = fgcol;
-				}
-			} else {
-				/* sprite in front of foreground */
-				if (chr & 0x80)
-					cpu.vic.fgcollision |= b;
 			}
+			if (sprite.collision)
+				sprite_collision |= sprite.active_mask;
 		} else {
 			pixel = (chr & 0x80) ? fgcol : bgcol;
 		}
@@ -146,10 +164,18 @@ static void char_sprites(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t fg
 		*p++ = cpu.vic.palette[pixel];
 		chr <<= 1;
 	}
+
+	if (fg_collision)
+		trigger_fgcol(fg_collision);
+	if (sprite_collision)
+		trigger_sprcol(sprite_collision);
 }
 
 static void char_sprites_mc(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t *colors)
 {
+	uint8_t fg_collision = 0;
+	uint8_t sprite_collision = 0;
+
 	for (int i = 0; i < 4; i++) {
 		uint8_t c = (chr >> 6) & 0x03;
 		chr <<= 2;
@@ -159,32 +185,33 @@ static void char_sprites_mc(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t
 			sprite_data_t sprite = *spl++;
 
 			if (sprite.raw) {
-				int b = 1 << sprite.sprite_num;
 				pixel = sprite.color;
 
-				/* sprite behind foreground, MDP = 1 */
-				if (sprite.MDP) {  // MDP = 1
-					/*
-					 * "It is interesting to note that not
-					 * only the bit combination "00" but
-					 * also "01" is regarded as "background"
-					 * for the purposes of sprite priority
-					 * and collision detection."
-					 */
-					if (c > 1) {
-						cpu.vic.fgcollision |= b;
+				/*
+				 * "It is interesting to note that not only the
+				 * bit combination "00" but also "01" is
+				 * regarded as "background" for the purposes of
+				 * sprite priority and collision detection."
+				 */
+				if (c > 1) {
+					fg_collision |= sprite.active_mask;
+					if (sprite.MDP)
 						pixel = colors[c];
-					}
-				} else {
-					if (c > 1)
-						cpu.vic.fgcollision |= b;
 				}
+
+				if (sprite.collision)
+					sprite_collision |= sprite.active_mask;
 			} else {
 				pixel = colors[c];
 			}
 			*p++ = cpu.vic.palette[pixel];
 		}
 	}
+
+	if (fg_collision)
+		trigger_fgcol(fg_collision);
+	if (sprite_collision)
+		trigger_sprcol(sprite_collision);
 }
 
 /*****************************************************************************************************/
@@ -854,17 +881,17 @@ const modes_t modes[8] = {mode0, mode1, mode2, mode3, mode4, mode5, mode6, mode7
 /* extend by max xscroll rounded up */
 static tpixel linebuffer[SCREEN_WIDTH + 8];
 
-static inline unsigned char slp_update(sprite_data_t *old, const sprite_data_t _new, uint8_t b)
+static inline void slp_update(sprite_data_t *old, const sprite_data_t _new, uint8_t b)
 {
 	if ((*old).raw == 0) {
 		*old = _new;
-		return 0;
 	} else {
-		return b | 1 << (*old).sprite_num;
+		(*old).active_mask |= b;
+		(*old).collision = 1;
 	}
 }
 
-unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
+static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 {
 	uint8_t b = 1 << i;
 	unsigned char collision = 0;
@@ -874,9 +901,8 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 	cpu.vic.lineHasSprites = 1;
 
 	sprite_data_t * slp = &cpu.vic.spriteLine[x];
-	sprite_data_t sprite = {
-		.sprite_num = i,
-		.active = 1,
+	sprite_data_t sprite {
+		.active_mask = b,
 	};
 
 	if (cpu.vic.MDP & b)
@@ -892,9 +918,8 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 		if ((cpu.vic.MXE & b) == 0) { // NO MULTICOLOR, NO SPRITE-EXPANSION
 			for (int cnt = 0; cnt < 24; cnt++) {
 
-				if (spriteData & 0x01) {
-					collision |= slp_update(slp, sprite, b);
-				}
+				if (spriteData & 0x01)
+					slp_update(slp, sprite, b);
 
 				spriteData >>= 1;
 				slp++;
@@ -905,7 +930,7 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 
 				if (spriteData & 0x01) {
 					for (int j = 0; j < 2; j++) {
-						collision |= slp_update(slp, sprite, b);
+						slp_update(slp, sprite, b);
 						slp++;
 					}
 				} else {
@@ -954,7 +979,7 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 				if (c) {
 					for (int j = 0; j < 2; j++) {
 						sprite.color = colors[c];
-						collision |= slp_update(slp, sprite, b);
+						slp_update(slp, sprite, b);
 						slp++;
 					}
 				} else {
@@ -969,7 +994,7 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 				if (c) {
 					for (int j = 0; j < 4; j++) {
 						sprite.color = colors[c];
-						collision |= slp_update(slp, sprite, b);
+						slp_update(slp, sprite, b);
 						slp++;
 					}
 				} else {
@@ -978,8 +1003,6 @@ unsigned char process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 			}
 		}
 	}
-
-	return collision;
 }
 
 void vic_do(void) {
@@ -1173,7 +1196,6 @@ void vic_do(void) {
   /*****************************************************************************************************/
 
 
-  cpu.vic.fgcollision = 0;
   mode = (cpu.vic.ECM << 2) | (cpu.vic.BMM << 1) | cpu.vic.MCM;
 
   if ( !cpu.vic.idle)  {
@@ -1275,18 +1297,6 @@ g-Zugriff
    */
   if (cpu.vic.borderFlag) {
     fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
-  /*
-    Bei den MBC- und MMC-Interrupts löst jeweils nur die erste Kollision einen
-    Interrupt aus (d.h. wenn die Kollisionsregister $d01e bzw. $d01f vor der
-    Kollision den Inhalt Null hatten). Um nach einer Kollision weitere
-    Interrupts auszulösen, muß das betreffende Register erst durch Auslesen
-    gelöscht werden.
-  */
-  } else if (cpu.vic.fgcollision) {
-    if (cpu.vic.MD == 0) {
-      cpu.vic.R[0x19] |= 2 | ( (cpu.vic.R[0x1a] & 2) << 6);
-    }
-    cpu.vic.MD |= cpu.vic.fgcollision;
   }
 
   /*****************************************************************************************************/
@@ -1351,7 +1361,6 @@ noDisplayIncRC:
 
 	uint8_t spritesEnabled = cpu.vic.R[0x15]; //Sprite enabled Register
 	unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
-	unsigned char collision = 0;
 	short lastSpriteNum = 0;
 
 	if (!spritesEnabled)
@@ -1422,14 +1431,7 @@ noDisplayIncRC:
 		if (!spriteData)
 			continue;
 
-		collision |= process_sprite(spriteData, x, i);
-	}
-
-	if (collision) {
-		if (cpu.vic.MM == 0) {
-			cpu.vic.R[0x19] |= 4 | ((cpu.vic.R[0x1a] & 4) << 5 );
-		}
-		cpu.vic.MM |= collision;
+		process_sprite(spriteData, x, i);
 	}
 
 sprites_loaded:
