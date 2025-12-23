@@ -61,16 +61,13 @@
 #define PALETTE(r,g,b) (RGBVAL16(r,g,b))  //(((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3))
 #include "vic_palette.h"
 
-
-
-#define BORDER      	        (240-200)/2
-#define SCREEN_HEIGHT         (200+2*BORDER)
-#define SCREEN_WIDTH          320
-//#define LINE_MEM_WIDTH        320
-#define FIRSTDISPLAYLINE      (  51 - BORDER )
-#define LASTDISPLAYLINE       ( 250 + BORDER )
-#define BORDER_LEFT           (400-320)/2
-#define BORDER_RIGHT          0
+#define SCREEN_WIDTH		320
+#define SCREEN_HEIGHT		240
+#define BORDER			(SCREEN_HEIGHT-200)/2
+#define SCREEN_ROW_OFFSET	(51 - BORDER)
+/* do not display top/bottom border */
+#define FIRSTDISPLAYLINE	51
+#define LASTDISPLAYLINE		250
 
 typedef uint16_t tpixel;
 
@@ -1127,7 +1124,7 @@ void vic_do(void)
 	}
 
 	//TODO: why subtract MAXCYCLESSPRITES ?
-	if (r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE ) {
+	if ((r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE) && !cpu.vic.badline) {
 		if (r == 0)
 			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES - 1); // (minus hblank l + r)
 		else
@@ -1148,14 +1145,12 @@ void vic_do(void)
 	 * perform the full modeX emulation for timing and initializing the
 	 * character/bitmap data for the following lines. We will however ignore both
 	 * the calculated pixels and fgcollision at the end.
-	 *
-	 * TODO: evaluate this earlier, no need to fastfill if we don't memcpy
 	 */
 	if (cpu.vic.borderFlag && !cpu.vic.badline) {
 		cpu_clock(5);
 		fastFillLineNoSprites(p, pe, cpu.vic.colors[0]);
-		if (r >= FIRSTDISPLAYLINE + BORDER && r <= LASTDISPLAYLINE - BORDER)
-			memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
+		if (r >= FIRSTDISPLAYLINE && r <= LASTDISPLAYLINE)
+			memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 		goto noDisplayIncRC;
 	}
 
@@ -1235,12 +1230,10 @@ void vic_do(void)
 		}
 	}
 
-	memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
-
+	memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET) * SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 
 	/* Right border, in the text area (?) */
 	cpu_clock(5);
-
 
 noDisplayIncRC:
 	/* 3.7.2. VC and RC:
@@ -1254,7 +1247,8 @@ noDisplayIncRC:
 		cpu.vic.idle = 1;
 		cpu.vic.vcbase = vc;
 	}
-	//Ist dies richtig ??
+
+	//TODO: is this correct?
 	if ((!cpu.vic.idle) || (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7)
 				&& ( (r & 0x07) == cpu.vic.YSCROLL))) {
 		cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
