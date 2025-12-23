@@ -1005,351 +1005,281 @@ static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 	}
 }
 
-void vic_do(void) {
+void vic_do(void)
+{
+	uint16_t vc;
+	uint16_t xscroll;
+	tpixel *pe;
+	tpixel *p;
+	sprite_data_t *spl;
+	uint8_t mode;
+	bool csel_left;
+	uint16_t bdcol_left;
 
-  uint16_t vc;
-  uint16_t xscroll;
-  tpixel *pe;
-  tpixel *p;
-  sprite_data_t *spl;
-  uint8_t mode;
-  bool csel_left;
-  uint16_t bdcol_left;
+	/*****************************************************************************************************/
+	/* Linecounter ***************************************************************************************/
+	/*****************************************************************************************************/
 
-  /*****************************************************************************************************/
-  /* Linecounter ***************************************************************************************/
-  /*****************************************************************************************************/
-  /*
-    ?PEEK(678) NTSC =0
-    ?PEEK(678) PAL = 1
-  */
+	if (cpu.vic.rasterLine >= LINECNT) {
+		cpu.vic.rasterLine = 0;
+		cpu.vic.vcbase = 0;
+		cpu.vic.denLatch = 0;
 
-  if ( cpu.vic.rasterLine >= LINECNT ) {
-    cpu.vic.rasterLine = 0;
-    cpu.vic.vcbase = 0;
-    cpu.vic.denLatch = 0;
-    //if (cpu.vic.rasterLine == LINECNT) {
-      //emu_DrawVsync();
-    //}
-
-  } else {
-    cpu.vic.rasterLine++;
-    if (cpu.vic.rasterLine >= LINECNT) 
-      nFramesC64++;
-  }
-
-
-  cpu.vic.badlineLate = false;
-
-  int r = cpu.vic.rasterLine;
-
-  if (r == cpu.vic.intRasterLine )//Set Rasterline-Interrupt
-    cpu.vic.R[0x19] |= 1 | ((cpu.vic.R[0x1a] & 1) << 7);
-
-  /*****************************************************************************************************/
-  /* Badlines ******************************************************************************************/
-  /*****************************************************************************************************/
-  /*
-    Ein Bad-Line-Zustand liegt in einem beliebigen Taktzyklus vor, wenn an der
-    negativen Flanke von ø0 zu Beginn des Zyklus RASTER >= $30 und RASTER <=
-    $f7 und die unteren drei Bits von RASTER mit YSCROLL übereinstimmen und in
-    einem beliebigen Zyklus von Rasterzeile $30 das DEN-Bit gesetzt war.
-
-    (default 3)
-    yscroll : POKE 53265, PEEK(53265) AND 248 OR 1:POKE 1024,0
-    yscroll : poke 53265, peek(53265) and 248 or 1
-
-    DEN : POKE 53265, PEEK(53265) AND 224 Bildschirm aus
-
-    Die einzige Verwendung von YSCROLL ist der Vergleich mit r in der Badline
-
-  */
-
-  if (r == 0x30 ) cpu.vic.denLatch |= cpu.vic.DEN;
-
-  /* 3.7.2
-    2. In der ersten Phase von Zyklus 14 jeder Zeile wird VC mit VCBASE geladen
-     (VCBASE->VC) und VMLI gelöscht. Wenn zu diesem Zeitpunkt ein
-     Bad-Line-Zustand vorliegt, wird zusätzlich RC auf Null gesetzt.
-  */
-
-  vc = cpu.vic.vcbase;
-
-  cpu.vic.badline = (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7) && ( (r & 0x07) == cpu.vic.YSCROLL));
-
-  if (cpu.vic.badline) {
-    cpu.vic.idle = 0;
-    cpu.vic.rc = 0;
-  }
-
-  /*****************************************************************************************************/
-  /*****************************************************************************************************/
-#if 1
-  {
-    int t = MAXCYCLESSPRITES3_7 - cpu.vic.spriteCycles3_7;
-    if (t > 0) cpu_clock(t);
-    if (cpu.vic.spriteCycles3_7 > 0) cia_clockt(cpu.vic.spriteCycles3_7);
-  }
-#endif
-
-   //HBlank:
-   cpu_clock(10);
-
-#ifdef ADDITIONALCYCLES
-  cpu_clock(ADDITIONALCYCLES);
-#endif
-
-  //cpu.vic.videomatrix =  cpu.vic.bank + (unsigned)(cpu.vic.R[0x18] & 0xf0) * 64;
-
-  /* Rand oben /unten **********************************************************************************/
-  /*
-    RSEL  Höhe des Anzeigefensters  Erste Zeile   Letzte Zeile
-    0 24 Textzeilen/192 Pixel 55 ($37)  246 ($f6) = 192 sichtbare Zeilen, der Rest ist Rand oder unsichtbar
-    1 25 Textzeilen/200 Pixel 51 ($33)  250 ($fa) = 200 sichtbare Zeilen, der Rest ist Rand oder unsichtbar
-  */
-
-  if (cpu.vic.borderFlag) {
-    int firstLine = (cpu.vic.RSEL) ? 0x33 : 0x37;
-    if ((cpu.vic.DEN) && (r == firstLine)) cpu.vic.borderFlag = false;
-  } else {
-    int lastLine = (cpu.vic.RSEL) ? 0xfb : 0xf7;
-    if (r == lastLine) cpu.vic.borderFlag = true;
-  }
-
-  if (r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE ) {
-    if (r == 0)
-      cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES - 1); // (minus hblank l + r)
-    else
-      cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES  );
-    goto noDisplayIncRC;
-  }
-
-  //max_x =  (!cpu.vic.CSEL) ? 40:38;
-  p = &linebuffer[0];
-  pe = p + SCREEN_WIDTH;
-  //Left Screenborder: Cycle 10
-  spl = &cpu.vic.spriteLine[24];
-  cpu_clock(6);
-
-  /*
-   * For many YSCROLL values the bad line can occur in the top border so we must
-   * perform the full modeX emulation for timing and initializing the
-   * character/bitmap data for the following lines. We will however ignore both
-   * the calculated pixels and fgcollision at the end.
-   */
-  if (cpu.vic.borderFlag && !cpu.vic.badline) {
-	cpu_clock(5);
-    fastFillLineNoSprites(p, pe + BORDER_RIGHT, cpu.vic.colors[0]);
-    if (r >= FIRSTDISPLAYLINE + BORDER && r <= LASTDISPLAYLINE - BORDER)
-      memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
-    goto noDisplayIncRC ;
-  }
-
-
-  /*****************************************************************************************************/
-  /* DISPLAY *******************************************************************************************/
-  /*****************************************************************************************************/
-
-
-  //max_x =  (!cpu.vic.CSEL) ? 40:38;
-  //X-Scrolling:
-
-  /*
-   * Remember if CSEL was set when we reached x = 24, current border color to
-   * overwrite first 7 pixels later if !CSEL
-   *
-   * TODO: we ignore hyperscreen for the foreseeable future...
-   */
-  csel_left = cpu.vic.CSEL;
-  bdcol_left = cpu.vic.colors[0];
-
-  xscroll = cpu.vic.XSCROLL;
-
-  if (xscroll > 0) {
-    if (csel_left) {
-      /* we don't have the extra border to cover the bg/sprites so render them */
-      sprite_data_t sprite;
-      uint16_t col = cpu.vic.colors[1]; /* B0C */
-
-      for (int i = 0; i < xscroll; i++) {
-        SPRITEORFIXEDCOLOR();
-      }
-    } else {
-      /* just bump everything as the border will cover it */
-      spl += xscroll;
-      p += xscroll;
-    }
-    /* bump the end as well for proper clocks during modes (?) */
-    pe += xscroll;
-  }
-
-  /*****************************************************************************************************/
-  /*****************************************************************************************************/
-  /*****************************************************************************************************/
-
-
-  mode = (cpu.vic.ECM << 2) | (cpu.vic.BMM << 1) | cpu.vic.MCM;
-
-  if ( !cpu.vic.idle)  {
-
-#if 0
-    static uint8_t omode = 99;
-    if (mode != omode) {
-      Serial.print("Graphicsmode:");
-      Serial.println(mode);
-      omode = mode;
-    }
-#endif
-
-    modes[mode](p, pe, spl, vc);
-    vc = (vc + 40) & 0x3ff;
-
-  } else {
-	  /*
-3.7.3.9. Idle-Zustand
----------------------
-
-Im Idle-Zustand liest der VIC die Grafikdaten von Adresse $3fff (bzw. $39ff
-bei gesetztem ECM-Bit) und stellt sie im ausgewählten Grafikmodus dar,
-wobei aber die Videomatrix-Daten (normalerweise in den c-Zugriffen gelesen)
-nur aus "0"-Bits bestehen. Es wird also immer wiederholt das Byte an
-Adresse $3fff/$39ff ausgegeben.
-
-c-Zugriff
-
- Es werden keine c-Zugriffe ausgeführt.
-
- Daten
-
- +----+----+----+----+----+----+----+----+----+----+----+----+
- | 11 | 10 |  9 |  8 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
- +----+----+----+----+----+----+----+----+----+----+----+----+
- |  0 |  0 |  0 |  0 |  0 |  0 |  0 |  0 |  0 |  0 |  0 |  0 |
- +----+----+----+----+----+----+----+----+----+----+----+----+
-
-g-Zugriff
-
- Adressen (ECM=0)
-
- +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
- | 13 | 12 | 11 | 10 |  9 |  8 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
- +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
- |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |
- +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
-
- Adressen (ECM=1)
-
- +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
- | 13 | 12 | 11 | 10 |  9 |  8 |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
- +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
- |  1 |  1 |  1 |  0 |  0 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |  1 |
- +----+----+----+----+----+----+----+----+----+----+----+----+----+----+
-
- Daten
-
- +----+----+----+----+----+----+----+----+
- |  7 |  6 |  5 |  4 |  3 |  2 |  1 |  0 |
- +----+----+----+----+----+----+----+----+
- |         8 Pixel (1 Bit/Pixel)         | Standard-Textmodus/
- |                                       | Multicolor-Textmodus/
- | "0": Hintergrundfarbe 0 ($d021)       | ECM-Textmodus
- | "1": Schwarz                          |
- +---------------------------------------+
- |         8 Pixel (1 Bit/Pixel)         | Standard-Bitmap-Modus/
- |                                       | Ungültiger Textmodus/
- | "0": Schwarz (Hintergrund)            | Ungültiger Bitmap-Modus 1
- | "1": Schwarz (Vordergrund)            |
- +---------------------------------------+
- |         4 Pixel (2 Bit/Pixel)         | Multicolor-Bitmap-Modus
- |                                       |
- | "00": Hintergrundfarbe 0 ($d021)      |
- | "01": Schwarz (Hintergrund)           |
- | "10": Schwarz (Vordergrund)           |
- | "11": Schwarz (Vordergrund)           |
- +---------------------------------------+
- |         4 Pixel (2 Bit/Pixel)         | Ungültiger Bitmap-Modus 2
- |                                       |
- | "00": Schwarz (Hintergrund)           |
- | "01": Schwarz (Hintergrund)           |
- | "10": Schwarz (Vordergrund)           |
- | "11": Schwarz (Vordergrund)           |
- +---------------------------------------+
-*/ 
-	//Modes 1 & 3
-    if (mode == 1 || mode == 3) {
-		modes[mode](p, pe, spl, vc);
-    } else {//TODO: all other modes
-	fastFillLine(p, pe, cpu.vic.palette[0], spl);
+	} else {
+		cpu.vic.rasterLine++;
+		if (cpu.vic.rasterLine >= LINECNT) 
+			nFramesC64++;
 	}
-  }
 
-  /*
-   * In the top/bottom border, sprite-data collisions are not detected and also
-   * discard the graphics we just generated (only to emulate the bad line).
-   */
-  if (cpu.vic.borderFlag) {
-    fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
-  }
+	cpu.vic.badlineLate = false;
 
-  /*****************************************************************************************************/
+	int r = cpu.vic.rasterLine;
 
-  /* grow the right border over what has been rendered */
-  if (!cpu.vic.CSEL) {
-    for (unsigned int i = SCREEN_WIDTH - 9; i < SCREEN_WIDTH; i++) {
-      linebuffer[i] = cpu.vic.colors[0];
-    }
-  }
+	/* Rasterline Interrupt
+	 * TODO:
+	 * It is possible to trigger an interrupt immediately by writing to
+	 * $d011/$d012, but the interrupt can never occur more than once per
+	 * raster line.
+	 * - that means we should intercept it in vic_write() ?
+	 */
+	if (r == cpu.vic.intRasterLine) {
+		cpu.vic.IRST = 1;
+		if (cpu.vic.ERST)
+			cpu.vic.IRQ = 1;
+	}
 
-  /* grow also the left border as determined earlier */
-  if (!csel_left) {
-    for (unsigned int i = 0; i < 7; i++) {
-      linebuffer[i] = bdcol_left;
-    }
-  }
+	/*****************************************************************************************************/
+	/* Badlines ******************************************************************************************/
+	/*****************************************************************************************************/
 
-  memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
-  //memset(&linebuffer[0], 0, sizeof(linebuffer));
+	/*
+	 * A Bad Line Condition is given at any arbitrary clock cycle if, at the
+	 * negative edge of ϕ0 at the beginning of the cycle, RASTER >= $30 and
+	 * RASTER <= $f7 and the lower three bits of RASTER are equal to
+	 * YSCROLL, and if the DEN bit was set during an arbitrary cycle of
+	 * raster line $30.
+	 *
+	 * The only use of YSCROLL is for comparison with r in the badline. (?)
+	 *
+	 * TODO: should intercept YSCROLL writes to change badline ?
+	 * TODO: should also intercept DEN change in arbitrary cycle of line $30 ?
+	 */
+	if (r == 0x30)
+		cpu.vic.denLatch |= cpu.vic.DEN;
+
+	/* 3.7.2. VC and RC
+	 *
+	 * 2. In the first phase of cycle 14 of each line, VC is loaded from VCBASE
+	 * (VCBASE->VC) and VMLI is cleared. If there is a Bad Line Condition in
+	 * this phase, RC is also reset to zero
+	 */
+
+	vc = cpu.vic.vcbase;
+
+	cpu.vic.badline = (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7)
+			   && ((r & 0x07) == cpu.vic.YSCROLL));
+
+	if (cpu.vic.badline) {
+		cpu.vic.idle = 0;
+		cpu.vic.rc = 0;
+	}
+
+	/*****************************************************************************************************/
+	/*****************************************************************************************************/
+	// TODO: review this
+#if 1
+	{
+		int t = MAXCYCLESSPRITES3_7 - cpu.vic.spriteCycles3_7;
+		if (t > 0)
+			cpu_clock(t);
+		if (cpu.vic.spriteCycles3_7 > 0)
+			cia_clockt(cpu.vic.spriteCycles3_7);
+	}
+#endif
+
+	//HBlank:
+	cpu_clock(10);
+
+	// TODO: review this
+#ifdef ADDITIONALCYCLES
+	cpu_clock(ADDITIONALCYCLES);
+#endif
+
+	//TODO: review
+	//cpu.vic.videomatrix =  cpu.vic.bank + (unsigned)(cpu.vic.R[0x18] & 0xf0) * 64;
+
+	/* Upper/lower border:
+	 *
+	 *  RSEL|  Display window height   | First line  | Last line
+	 *  ----+--------------------------+-------------+----------
+	 *    0 | 24 text lines/192 pixels |   55 ($37)  | 246 ($f6)
+	 *    1 | 25 text lines/200 pixels |   51 ($33)  | 250 ($fa)
+	 */
+
+	if (cpu.vic.borderFlag) {
+		int firstLine = (cpu.vic.RSEL) ? 0x33 : 0x37;
+		if ((cpu.vic.DEN) && (r == firstLine))
+			cpu.vic.borderFlag = false;
+	} else {
+		int lastLine = (cpu.vic.RSEL) ? 0xfb : 0xf7;
+		if (r == lastLine)
+			cpu.vic.borderFlag = true;
+	}
+
+	//TODO: why subtract MAXCYCLESSPRITES ?
+	if (r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE ) {
+		if (r == 0)
+			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES - 1); // (minus hblank l + r)
+		else
+			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES);
+
+		goto noDisplayIncRC;
+	}
+
+	p = &linebuffer[0];
+	pe = p + SCREEN_WIDTH;
+
+	//Left Screenborder: Cycle 10
+	cpu_clock(6);
+	spl = &cpu.vic.spriteLine[24];
+
+	/*
+	 * For many YSCROLL values the bad line can occur in the top border so we must
+	 * perform the full modeX emulation for timing and initializing the
+	 * character/bitmap data for the following lines. We will however ignore both
+	 * the calculated pixels and fgcollision at the end.
+	 *
+	 * TODO: evaluate this earlier, no need to fastfill if we don't memcpy
+	 */
+	if (cpu.vic.borderFlag && !cpu.vic.badline) {
+		cpu_clock(5);
+		fastFillLineNoSprites(p, pe, cpu.vic.colors[0]);
+		if (r >= FIRSTDISPLAYLINE + BORDER && r <= LASTDISPLAYLINE - BORDER)
+			memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
+		goto noDisplayIncRC;
+	}
+
+	/*****************************************************************************************************/
+	/* DISPLAY *******************************************************************************************/
+	/*****************************************************************************************************/
+
+	/*
+	 * Remember if CSEL was set when we reached x = 24, and current border
+	 * color to overwrite the first 7 pixels later if !CSEL
+	 *
+	 * TODO: we ignore hyperscreen for the foreseeable future...
+	 */
+	csel_left = cpu.vic.CSEL;
+	bdcol_left = cpu.vic.colors[0];
+
+	xscroll = cpu.vic.XSCROLL;
+
+	//TODO sprite collisions
+	if (xscroll > 0) {
+		if (csel_left) {
+			/* we don't have the extra border to cover the bg/sprites so render them */
+			sprite_data_t sprite;
+			uint16_t col = cpu.vic.colors[1]; /* B0C */
+
+			for (int i = 0; i < xscroll; i++) {
+				SPRITEORFIXEDCOLOR();
+			}
+		} else {
+			/* just bump everything as the border will cover it */
+			spl += xscroll;
+			p += xscroll;
+		}
+		/* bump the end as well for proper clocks during modes (?) */
+		pe += xscroll;
+	}
+
+	/*****************************************************************************************************/
+	/*****************************************************************************************************/
+	/*****************************************************************************************************/
+
+	mode = (cpu.vic.ECM << 2) | (cpu.vic.BMM << 1) | cpu.vic.MCM;
+
+	if (!cpu.vic.idle) {
+		modes[mode](p, pe, spl, vc);
+		vc = (vc + 40) & 0x3ff;
+	} else {
+		if (mode == 1 || mode == 3) {
+			modes[mode](p, pe, spl, vc);
+		} else {
+			//TODO: support idle in all the other modes
+			fastFillLine(p, pe, cpu.vic.palette[0], spl);
+		}
+	}
+
+	/*
+	 * In the top/bottom border, sprite-data collisions are not detected and also
+	 * discard the graphics we just generated (only to emulate the bad line).
+	 */
+	if (cpu.vic.borderFlag) {
+		fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
+	}
+
+	/*****************************************************************************************************/
+
+	/* grow the right border over what has been rendered */
+	if (!cpu.vic.CSEL) {
+		for (int i = SCREEN_WIDTH - 9; i < SCREEN_WIDTH; i++) {
+			linebuffer[i] = cpu.vic.colors[0];
+		}
+	}
+
+	/* grow also the left border as determined earlier */
+	if (!csel_left) {
+		for (unsigned int i = 0; i < 7; i++) {
+			linebuffer[i] = bdcol_left;
+		}
+	}
+
+	memcpy(&FrameBuf[(r - FIRSTDISPLAYLINE)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 
 
-//Rechter Rand nach CSEL, im Textbereich
-cpu_clock(5);
+	/* Right border, in the text area (?) */
+	cpu_clock(5);
 
 
 noDisplayIncRC:
-  /* 3.7.2
-    5. In der ersten Phase von Zyklus 58 wird geprüft, ob RC=7 ist. Wenn ja,
-     geht die Videologik in den Idle-Zustand und VCBASE wird mit VC geladen
-     (VC->VCBASE). Ist die Videologik danach im Display-Zustand (liegt ein
-     Bad-Line-Zustand vor, ist dies immer der Fall), wird RC erhöht.
-  */
+	/* 3.7.2. VC and RC:
+	 *
+	 * 5. In the first phase of cycle 58, the VIC checks if RC=7. If so, the video
+	 * logic goes to idle state and VCBASE is loaded from VC (VC->VCBASE). If
+	 * the video logic is still in display state (which is always the case if
+	 * there is a Bad Line Condition), then RC is incremented.
+	 */
+	if (cpu.vic.rc == 7) {
+		cpu.vic.idle = 1;
+		cpu.vic.vcbase = vc;
+	}
+	//Ist dies richtig ??
+	if ((!cpu.vic.idle) || (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7)
+				&& ( (r & 0x07) == cpu.vic.YSCROLL))) {
+		cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
+	}
 
-  if (cpu.vic.rc == 7) {
-    cpu.vic.idle = 1;
-    cpu.vic.vcbase = vc;
-  }
-  //Ist dies richtig ??
-  if ((!cpu.vic.idle) || (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7) && ( (r & 0x07) == cpu.vic.YSCROLL))) {
-    cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
-  }
+	/*
+	 * If we went idle, a bad line condition becoming true due to YSCROLL write
+	 * at this point will not make us active again. Unsure if this is correct
+	 * but helped against River Raid bottom HUD glitching.
+	 *
+	 * TODO: review
+	 */
+	cpu.vic.badlineLate = true;
 
-  /*
-   * If we went idle, a bad line condition becoming true due to YSCROLL write
-   * at this point will not make us active again. Unsure if this is correct
-   * but helped against River Raid bottom HUD glitching.
-   */
-  cpu.vic.badlineLate = true;
+	/*****************************************************************************************************/
+	/* Sprites *******************************************************************************************/
+	/*****************************************************************************************************/
 
-  /*****************************************************************************************************/
-  /* Sprites *******************************************************************************************/
-  /*****************************************************************************************************/
+	cpu.vic.spriteCycles0_2 = 0;
+	cpu.vic.spriteCycles3_7 = 0;
 
-  cpu.vic.spriteCycles0_2 = 0;
-  cpu.vic.spriteCycles3_7 = 0;
-
-  if (cpu.vic.lineHasSprites) {
-	cpu.vic.lineHasSprites = 0;
-    memset(cpu.vic.spriteLine, 0, sizeof(cpu.vic.spriteLine) );
-  }
+	if (cpu.vic.lineHasSprites) {
+		cpu.vic.lineHasSprites = 0;
+		memset(cpu.vic.spriteLine, 0, sizeof(cpu.vic.spriteLine) );
+	}
 
 	uint8_t spritesEnabled = cpu.vic.R[0x15]; //Sprite enabled Register
 	unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
@@ -1427,34 +1357,33 @@ noDisplayIncRC:
 	}
 
 sprites_loaded:
-  /*****************************************************************************************************/
+	/*****************************************************************************************************/
+//TODO: review
 #if 0
-  {
-    int t = MAXCYCLESSPRITES0_2 - cpu.vic.spriteCycles0_2;
-    if (t > 0) cpu_clock(t);
-    if (cpu.vic.spriteCycles0_2 > 0) cia_clockt(cpu.vic.spriteCycles0_2);
-  }
+	{
+		int t = MAXCYCLESSPRITES0_2 - cpu.vic.spriteCycles0_2;
+		if (t > 0) cpu_clock(t);
+		if (cpu.vic.spriteCycles0_2 > 0) cia_clockt(cpu.vic.spriteCycles0_2);
+	}
 #endif
 
-   //HBlank:
+	//HBlank:
 #if PAL
-   cpu_clock(2);
+	cpu_clock(2);
 #else
-   cpu_clock(3);
+	cpu_clock(3);
 #endif
 
 
 #if 0
-   if (cpu.vic.idle) {
-	   Serial.print("Cycles line ");
-	   Serial.print(r);
-	   Serial.print(": ");
-	   Serial.println(cpu.lineCyclesAbs);
-   }
+	if (cpu.vic.idle) {
+		Serial.print("Cycles line ");
+		Serial.print(r);
+		Serial.print(": ");
+		Serial.println(cpu.lineCyclesAbs);
+	}
 #endif
-
-
-  return;
+	return;
 }
 
 /*****************************************************************************************************/
