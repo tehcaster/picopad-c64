@@ -1735,7 +1735,6 @@ uint8_t vic_read(uint32_t address) {
 /*****************************************************************************************************/
 
 void resetVic(void) {
-  enableCycleCounter();
 
   cpu.vic.intRasterLine = 0;
   cpu.vic.rasterLine = 0;

@@ -2680,10 +2680,11 @@ noOpcode:
 			c-= cpu.ticks;
 			cpu.lineCycles += cpu.ticks;
 #define US_C64_CYCLE    (1000000.0f / CLOCKSPEED) // Duration (µs) of a C64 Cycle
-			if (cpu.exactTiming) {
+/*			if (cpu.exactTiming) {
 				uint32_t t = cpu.lineCycles * US_C64_CYCLE;
 				while (fbmicros() - cpu.lineStartTime < t){;}
 			}
+			*/
 
 	};
 
@@ -2694,23 +2695,20 @@ noOpcode:
 void cpu_setExactTiming() {
 	if (!cpu.exactTiming) {
 		//enable exact timing
-		setAudioOff();
 		vic_displaySimpleModeScreen();
 
 	}
-	cpu.exactTiming = 1;
-	cpu.exactTimingStartTime = fbmicros();
+//	cpu.exactTiming = 1;
+//	cpu.exactTimingStartTime = fbmicros();
 	//cpu.exactTiming = 0;
 }
 
 //Disable "ExactTiming" Mode
 void cpu_disableExactTiming() {
     cpu.exactTiming = 0;
-    setAudioOn();
 }
 
 void cpu_reset() {
-  enableCycleCounter();
   cpu.exactTiming = 0;
   cpu.nmi = 0;
   cpu.cpustatus = FLAG_CONSTANT;

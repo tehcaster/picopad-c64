@@ -49,7 +49,6 @@
 #include "Teensy64.h"
 #include "roms.h"
 #include "patches.h"
-#include "timerutil.h"
 #include "pla.h"
 #include "vic.h"
 #include "keyboard.h"
@@ -83,7 +82,6 @@ struct tcpu {
   uint16_t lineCyclesAbs; //for debug
   unsigned ticks;
   unsigned lineCycles;
-  unsigned long lineStartTime;
   bool kernal_patched;
 
   r_rarr_ptr_t plamap_r; //Memory-Mapping read

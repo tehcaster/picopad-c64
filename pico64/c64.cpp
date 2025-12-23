@@ -16,7 +16,6 @@ static void oneRasterLine(void) {
 
   while (true) {
 
-    cpu.lineStartTime = fbmicros(); //get_ccount();
     cpu.lineCycles = cpu.lineCyclesAbs = 0;
 
     if (!cpu.exactTiming) {
@@ -33,10 +32,11 @@ static void oneRasterLine(void) {
 
     //Switch "ExactTiming" Mode off after a while:
     if (!cpu.exactTiming) break;
-    if ( (fbmicros() - cpu.exactTimingStartTime)*1000 >= EXACTTIMINGDURATION ) {
+/*    if ( (fbmicros() - cpu.exactTimingStartTime)*1000 >= EXACTTIMINGDURATION ) {
       cpu_disableExactTiming();
       break;
     }
+    */
   };
 
 }
@@ -387,7 +387,6 @@ void c64_Init(void)
 {
   cpu.kernal_patched = config.kernal_patched;
 
-  disableEventResponder();
   resetPLA();
   resetCia1();
   resetCia2();

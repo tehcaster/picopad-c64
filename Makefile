@@ -14,7 +14,6 @@ SRC += pico64/patches.cpp
 SRC += pico64/pla.cpp
 SRC += pico64/roms.cpp
 SRC += pico64/sid.cpp
-SRC += pico64/timerutil.cpp
 SRC += pico64/vic.cpp
 SRC += pico64/reSID.cpp
 SRC += pico64/pico64.cpp
