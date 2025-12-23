@@ -1025,14 +1025,6 @@ void vic_do(void) {
   */
 
   if ( cpu.vic.rasterLine >= LINECNT ) {
-    //reSID sound needs much time - too much to keep everything in sync and with stable refreshrate
-    //but it is not called very often, so most of the time, we have more time than needed.
-    //We can measure the time needed for a frame and calc a correction factor to speed things up.
-    unsigned long m = fbmicros();
-    cpu.vic.neededTime = (m - cpu.vic.timeStart);
-    cpu.vic.timeStart = m;
-    cpu.vic.lineClock.setIntervalFast(LINETIMER_DEFAULT_FREQ - ((float)cpu.vic.neededTime / (float)LINECNT - LINETIMER_DEFAULT_FREQ ));
-
     cpu.vic.rasterLine = 0;
     cpu.vic.vcbase = 0;
     cpu.vic.denLatch = 0;
@@ -1516,14 +1508,6 @@ void vic_do_simple(void) {
   int cycles = 0;
 
 if ( cpu.vic.rasterLine >= LINECNT ) {
-
-    //reSID sound needs much time - too much to keep everything in sync and with stable refreshrate
-    //but it is not called very often, so most of the time, we have more time than needed.
-    //We can measure the time needed for a frame and calc a correction factor to speed things up.
-    unsigned long m = fbmicros();
-    cpu.vic.neededTime = (m - cpu.vic.timeStart);
-    cpu.vic.timeStart = m;
-    cpu.vic.lineClock.setIntervalFast(LINETIMER_DEFAULT_FREQ - ((float)cpu.vic.neededTime / (float)LINECNT - LINETIMER_DEFAULT_FREQ ));
 
     cpu.vic.rasterLine = 0;
     cpu.vic.vcbase = 0;

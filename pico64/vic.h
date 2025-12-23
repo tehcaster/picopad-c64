@@ -37,7 +37,6 @@
 #define Teensy64_vic_h_
 
 #include "Teensy64.h"
-#include "IntervalTimer.h"
 
 
 // TODO: is it really limited like this for collision detection purposes?
@@ -63,7 +62,6 @@ union sprite_data {
 typedef union sprite_data sprite_data_t;
 
 struct tvic {
-  uint32_t timeStart, neededTime;
   int intRasterLine; //Interruptsetting
   int rasterLine;
   uint16_t bank;
@@ -88,8 +86,6 @@ struct tvic {
 
   uint16_t colors[15]; // translated ([palette]) colors
   uint16_t palette[16];
-
-  MyIntervalTimer lineClock;
 
   union {
     uint8_t R[0x40];
