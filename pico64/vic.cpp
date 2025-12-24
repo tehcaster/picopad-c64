@@ -114,6 +114,12 @@ void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
     *p++ = col; \
   }
 
+static inline int is_badline(int r)
+{
+	return cpu.vic.badline = (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7)
+				 && ((r & 0x07) == cpu.vic.YSCROLL));
+}
+
 static void trigger_fgcol(uint8_t fgcol)
 {
 	if (cpu.vic.MD == 0) {
@@ -1058,8 +1064,7 @@ void vic_do(void)
 	 *
 	 * The only use of YSCROLL is for comparison with r in the badline. (?)
 	 *
-	 * TODO: should intercept YSCROLL writes to change badline ?
-	 * TODO: should also intercept DEN change in arbitrary cycle of line $30 ?
+	 * TODO: should intercept DEN change in arbitrary cycle of line $30 ?
 	 */
 	if (r == 0x30)
 		cpu.vic.denLatch |= cpu.vic.DEN;
@@ -1073,8 +1078,7 @@ void vic_do(void)
 
 	vc = cpu.vic.vcbase;
 
-	cpu.vic.badline = (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7)
-			   && ((r & 0x07) == cpu.vic.YSCROLL));
+	cpu.vic.badline = is_badline(r);
 
 	if (cpu.vic.badline) {
 		cpu.vic.idle = 0;
@@ -1249,8 +1253,7 @@ noDisplayIncRC:
 	}
 
 	//TODO: is this correct?
-	if ((!cpu.vic.idle) || (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7)
-				&& ( (r & 0x07) == cpu.vic.YSCROLL))) {
+	if ((!cpu.vic.idle) || is_badline(r)) {
 		cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
 	}
 
@@ -1458,7 +1461,7 @@ if ( cpu.vic.rasterLine >= LINECNT ) {
 
   vc = cpu.vic.vcbase;
 
-  cpu.vic.badline = (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7) && ( (r & 0x07) == cpu.vic.YSCROLL));
+  cpu.vic.badline = is_badline(r);
 
   if (cpu.vic.badline) {
     cpu.vic.idle = 0;
@@ -1500,7 +1503,7 @@ if ( cpu.vic.rasterLine >= LINECNT ) {
     cpu.vic.vcbase = vc;
   }
   //Ist dies richtig ??
-  if ((!cpu.vic.idle) || (cpu.vic.denLatch && (r >= 0x30) && (r <= 0xf7) && ( (r & 0x07) == cpu.vic.YSCROLL))) {
+  if ((!cpu.vic.idle) || is_badline(r)) {
     cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
   }
 
@@ -1554,7 +1557,7 @@ void vic_write(uint32_t address, uint8_t value) {
       cpu.vic.intRasterLine = (cpu.vic.intRasterLine & 0xff) | ((((uint16_t) value) << 1) & 0x100);
       if (cpu.vic.rasterLine == 0x30 ) cpu.vic.denLatch |= value & 0x10;
 
-      cpu.vic.badline = (cpu.vic.denLatch && (cpu.vic.rasterLine >= 0x30) && (cpu.vic.rasterLine <= 0xf7) && ( (cpu.vic.rasterLine & 0x07) == (value & 0x07)));
+      cpu.vic.badline = is_badline(cpu.vic.rasterLine);
 
     if (cpu.vic.badline && !cpu.vic.badlineLate) {
     cpu.vic.idle = 0;
