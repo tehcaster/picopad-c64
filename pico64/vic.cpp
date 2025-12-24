@@ -1246,14 +1246,25 @@ noDisplayIncRC:
 	 * logic goes to idle state and VCBASE is loaded from VC (VC->VCBASE). If
 	 * the video logic is still in display state (which is always the case if
 	 * there is a Bad Line Condition), then RC is incremented.
+	 *
+	 * 3.7.1. Idle state / display state
+	 *
+	 * The transition from display to idle state occurs in cycle 58 of a
+	 * line if the RC contains the value 7 and there is no Bad Line
+	 * Condition.
 	 */
 	if (cpu.vic.rc == 7) {
-		cpu.vic.idle = 1;
+		/*
+		 * TODO: 3.14.3. FLI section suggests this is wrong and we
+		 * should not reset vcbase if there's badline. But that also
+		 * caused River Raid HUD glitching.
+		 */
 		cpu.vic.vcbase = vc;
+		if (!cpu.vic.badline)
+			cpu.vic.idle = 1;
 	}
 
-	//TODO: is this correct?
-	if ((!cpu.vic.idle) || is_badline(r)) {
+	if (!cpu.vic.idle) {
 		cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
 	}
 
@@ -1498,12 +1509,11 @@ if ( cpu.vic.rasterLine >= LINECNT ) {
  cycles += 4;
 
 
-  if (cpu.vic.rc == 7) {
+  if (cpu.vic.rc == 7 && !cpu.vic.badline) {
     cpu.vic.idle = 1;
     cpu.vic.vcbase = vc;
   }
-  //Ist dies richtig ??
-  if ((!cpu.vic.idle) || is_badline(r)) {
+  if (!cpu.vic.idle) {
     cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
   }
 
