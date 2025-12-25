@@ -1213,6 +1213,8 @@ void vic_do(void)
 	/*
 	 * In the top/bottom border, sprite-data collisions are not detected and also
 	 * discard the graphics we just generated (only to emulate the bad line).
+	 *
+	 * TODO: actually not detect collisions there...
 	 */
 	if (cpu.vic.borderFlag) {
 		fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
@@ -1397,39 +1399,38 @@ sprites_loaded:
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 /*****************************************************************************************************/
+
 void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col)
 {
-  while (p < pe)
-    *p++ = col;
-}
-
-void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col) {
-  int i = 0;
-
-  while (p < pe) {
+	while (p < pe)
 		*p++ = col;
-		i = (i + 1) & 0x07;
-		if (!i) CYCLES(1);
-  }
-
-
 }
 
-void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data_t * spl) {
-  if (spl != NULL && cpu.vic.lineHasSprites) {
-	int i = 0;
-	sprite_data_t sprite;
-    while ( p < pe ) {
-		SPRITEORFIXEDCOLOR();
-		i = (i + 1) & 0x07;
-		if (!i) CYCLES(1);
-    };
+void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col)
+{
+	while (p < pe) {
+		for (int i = 0; i < 8; i++) {
+			*p++ = col;
+		}
 
-  } else {
+		CYCLES(1);
+	}
+}
 
-    fastFillLineNoSprites(p, pe, col);
+void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data_t * spl)
+{
+	if (spl != NULL && cpu.vic.lineHasSprites) {
+		while (p < pe) {
+			for (int i = 0; i < 8; i++) {
+				sprite_data_t sprite;
+				SPRITEORFIXEDCOLOR();
+			}
 
-  }
+			CYCLES(1);
+		}
+	} else {
+		fastFillLineNoSprites(p, pe, col);
+	}
 }
 
 /*****************************************************************************************************/
@@ -1437,189 +1438,169 @@ void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data
 /*****************************************************************************************************/
 
 void installPalette(void) {
- memcpy(cpu.vic.palette, (void*)palette, sizeof(cpu.vic.palette));
-}
-
-
-/*****************************************************************************************************/
-/*****************************************************************************************************/
-/*****************************************************************************************************/
-
-void vic_adrchange(void) {
-  uint8_t r18 = cpu.vic.R[0x18];
-  cpu.vic.videomatrix =  cpu.vic.bank + (unsigned)(r18 & 0xf0) * 64;
-
-  unsigned charsetAddr = r18 & 0x0e;
-  if  ((cpu.vic.bank & 0x4000) == 0) {
-    if (charsetAddr == 0x04) cpu.vic.charsetPtrBase =  ((uint8_t *)&rom_characters);
-    else if (charsetAddr == 0x06) cpu.vic.charsetPtrBase =  ((uint8_t *)&rom_characters) + 0x800;
-    else
-      cpu.vic.charsetPtrBase = &cpu.RAM[charsetAddr * 0x400 + cpu.vic.bank] ;
-  } else
-    cpu.vic.charsetPtrBase = &cpu.RAM[charsetAddr * 0x400 + cpu.vic.bank];
-
-  cpu.vic.bitmapPtr = (uint8_t*) &cpu.RAM[cpu.vic.bank | ((r18 & 0x08) * 0x400)];
-  if ((cpu.vic.R[0x11] & 0x60) == 0x60)  cpu.vic.bitmapPtr = (uint8_t*)((uintptr_t)cpu.vic.bitmapPtr & 0xf9ff);
-
-}
-/*****************************************************************************************************/
-void vic_write(uint32_t address, uint8_t value) {
-
-  address &= 0x3F;
-
-  switch (address) {
-    case 0x11 :
-    cpu.vic.R[address] = value;
-      cpu.vic.intRasterLine = (cpu.vic.intRasterLine & 0xff) | ((((uint16_t) value) << 1) & 0x100);
-      if (cpu.vic.rasterLine == 0x30 ) cpu.vic.denLatch |= value & 0x10;
-
-      cpu.vic.badline = is_badline(cpu.vic.rasterLine);
-
-    if (cpu.vic.badline && !cpu.vic.badlineLate) {
-    cpu.vic.idle = 0;
-    }
-
-    vic_adrchange();
-
-      break;
-    case 0x12 :
-      cpu.vic.intRasterLine = (cpu.vic.intRasterLine & 0x100) | value;
-      cpu.vic.R[address] = value;
-      break;
-    case 0x18 :
-      cpu.vic.R[address] = value;
-      vic_adrchange();
-      break;
-    case 0x19 : //IRQs
-      cpu.vic.R[0x19] &= (~value & 0x0f);
-      break;
-    case 0x1A : //IRQ Mask
-      cpu.vic.R[address] = value & 0x0f;
-      break;
-    case 0x1e:
-    case 0x1f:
-      cpu.vic.R[address] = 0;
-      break;
-    case 0x20 ... 0x2E:
-      cpu.vic.R[address] = value & 0x0f;
-      cpu.vic.colors[address - 0x20] = cpu.vic.palette[value & 0x0f];
-      break;
-    case 0x2F ... 0x3F:
-      break;
-    default :
-      cpu.vic.R[address] = value;
-      break;
-  }
-
-  //#if DEBUGVIC
-#if 0
-  Serial.print("VIC ");
-  Serial.print(address, HEX);
-  Serial.print("=");
-  Serial.println(value, HEX);
-  //logAddr(address, value, 1);
-#endif
+	memcpy(cpu.vic.palette, (void*)palette, sizeof(cpu.vic.palette));
 }
 
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-uint8_t vic_read(uint32_t address) {
-  uint8_t ret;
+void vic_adrchange(void)
+{
+	uint8_t r18 = cpu.vic.R[0x18];
+	cpu.vic.videomatrix =  cpu.vic.bank + (unsigned)(r18 & 0xf0) * 64;
 
-  address &= 0x3F;
-  switch (address) {
+	unsigned charsetAddr = r18 & 0x0e;
 
-    case 0x11:
-      ret = (cpu.vic.R[address] & 0x7F) | ((cpu.vic.rasterLine & 0x100) >> 1);
-      break;
-    case 0x12:
-      ret = cpu.vic.rasterLine;
-      break;
-    case 0x16:
-      ret = cpu.vic.R[address] | 0xC0;
-      break;
-    case 0x18:
-      ret = cpu.vic.R[address] | 0x01;
-      break;
-    case 0x19:
-      ret = cpu.vic.R[address] | 0x70;
-      break;
-    case 0x1a:
-      ret = cpu.vic.R[address] | 0xF0;
-      break;
-    case 0x1e:
-    case 0x1f:
-      ret = cpu.vic.R[address];
-      cpu.vic.R[address] = 0;
-      break;
-    case 0x20 ... 0x2E:
-      ret = cpu.vic.R[address] | 0xF0;
-      break;
-    case 0x2F ... 0x3F:
-      ret = 0xFF;
-      break;
-    default:
-      ret = cpu.vic.R[address];
-      break;
-  }
+	if ((cpu.vic.bank & 0x4000) == 0) {
+		if (charsetAddr == 0x04)
+			cpu.vic.charsetPtrBase = ((uint8_t *)&rom_characters);
+		else if (charsetAddr == 0x06)
+			cpu.vic.charsetPtrBase = ((uint8_t *)&rom_characters) + 0x800;
+		else
+			cpu.vic.charsetPtrBase = &cpu.RAM[charsetAddr * 0x400 + cpu.vic.bank];
+	} else {
+		cpu.vic.charsetPtrBase = &cpu.RAM[charsetAddr * 0x400 + cpu.vic.bank];
+	}
 
-#if DEBUGVIC
-  Serial.print("VIC ");
-  logAddr(address, ret, 0);
-#endif
-  return ret;
+	cpu.vic.bitmapPtr = (uint8_t*) &cpu.RAM[cpu.vic.bank | ((r18 & 0x08) * 0x400)];
+	if ((cpu.vic.R[0x11] & 0x60) == 0x60)
+		cpu.vic.bitmapPtr = (uint8_t*)((uintptr_t)cpu.vic.bitmapPtr & 0xf9ff);
+}
+
+/*****************************************************************************************************/
+
+void vic_write(uint32_t address, uint8_t value)
+{
+	address &= 0x3F;
+
+	switch (address) {
+	case 0x11:
+		cpu.vic.R[address] = value;
+		cpu.vic.intRasterLine = (cpu.vic.intRasterLine & 0xff) | ((((uint16_t) value) << 1) & 0x100);
+		if (cpu.vic.rasterLine == 0x30)
+			cpu.vic.denLatch |= value & 0x10;
+
+		cpu.vic.badline = is_badline(cpu.vic.rasterLine);
+
+		if (cpu.vic.badline && !cpu.vic.badlineLate) {
+			cpu.vic.idle = 0;
+		}
+
+		vic_adrchange();
+
+		break;
+	case 0x12:
+		cpu.vic.intRasterLine = (cpu.vic.intRasterLine & 0x100) | value;
+		cpu.vic.R[address] = value;
+		break;
+	case 0x18:
+		cpu.vic.R[address] = value;
+		vic_adrchange();
+		break;
+	case 0x19: //IRQs
+		cpu.vic.R[0x19] &= (~value & 0x0f);
+		break;
+	case 0x1A: //IRQ Mask
+		cpu.vic.R[address] = value & 0x0f;
+		break;
+	case 0x1e:
+	case 0x1f:
+		cpu.vic.R[address] = 0;
+		break;
+	case 0x20 ... 0x2E:
+		cpu.vic.R[address] = value & 0x0f;
+		cpu.vic.colors[address - 0x20] = cpu.vic.palette[value & 0x0f];
+		break;
+	case 0x2F ... 0x3F:
+		break;
+	default:
+		cpu.vic.R[address] = value;
+		break;
+	}
 }
 
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-void resetVic(void) {
+uint8_t vic_read(uint32_t address)
+{
+	uint8_t ret;
 
-  cpu.vic.intRasterLine = 0;
-  cpu.vic.rasterLine = 0;
-  cpu.vic.lineHasSprites = 0;
-  memset(&cpu.RAM[0x400], 0, 1000);
-  memset(&cpu.vic, 0, sizeof(cpu.vic));
-  
+	address &= 0x3F;
+	switch (address) {
 
+	case 0x11:
+		ret = (cpu.vic.R[address] & 0x7F) | ((cpu.vic.rasterLine & 0x100) >> 1);
+		break;
+	case 0x12:
+		ret = cpu.vic.rasterLine;
+		break;
+	case 0x16:
+		ret = cpu.vic.R[address] | 0xC0;
+		break;
+	case 0x18:
+		ret = cpu.vic.R[address] | 0x01;
+		break;
+	case 0x19:
+		ret = cpu.vic.R[address] | 0x70;
+		break;
+	case 0x1a:
+		ret = cpu.vic.R[address] | 0xF0;
+		break;
+	case 0x1e:
+	case 0x1f:
+		ret = cpu.vic.R[address];
+		cpu.vic.R[address] = 0;
+		break;
+	case 0x20 ... 0x2E:
+		ret = cpu.vic.R[address] | 0xF0;
+		break;
+	case 0x2F ... 0x3F:
+		ret = 0xFF;
+		break;
+	default:
+		ret = cpu.vic.R[address];
+		break;
+	}
 
-  installPalette();  
-
-  //http://dustlayer.com/vic-ii/2013/4/22/when-visibility-matters
-  cpu.vic.R[0x11] = 0x9B;
-  cpu.vic.R[0x16] = 0x08;
-  cpu.vic.R[0x18] = 0x14;
-  cpu.vic.R[0x19] = 0x0f;
-
-  for (unsigned i = 0; i < sizeof(cpu.vic.COLORRAM); i++)
-    cpu.vic.COLORRAM[i] = (rand() & 0x0F);
-
-  cpu.RAM[0x39FF] = 0x0;
-  cpu.RAM[0x3FFF] = 0x0;
-  cpu.RAM[0x39FF + 16384] = 0x0;
-  cpu.RAM[0x3FFF + 16384] = 0x0;
-  cpu.RAM[0x39FF + 32768] = 0x0;
-  cpu.RAM[0x3FFF + 32768] = 0x0;
-  cpu.RAM[0x39FF + 49152] = 0x0;
-  cpu.RAM[0x3FFF + 49152] = 0x0;
-
-  vic_adrchange();
+	return ret;
 }
 
+/*****************************************************************************************************/
+/*****************************************************************************************************/
+/*****************************************************************************************************/
 
-/*
-  ?PEEK(678) NTSC =0
-  ?PEEK(678) PAL = 1
-  PRINT TIME$
-*/
-/*
-          Raster-  Takt-   sichtb.  sichtbare
-  VIC-II  System  zeilen   zyklen  Zeilen   Pixel/Zeile
-  -------------------------------------------------------
-  6569    PAL    312     63    284     403
-  6567R8  NTSC   263     65    235     418
-  6567R56A  NTSC   262   64    234     411
-*/
+void resetVic(void)
+{
+
+	cpu.vic.intRasterLine = 0;
+	cpu.vic.rasterLine = 0;
+	cpu.vic.lineHasSprites = 0;
+	memset(&cpu.RAM[0x400], 0, 1000);
+	memset(&cpu.vic, 0, sizeof(cpu.vic));
+
+	installPalette();
+
+	//http://dustlayer.com/vic-ii/2013/4/22/when-visibility-matters
+	cpu.vic.R[0x11] = 0x9B;
+	cpu.vic.R[0x16] = 0x08;
+	cpu.vic.R[0x18] = 0x14;
+	cpu.vic.R[0x19] = 0x0f;
+
+	for (unsigned i = 0; i < sizeof(cpu.vic.COLORRAM); i++)
+		cpu.vic.COLORRAM[i] = (rand() & 0x0F);
+
+	cpu.RAM[0x39FF] = 0x0;
+	cpu.RAM[0x3FFF] = 0x0;
+	cpu.RAM[0x39FF + 16384] = 0x0;
+	cpu.RAM[0x3FFF + 16384] = 0x0;
+	cpu.RAM[0x39FF + 32768] = 0x0;
+	cpu.RAM[0x3FFF + 32768] = 0x0;
+	cpu.RAM[0x39FF + 49152] = 0x0;
+	cpu.RAM[0x3FFF + 49152] = 0x0;
+
+	vic_adrchange();
+}
+
