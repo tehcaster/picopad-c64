@@ -81,18 +81,6 @@ u32 nFramesC64 = 0;
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-inline __attribute__((always_inline))
-void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data * spl);
-inline __attribute__((always_inline))
-void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col);
-inline __attribute__((always_inline))
-void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col);
-
-
-/*****************************************************************************************************/
-/*****************************************************************************************************/
-/*****************************************************************************************************/
-
 #define CHARSETPTR() cpu.vic.charsetPtr = cpu.vic.charsetPtrBase + cpu.vic.rc;
 #define CYCLES(x) {if (cpu.vic.badline) {cia_clockt(x);} else {cpu_clock(x);} }
 
@@ -215,6 +203,39 @@ static void char_sprites_mc(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t
 		trigger_fgcol(fg_collision);
 	if (sprite_collision)
 		trigger_sprcol(sprite_collision);
+}
+
+static void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col)
+{
+	while (p < pe)
+		*p++ = col;
+}
+
+static void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col)
+{
+	while (p < pe) {
+		for (int i = 0; i < 8; i++) {
+			*p++ = col;
+		}
+
+		CYCLES(1);
+	}
+}
+
+static void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data_t * spl)
+{
+	if (spl != NULL && cpu.vic.lineHasSprites) {
+		while (p < pe) {
+			for (int i = 0; i < 8; i++) {
+				sprite_data_t sprite;
+				SPRITEORFIXEDCOLOR();
+			}
+
+			CYCLES(1);
+		}
+	} else {
+		fastFillLineNoSprites(p, pe, col);
+	}
 }
 
 /*****************************************************************************************************/
@@ -1394,43 +1415,6 @@ sprites_loaded:
 	}
 #endif
 	return;
-}
-
-/*****************************************************************************************************/
-/*****************************************************************************************************/
-/*****************************************************************************************************/
-
-void fastFillLineNoCycles(tpixel * p, const tpixel * pe, const uint16_t col)
-{
-	while (p < pe)
-		*p++ = col;
-}
-
-void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t col)
-{
-	while (p < pe) {
-		for (int i = 0; i < 8; i++) {
-			*p++ = col;
-		}
-
-		CYCLES(1);
-	}
-}
-
-void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data_t * spl)
-{
-	if (spl != NULL && cpu.vic.lineHasSprites) {
-		while (p < pe) {
-			for (int i = 0; i < 8; i++) {
-				sprite_data_t sprite;
-				SPRITEORFIXEDCOLOR();
-			}
-
-			CYCLES(1);
-		}
-	} else {
-		fastFillLineNoSprites(p, pe, col);
-	}
 }
 
 /*****************************************************************************************************/
