@@ -85,8 +85,8 @@ u32 nFramesC64 = 0;
 #define CYCLES(x) {if (cpu.vic.badline) {cia_clockt(x);} else {cpu_clock(x);} }
 
 #define BADLINE(x) {if (cpu.vic.badline) { \
-      cpu.vic.lineMemChr[x] = cpu.RAM[cpu.vic.videomatrix + vc + x]; \
-	  cpu.vic.lineMemCol[x] = cpu.vic.COLORRAM[vc + x]; \
+      cpu.vic.lineMemChr[x] = cpu.RAM[cpu.vic.videomatrix + cpu.vic.vc + x]; \
+	  cpu.vic.lineMemCol[x] = cpu.vic.COLORRAM[cpu.vic.vc + x]; \
 	  cia1_clock(1); \
 	  cia2_clock(1); \
     } else { \
@@ -239,7 +239,7 @@ static void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, spri
 }
 
 /*****************************************************************************************************/
-static void mode0 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode0 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	3.7.3.1. Standard text mode (ECM/BMM/MCM=0/0/0)
@@ -312,7 +312,7 @@ nosprites:
 };
 
 /*****************************************************************************************************/
-static void mode1 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode1 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	3.7.3.2. Multicolor text mode (ECM/BMM/MCM=0/0/1)
@@ -436,7 +436,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode2 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode2 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	3.7.3.3. Standard bitmap mode (ECM/BMM/MCM=0/1/0)
@@ -473,7 +473,7 @@ static void mode2 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16
 	uint16_t fgcol;
 	uint16_t bgcol;
 	uint8_t x = 0;
-	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t * bP = cpu.vic.bitmapPtr + cpu.vic.vc * 8 + cpu.vic.rc;
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
@@ -517,7 +517,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode3 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode3 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	3.7.3.4. Multicolor bitmap mode (ECM/BMM/MCM=0/1/1)
@@ -541,7 +541,7 @@ static void mode3 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16
 	| "11": Color from bits 8-11 of c-data  |
 	+---------------------------------------+
 	*/
-	uint8_t * bP = cpu.vic.bitmapPtr + vc * 8 + cpu.vic.rc;
+	uint8_t * bP = cpu.vic.bitmapPtr + cpu.vic.vc * 8 + cpu.vic.rc;
 	uint16_t colors[4];
 	uint8_t chr, x;
 
@@ -608,7 +608,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode4 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode4 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	 3.7.3.5. ECM text mode (ECM/BMM/MCM=1/0/0)
@@ -685,7 +685,7 @@ nosprites:
 /* Invalid Modes *************************************************************************************/
 /*****************************************************************************************************/
 
-static void mode5 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode5 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	3.7.3.6. Invalid text mode (ECM/BMM/MCM=1/0/1)
@@ -768,7 +768,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode6 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode6 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 	/*
 	3.7.3.7. Invalid bitmap mode 1 (ECM/BMM/MCM=1/1/0)
@@ -794,7 +794,7 @@ static void mode6 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16
 
 	uint8_t chr;
 	uint8_t x = 0;
-	uint8_t * bP = cpu.vic.bitmapPtr + (vc & 0xff3f) * 8 + cpu.vic.rc;
+	uint8_t * bP = cpu.vic.bitmapPtr + (cpu.vic.vc & 0xff3f) * 8 + cpu.vic.rc;
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
@@ -831,7 +831,7 @@ nosprites:
 }
 
 /*****************************************************************************************************/
-static void mode7 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc)
+static void mode7 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 {
 
 	/*
@@ -858,7 +858,7 @@ static void mode7 (tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16
 	 */
 
 
-	uint8_t * bP = cpu.vic.bitmapPtr + (vc & 0xff3f) * 8 + cpu.vic.rc;
+	uint8_t * bP = cpu.vic.bitmapPtr + (cpu.vic.vc & 0xff3f) * 8 + cpu.vic.rc;
 	uint8_t chr;
 	uint8_t x = 0;
 	uint16_t colors[4] = { 0, 0, 0, 0};
@@ -899,7 +899,7 @@ nosprites:
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-typedef void (*modes_t)( tpixel *p, const tpixel *pe, sprite_data_t *spl, const uint16_t vc ); //Funktionspointer
+typedef void (*modes_t)( tpixel *p, const tpixel *pe, sprite_data_t *spl);
 const modes_t modes[8] = {mode0, mode1, mode2, mode3, mode4, mode5, mode6, mode7};
 
 /* extend by max xscroll rounded up */
@@ -1031,7 +1031,6 @@ static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 
 void vic_do(void)
 {
-	uint16_t vc;
 	uint16_t xscroll;
 	tpixel *pe;
 	tpixel *p;
@@ -1097,7 +1096,7 @@ void vic_do(void)
 	 * this phase, RC is also reset to zero
 	 */
 
-	vc = cpu.vic.vcbase;
+	cpu.vic.vc = cpu.vic.vcbase;
 
 	cpu.vic.badline = is_badline(r);
 
@@ -1220,11 +1219,11 @@ void vic_do(void)
 	mode = (cpu.vic.ECM << 2) | (cpu.vic.BMM << 1) | cpu.vic.MCM;
 
 	if (!cpu.vic.idle) {
-		modes[mode](p, pe, spl, vc);
-		vc = (vc + 40) & 0x3ff;
+		modes[mode](p, pe, spl);
+		cpu.vic.vc = (cpu.vic.vc + 40) & 0x3ff;
 	} else {
 		if (mode == 1 || mode == 3) {
-			modes[mode](p, pe, spl, vc);
+			modes[mode](p, pe, spl);
 		} else {
 			//TODO: support idle in all the other modes
 			fastFillLine(p, pe, cpu.vic.palette[0], spl);
@@ -1282,7 +1281,7 @@ noDisplayIncRC:
 		 * should not reset vcbase if there's badline. But that also
 		 * caused River Raid HUD glitching.
 		 */
-		cpu.vic.vcbase = vc;
+		cpu.vic.vcbase = cpu.vic.vc;
 		if (!cpu.vic.badline)
 			cpu.vic.idle = 1;
 	}

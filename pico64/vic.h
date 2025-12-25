@@ -66,6 +66,7 @@ struct tvic {
   int rasterLine;
   uint16_t bank;
   uint16_t vcbase;
+  uint16_t vc;
   uint8_t rc;
 
   uint8_t borderFlag;  //Top-Bottom border flag
