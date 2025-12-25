@@ -81,26 +81,29 @@ u32 nFramesC64 = 0;
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-#define CHARSETPTR() cpu.vic.charsetPtr = cpu.vic.charsetPtrBase + cpu.vic.rc;
-#define CYCLES(x) {if (cpu.vic.badline) {cia_clockt(x);} else {cpu_clock(x);} }
+static inline void vic_cycles(int ticks)
+{
+	if (cpu.vic.badline)
+		cia_clockt(ticks);
+	else
+		cpu_clock(ticks);
+}
 
-#define BADLINE(x) {if (cpu.vic.badline) { \
-      cpu.vic.lineMemChr[x] = cpu.RAM[cpu.vic.videomatrix + cpu.vic.vc + x]; \
-	  cpu.vic.lineMemCol[x] = cpu.vic.COLORRAM[cpu.vic.vc + x]; \
-	  cia1_clock(1); \
-	  cia2_clock(1); \
-    } else { \
-      cpu_clock(1); \
-    } \
-  };
+static inline void badline_cycle(int x)
+{
+	if (cpu.vic.badline) {
+		cpu.vic.lineMemChr[x] = cpu.RAM[cpu.vic.videomatrix + cpu.vic.vc + x];
+		cpu.vic.lineMemCol[x] = cpu.vic.COLORRAM[cpu.vic.vc + x];
+		cia_clockt(1);
+	} else {
+		cpu_clock(1);
+	}
+}
 
-#define SPRITEORFIXEDCOLOR() \
-  sprite = *spl++; \
-  if (sprite.raw) { \
-    *p++ = cpu.vic.palette[sprite.color]; \
-  } else { \
-    *p++ = col; \
-  }
+static inline void update_charsetPtr(void)
+{
+	cpu.vic.charsetPtr = cpu.vic.charsetPtrBase + cpu.vic.rc;
+}
 
 static inline int is_badline(int r)
 {
@@ -218,7 +221,7 @@ static void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t 
 			*p++ = col;
 		}
 
-		CYCLES(1);
+		vic_cycles(1);
 	}
 }
 
@@ -227,11 +230,16 @@ static void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, spri
 	if (spl != NULL && cpu.vic.lineHasSprites) {
 		while (p < pe) {
 			for (int i = 0; i < 8; i++) {
-				sprite_data_t sprite;
-				SPRITEORFIXEDCOLOR();
+				//TODO: collisions
+				sprite_data_t sprite = *spl++;
+
+				if (sprite.raw)
+					*p++ = cpu.vic.palette[sprite.color];
+				else
+					*p++ = col;
 			}
 
-			CYCLES(1);
+			vic_cycles(1);
 		}
 	} else {
 		fastFillLineNoSprites(p, pe, col);
@@ -273,14 +281,14 @@ static void mode0 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 	uint16_t bgcol;
 	uint16_t x = 0;
 
-	CHARSETPTR();
+	update_charsetPtr();
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
 		fgcol = cpu.vic.lineMemCol[x];
@@ -297,7 +305,7 @@ nosprites:
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		chr = cpu.vic.charsetPtr[cpu.vic.lineMemChr[x] * 8];
 		fgcol = cpu.vic.palette[cpu.vic.lineMemCol[x]];
@@ -351,7 +359,7 @@ static void mode1 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 	uint8_t chr;
 	uint8_t x = 0;
 
-	CHARSETPTR();
+	update_charsetPtr();
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
@@ -365,7 +373,7 @@ static void mode1 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 			fgcol = colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
-			BADLINE(x);
+			badline_cycle(x);
 			fgcol = cpu.vic.lineMemCol[x];
 			colors[1] = cpu.vic.R[0x22];
 			colors[2] = cpu.vic.R[0x23];
@@ -401,7 +409,7 @@ nosprites:
 			c = colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
-			BADLINE(x);
+			badline_cycle(x);
 
 			colors[1] = cpu.vic.colors[2];
 			colors[2] = cpu.vic.colors[3];
@@ -480,7 +488,7 @@ static void mode2 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		uint8_t t = cpu.vic.lineMemChr[x];
 		fgcol = t >> 4;
@@ -501,7 +509,7 @@ nosprites:
 
 	while (p < pe) {
 		//color-ram not used!
-		BADLINE(x);
+		badline_cycle(x);
 
 		uint8_t t = cpu.vic.lineMemChr[x];
 		fgcol = cpu.vic.palette[t >> 4];
@@ -558,7 +566,7 @@ static void mode3 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 			colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
-			BADLINE(x);
+			badline_cycle(x);
 			uint8_t t = cpu.vic.lineMemChr[x];
 			colors[1] = t >> 4;//10
 			colors[2] = t & 0x0f; //01
@@ -586,7 +594,7 @@ nosprites:
 			colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
-			BADLINE(x);
+			badline_cycle(x);
 
 			uint8_t t = cpu.vic.lineMemChr[x];
 			colors[1] = cpu.vic.palette[t >> 4];//10
@@ -638,14 +646,14 @@ static void mode4 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 	uint16_t bgcol;
 	uint8_t x = 0;
 
-	CHARSETPTR();
+	update_charsetPtr();
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		uint8_t td = cpu.vic.lineMemChr[x];
 
@@ -665,7 +673,7 @@ static void mode4 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 nosprites:
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		uint8_t td = cpu.vic.lineMemChr[x];
 
@@ -720,19 +728,19 @@ static void mode5 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 	 +---------------------------------------+
 	 */
 
-	CHARSETPTR();
-
 	uint8_t chr;
 	uint16_t fgcol;
 	uint8_t x = 0;
 	uint16_t colors[4] = { 0, 0, 0, 0};
+
+	update_charsetPtr();
 
 	if (!cpu.vic.lineHasSprites)
 		goto nosprites;
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		uint8_t td = cpu.vic.lineMemChr[x];
 
@@ -758,7 +766,7 @@ nosprites:
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 		x++;
 
 		for (unsigned i = 0; i < 8; i++) {
@@ -801,7 +809,7 @@ static void mode6 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		chr = bP[x * 8];
 
@@ -821,7 +829,7 @@ nosprites:
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 		x++;
 
 		for (unsigned i = 0; i < 8; i++) {
@@ -868,7 +876,7 @@ static void mode7 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 
 		chr = bP[x * 8];
 		x++;
@@ -886,7 +894,7 @@ nosprites:
 
 	while (p < pe) {
 
-		BADLINE(x);
+		badline_cycle(x);
 		x++;
 
 		for (unsigned i = 0; i < 8; i++) {
@@ -1197,11 +1205,13 @@ void vic_do(void)
 	if (xscroll > 0) {
 		if (csel_left) {
 			/* we don't have the extra border to cover the bg/sprites so render them */
-			sprite_data_t sprite;
-			uint16_t col = cpu.vic.colors[1]; /* B0C */
-
 			for (int i = 0; i < xscroll; i++) {
-				SPRITEORFIXEDCOLOR();
+				sprite_data_t sprite = *spl++;
+
+				if (sprite.raw)
+					*p++ = cpu.vic.palette[sprite.color];
+				else
+					*p++ = cpu.vic.colors[1]; /* B0C */
 			}
 		} else {
 			/* just bump everything as the border will cover it */
