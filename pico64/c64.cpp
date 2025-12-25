@@ -14,15 +14,10 @@ using namespace std;
 static void oneRasterLine(void) {
   static unsigned short lc = 1;
 
-  while (true) {
 
     cpu.lineCycles = cpu.lineCyclesAbs = 0;
 
-    if (!cpu.exactTiming) {
       vic_do();
-    } else {
-      vic_do_simple();
-    }
 
     if (--lc == 0) {
       lc = LINEFREQ / 10; // 10Hz
@@ -30,14 +25,6 @@ static void oneRasterLine(void) {
       cia2_checkRTCAlarm();
     }
 
-    //Switch "ExactTiming" Mode off after a while:
-    if (!cpu.exactTiming) break;
-/*    if ( (fbmicros() - cpu.exactTimingStartTime)*1000 >= EXACTTIMINGDURATION ) {
-      cpu_disableExactTiming();
-      break;
-    }
-    */
-  };
 
 }
 

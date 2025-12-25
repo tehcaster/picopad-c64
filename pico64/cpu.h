@@ -66,9 +66,6 @@ struct tio  {
 }__attribute__((packed, aligned(4)));
 
 struct tcpu {
-  uint32_t exactTimingStartTime;
-  uint8_t exactTiming;
-
   //6502 CPU registers
   uint8_t sp, a, x, y, cpustatus;
   uint8_t penaltyop, penaltyaddr;
@@ -113,8 +110,6 @@ void cpu_reset();
 void cpu_nmi();
 void cpu_clearNmi();
 void cpu_clock(int cycles);
-void cpu_setExactTiming();
-void cpu_disableExactTiming();
 
 void cia_clockt(int ticks);
 
