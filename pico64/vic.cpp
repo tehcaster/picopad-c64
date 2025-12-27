@@ -1168,8 +1168,7 @@ void vic_do(void)
 			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES - 1); // (minus hblank l + r)
 		else
 			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES);
-
-		goto noDisplayIncRC;
+		goto after_right_border;
 	}
 
 	p = &linebuffer[0];
@@ -1210,11 +1209,10 @@ void vic_do(void)
 	 * the calculated pixels and fgcollision at the end.
 	 */
 	if (cpu.vic.borderFlag && !cpu.vic.badline) {
-		cpu_clock(5);
 		fastFillLine(p, pe, cpu.vic.colors[0], spl);
 		if (r >= FIRSTDISPLAYLINE && r <= LASTDISPLAYLINE)
 			memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
-		goto noDisplayIncRC;
+		goto right_border;
 	}
 
 	/*****************************************************************************************************/
@@ -1313,10 +1311,13 @@ void vic_do(void)
 
 	memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET) * SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 
+right_border:
+
 	/* Right border, in the text area (?) */
 	cpu_clock(5);
 
-noDisplayIncRC:
+after_right_border:
+
 	/* 3.7.2. VC and RC:
 	 *
 	 * 5. In the first phase of cycle 58, the VIC checks if RC=7. If so, the video
