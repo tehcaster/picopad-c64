@@ -1231,18 +1231,32 @@ void vic_do(void)
 
 	xscroll = cpu.vic.XSCROLL;
 
-	//TODO sprite collisions
 	if (xscroll > 0) {
-		if (csel_left) {
-			/* we don't have the extra border to cover the bg/sprites so render them */
+		if (csel_left || cpu.vic.lineHasSpriteCollisions) {
+
+			uint8_t sprite_collision = 0;
+
+			/*
+			 * we don't have the extra border to cover the
+			 * bg/sprites, or we need to check for sprite-sprite
+			 * collisions
+			 */
 			for (int i = 0; i < xscroll; i++) {
 				sprite_data_t sprite = *spl++;
 
-				if (sprite.raw)
+				if (sprite.raw) {
 					*p++ = cpu.vic.palette[sprite.color];
-				else
+
+					if (sprite.collision)
+						sprite_collision |= sprite.active_mask;
+				} else {
 					*p++ = cpu.vic.colors[1]; /* B0C */
+				}
 			}
+
+			if (sprite_collision)
+				trigger_sprcol(sprite_collision);
+
 		} else {
 			/* just bump everything as the border will cover it */
 			spl += xscroll;
