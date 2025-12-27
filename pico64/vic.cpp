@@ -1492,7 +1492,17 @@ void vic_write(uint32_t address, uint8_t value)
 		vic_adrchange();
 		break;
 	case 0x19: //IRQs
-		cpu.vic.R[0x19] &= (~value & 0x0f);
+		/*
+		 * to clear the latch, the written bit has to be 1
+		 * apparently this includes the IRQ bit too
+		 */
+		cpu.vic.R[0x19] &= ~value;
+		/*
+		 * but if all individual enabled bits were cleared, clear IRQ
+		 * as well
+		 */
+		if (!(cpu.vic.R[0x19] & cpu.vic.R[0x1a] & 0x0f))
+			cpu.vic.IRQ = 0;
 		break;
 	case 0x1A: //IRQ Mask
 		cpu.vic.R[address] = value & 0x0f;
