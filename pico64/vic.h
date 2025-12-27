@@ -76,7 +76,8 @@ struct tvic {
   uint8_t badline;
   bool badlineLate;
   uint8_t BAsignal;
-  uint8_t lineHasSprites;
+  bool lineHasSprites;
+  bool lineHasSpriteCollisions;
   int8_t spriteCycles0_2;
   int8_t spriteCycles3_7;
 

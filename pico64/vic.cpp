@@ -227,17 +227,24 @@ static void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t 
 
 static void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, sprite_data_t * spl)
 {
-	if (spl != NULL && cpu.vic.lineHasSprites) {
+	if (cpu.vic.lineHasSprites &&
+	    (!cpu.vic.borderFlag || cpu.vic.lineHasSpriteCollisions)) {
 		while (p < pe) {
+			uint8_t sprite_collision = 0;
+
 			for (int i = 0; i < 8; i++) {
-				//TODO: collisions
 				sprite_data_t sprite = *spl++;
 
 				if (sprite.raw)
 					*p++ = cpu.vic.palette[sprite.color];
+					if (sprite.collision)
+						sprite_collision |= sprite.active_mask;
 				else
 					*p++ = col;
 			}
+
+			if (sprite_collision)
+				trigger_sprcol(sprite_collision);
 
 			vic_cycles(1);
 		}
@@ -920,17 +927,16 @@ static inline void slp_update(sprite_data_t *old, const sprite_data_t _new, uint
 	} else {
 		(*old).active_mask |= b;
 		(*old).collision = 1;
+		cpu.vic.lineHasSpriteCollisions = true;
 	}
 }
 
 static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 {
 	uint8_t b = 1 << i;
-	unsigned char collision = 0;
 
 	/* rotate so we don't need to shift */
 	spriteData = reverse(spriteData);
-	cpu.vic.lineHasSprites = 1;
 
 	sprite_data_t * slp = &cpu.vic.spriteLine[x];
 	sprite_data_t sprite {
@@ -1180,7 +1186,7 @@ void vic_do(void)
 	 */
 	if (cpu.vic.borderFlag && !cpu.vic.badline) {
 		cpu_clock(5);
-		fastFillLineNoSprites(p, pe, cpu.vic.colors[0]);
+		fastFillLine(p, pe, cpu.vic.colors[0], spl);
 		if (r >= FIRSTDISPLAYLINE && r <= LASTDISPLAYLINE)
 			memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 		goto noDisplayIncRC;
@@ -1317,7 +1323,8 @@ noDisplayIncRC:
 	cpu.vic.spriteCycles3_7 = 0;
 
 	if (cpu.vic.lineHasSprites) {
-		cpu.vic.lineHasSprites = 0;
+		cpu.vic.lineHasSprites = false;
+		cpu.vic.lineHasSpriteCollisions = false;
 		memset(cpu.vic.spriteLine, 0, sizeof(cpu.vic.spriteLine) );
 	}
 
@@ -1367,13 +1374,9 @@ noDisplayIncRC:
 		lastSpriteNum = i;
 		//Sprite Cycles END
 
-		if (r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE )
-			continue;
-
 		uint16_t x = (((cpu.vic.R[0x10] >> i) & 1) << 8) | cpu.vic.R[i * 2];
 		if (x >= SPRITE_MAX_X)
 			continue;
-
 
 		//DEBUG
 		//if (config.single_frame_mode)
@@ -1392,6 +1395,8 @@ noDisplayIncRC:
 
 		if (!spriteData)
 			continue;
+
+		cpu.vic.lineHasSprites = 1;
 
 		process_sprite(spriteData, x, i);
 	}
