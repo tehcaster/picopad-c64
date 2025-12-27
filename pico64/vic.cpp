@@ -1175,8 +1175,32 @@ void vic_do(void)
 	pe = p + SCREEN_WIDTH;
 
 	//Left Screenborder: Cycle 10
-	cpu_clock(6);
-	spl = &cpu.vic.spriteLine[24];
+
+	if (cpu.vic.lineHasSpriteCollisions) {
+		cpu_clock(3);
+		spl = &cpu.vic.spriteLine[0];
+		for (int i = 0; i < 3; i++) {
+
+			uint8_t sprite_collision = 0;
+
+			for (int j = 0; j < 8; j++) {
+				sprite_data_t sprite = *spl++;
+
+				if (sprite.collision)
+					sprite_collision |= sprite.active_mask;
+			}
+
+			if (sprite_collision)
+				trigger_sprcol(sprite_collision);
+
+			cpu_clock(1);
+		}
+	} else {
+		cpu_clock(6);
+		spl = &cpu.vic.spriteLine[24];
+	}
+
+	//Start of display area: Cycle 16
 
 	/*
 	 * For many YSCROLL values the bad line can occur in the top border so we must
