@@ -1162,7 +1162,8 @@ void vic_do(void)
 	}
 
 	//TODO: why subtract MAXCYCLESSPRITES ?
-	if ((r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE) && !cpu.vic.badline) {
+	if ((r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE) && !cpu.vic.badline &&
+			!cpu.vic.lineHasSpriteCollisions) {
 		if (r == 0)
 			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES - 1); // (minus hblank l + r)
 		else
