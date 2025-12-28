@@ -43,6 +43,8 @@
 // from reading VIC-Article.txt I think maybe not?
 #define SPRITE_MAX_X (24 + 320)
 
+#define MAX_X	0x1f8
+
 /* for later use
 struct tsprite {
   uint8_t MC; //Mob Data Counter
@@ -129,8 +131,8 @@ struct tvic {
 
   //tsprite spriteInfo[8];//todo
 
-  /* extend by max xscroll rounded up */
-  sprite_data_t spriteLine[SPRITE_MAX_X + 48 + 8];
+  sprite_data_t spriteLine[2][MAX_X];
+  bool spriteLineDirty[2];
 
   uint8_t lineMemChr[40];
   uint8_t lineMemCol[40];

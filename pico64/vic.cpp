@@ -920,7 +920,7 @@ const modes_t modes[8] = {mode0, mode1, mode2, mode3, mode4, mode5, mode6, mode7
 /* extend by max xscroll rounded up */
 static tpixel linebuffer[SCREEN_WIDTH + 8];
 
-static inline void slp_update(sprite_data_t *old, const sprite_data_t _new, uint8_t b)
+static inline void spl_update(sprite_data_t *old, const sprite_data_t _new, uint8_t b)
 {
 	if ((*old).raw == 0) {
 		*old = _new;
@@ -931,14 +931,13 @@ static inline void slp_update(sprite_data_t *old, const sprite_data_t _new, uint
 	}
 }
 
-static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
+static void process_sprite(sprite_data_t *spl, uint32_t spriteData, unsigned int x, uint8_t i)
 {
 	uint8_t b = 1 << i;
 
 	/* rotate so we don't need to shift */
 	spriteData = reverse(spriteData);
 
-	sprite_data_t * slp = &cpu.vic.spriteLine[x];
 	sprite_data_t sprite {
 		.active_mask = b,
 	};
@@ -957,10 +956,10 @@ static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 			for (int cnt = 0; cnt < 24; cnt++) {
 
 				if (spriteData & 0x01)
-					slp_update(slp, sprite, b);
+					spl_update(spl + x, sprite, b);
 
 				spriteData >>= 1;
-				slp++;
+				x = (x + 1) % MAX_X;
 			}
 
 		} else {    // NO MULTICOLOR, SPRITE-EXPANSION
@@ -968,11 +967,11 @@ static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 
 				if (spriteData & 0x01) {
 					for (int j = 0; j < 2; j++) {
-						slp_update(slp, sprite, b);
-						slp++;
+						spl_update(spl + x, sprite, b);
+						x = (x + 1) % MAX_X;
 					}
 				} else {
-					slp += 2;
+					x = (x + 2) % MAX_X;
 				}
 
 				spriteData >>= 1;
@@ -1017,11 +1016,11 @@ static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 				if (c) {
 					for (int j = 0; j < 2; j++) {
 						sprite.color = colors[c];
-						slp_update(slp, sprite, b);
-						slp++;
+						spl_update(spl + x, sprite, b);
+						x = (x + 1) % MAX_X;
 					}
 				} else {
-					slp += 2;
+					x = (x + 2) % MAX_X;
 				}
 			}
 		} else {    // MULTICOLOR, SPRITE-EXPANSION
@@ -1032,11 +1031,11 @@ static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i)
 				if (c) {
 					for (int j = 0; j < 4; j++) {
 						sprite.color = colors[c];
-						slp_update(slp, sprite, b);
-						slp++;
+						spl_update(spl + x, sprite, b);
+						x = (x + 1) % MAX_X;
 					}
 				} else {
-					slp += 4;
+					x = (x + 4) % MAX_X;
 				}
 			}
 		}
@@ -1178,7 +1177,7 @@ void vic_do(void)
 
 	if (cpu.vic.lineHasSpriteCollisions) {
 		cpu_clock(3);
-		spl = &cpu.vic.spriteLine[0];
+		spl = &cpu.vic.spriteLine[r % 2][0];
 		for (int i = 0; i < 3; i++) {
 
 			uint8_t sprite_collision = 0;
@@ -1197,7 +1196,7 @@ void vic_do(void)
 		}
 	} else {
 		cpu_clock(6);
-		spl = &cpu.vic.spriteLine[24];
+		spl = &cpu.vic.spriteLine[r % 2][24];
 	}
 
 	//Start of display area: Cycle 16
@@ -1365,12 +1364,16 @@ after_right_border:
 	if (cpu.vic.lineHasSprites) {
 		cpu.vic.lineHasSprites = false;
 		cpu.vic.lineHasSpriteCollisions = false;
-		memset(cpu.vic.spriteLine, 0, sizeof(cpu.vic.spriteLine) );
+	}
+	if (cpu.vic.spriteLineDirty[(r + 1) % 2]) {
+		memset(&cpu.vic.spriteLine[(r + 1) % 2][0], 0, sizeof(cpu.vic.spriteLine[0]));
+		cpu.vic.spriteLineDirty[(r + 1) % 2] = false;
 	}
 
 	uint8_t spritesEnabled = cpu.vic.R[0x15]; //Sprite enabled Register
 	unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
 	short lastSpriteNum = 0;
+	sprite_data_t *spl_next = cpu.vic.spriteLine[(r + 1) % 2];
 
 	if (!spritesEnabled)
 		goto sprites_loaded;
@@ -1437,8 +1440,9 @@ after_right_border:
 			continue;
 
 		cpu.vic.lineHasSprites = 1;
+		cpu.vic.spriteLineDirty[(r + 1) % 2] = true;
 
-		process_sprite(spriteData, x, i);
+		process_sprite(spl_next, spriteData, x, i);
 	}
 
 sprites_loaded:
