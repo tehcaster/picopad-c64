@@ -131,6 +131,20 @@ static void trigger_sprcol(uint8_t sprcol)
 	cpu.vic.MM |= sprcol;
 }
 
+static void sprite_collisions_clock(const sprite_data_t *spl)
+{
+	uint8_t sprite_collision = 0;
+
+	for (int j = 0; j < 8; j++) {
+		if (spl->collision)
+			sprite_collision |= spl->active_mask;
+		spl++;
+	}
+
+	if (sprite_collision)
+		trigger_sprcol(sprite_collision);
+}
+
 static void char_sprites(tpixel *p, sprite_data_t *spl, uint8_t chr, uint16_t fgcol,
 			 uint16_t bgcol)
 {
@@ -1132,7 +1146,19 @@ void vic_do(void)
 #endif
 
 	//HBlank:
-	cpu_clock(10);
+	if (cpu.vic.lineHasSpriteCollisions) {
+		/* x positions 0x190 to 0x1E0 - 80 pixels, 10 clocks */
+		spl = &cpu.vic.spriteLine[r % 2][0x190];
+		for (int i = 0; i < 10; i++) {
+
+			sprite_collisions_clock(spl);
+			spl += 8;
+
+			cpu_clock(1);
+		}
+	} else {
+		cpu_clock(10);
+	}
 
 	// TODO: review this
 #ifdef ADDITIONALCYCLES
@@ -1176,21 +1202,21 @@ void vic_do(void)
 	//Left Screenborder: Cycle 10
 
 	if (cpu.vic.lineHasSpriteCollisions) {
-		cpu_clock(3);
+		/* x positions 0x1E0 to 0x1F8 - 24 pixels, 3 clocks */
+		spl = &cpu.vic.spriteLine[r % 2][0x1E0];
+		for (int i = 0; i < 3; i++) {
+
+			sprite_collisions_clock(spl);
+			spl += 8;
+
+			cpu_clock(1);
+		}
+		/* x positions 0-24 */
 		spl = &cpu.vic.spriteLine[r % 2][0];
 		for (int i = 0; i < 3; i++) {
 
-			uint8_t sprite_collision = 0;
-
-			for (int j = 0; j < 8; j++) {
-				sprite_data_t sprite = *spl++;
-
-				if (sprite.collision)
-					sprite_collision |= sprite.active_mask;
-			}
-
-			if (sprite_collision)
-				trigger_sprcol(sprite_collision);
+			sprite_collisions_clock(spl);
+			spl += 8;
 
 			cpu_clock(1);
 		}
@@ -1361,6 +1387,8 @@ after_right_border:
 	cpu.vic.spriteCycles0_2 = 0;
 	cpu.vic.spriteCycles3_7 = 0;
 
+	bool right_border_sprcols = cpu.vic.lineHasSpriteCollisions;
+
 	if (cpu.vic.lineHasSprites) {
 		cpu.vic.lineHasSprites = false;
 		cpu.vic.lineHasSpriteCollisions = false;
@@ -1418,7 +1446,7 @@ after_right_border:
 		//Sprite Cycles END
 
 		uint16_t x = (((cpu.vic.R[0x10] >> i) & 1) << 8) | cpu.vic.R[i * 2];
-		if (x >= SPRITE_MAX_X)
+		if (x >= MAX_X)
 			continue;
 
 		//DEBUG
@@ -1446,6 +1474,28 @@ after_right_border:
 	}
 
 sprites_loaded:
+
+	/*
+	 * Trigger sprite collisions for x values in the right border.
+	 * We don't try to be clock-precise here. Also some of the data for
+	 * sprites 0-2 might be outdated as we might have re-read it now?
+	 */
+	if (right_border_sprcols) {
+		uint8_t sprite_collision = 0;
+
+		for (unsigned int x = 0x158 + xscroll; x < 0x190; x++) {
+			sprite_data_t *spl = &cpu.vic.spriteLine[r % 2][x];
+
+			if (spl->collision)
+				sprite_collision |= spl->active_mask;
+		}
+
+		if (sprite_collision) {
+			trigger_sprcol(sprite_collision);
+			printf("sprite collision in rigth border\n");
+		}
+	}
+
 	/*****************************************************************************************************/
 //TODO: review
 #if 0
