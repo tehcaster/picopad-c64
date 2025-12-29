@@ -133,6 +133,8 @@ struct tvic {
 
   sprite_data_t spriteLine[2][MAX_X];
   bool spriteLineDirty[2];
+  unsigned int sprite_x_min[2];
+  unsigned int sprite_x_max[2];
 
   uint8_t lineMemChr[40];
   uint8_t lineMemCol[40];

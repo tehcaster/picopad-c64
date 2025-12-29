@@ -945,12 +945,9 @@ static inline void spl_update(sprite_data_t *old, const sprite_data_t _new, uint
 	}
 }
 
-static void process_sprite(sprite_data_t *spl, uint32_t spriteData, unsigned int x, uint8_t i)
+static void process_sprite(uint32_t spriteData, unsigned int x, uint8_t i, int idx)
 {
 	uint8_t b = 1 << i;
-
-	/* rotate so we don't need to shift */
-	spriteData = reverse(spriteData);
 
 	sprite_data_t sprite {
 		.active_mask = b,
@@ -959,8 +956,13 @@ static void process_sprite(sprite_data_t *spl, uint32_t spriteData, unsigned int
 	if (cpu.vic.MDP & b)
 		sprite.MDP = 1;
 
+	sprite_data_t *spl = cpu.vic.spriteLine[idx];
+
 	//if (config.single_frame_mode)
 	//  printf("upperByte %x color %u\n", upperByte, cpu.vic.R[0x27 + i]);
+
+	if (x < cpu.vic.sprite_x_min[idx])
+		cpu.vic.sprite_x_min[idx] = x;
 
 	if ((cpu.vic.MMC & b) == 0) { // NO MULTICOLOR
 
@@ -1054,6 +1056,9 @@ static void process_sprite(sprite_data_t *spl, uint32_t spriteData, unsigned int
 			}
 		}
 	}
+
+	if (x > cpu.vic.sprite_x_max[idx])
+		cpu.vic.sprite_x_max[idx] = x;
 }
 
 void vic_do(void)
@@ -1388,20 +1393,31 @@ after_right_border:
 	cpu.vic.spriteCycles3_7 = 0;
 
 	bool right_border_sprcols = cpu.vic.lineHasSpriteCollisions;
+	int idx = (r + 1) % 2;
 
 	if (cpu.vic.lineHasSprites) {
 		cpu.vic.lineHasSprites = false;
 		cpu.vic.lineHasSpriteCollisions = false;
 	}
-	if (cpu.vic.spriteLineDirty[(r + 1) % 2]) {
-		memset(&cpu.vic.spriteLine[(r + 1) % 2][0], 0, sizeof(cpu.vic.spriteLine[0]));
-		cpu.vic.spriteLineDirty[(r + 1) % 2] = false;
+	if (cpu.vic.spriteLineDirty[idx]) {
+		unsigned int x_min = cpu.vic.sprite_x_min[idx];
+		unsigned int x_max = cpu.vic.sprite_x_max[idx];
+
+		if (x_min < x_max) {
+			memset(&cpu.vic.spriteLine[idx][x_min], 0,
+				sizeof(sprite_data_t) * (x_max - x_min));
+		} else {
+			/* single sprite that straddles x=0, should be rare */
+			memset(&cpu.vic.spriteLine[idx][0], 0, sizeof(cpu.vic.spriteLine[0]));
+		}
+		cpu.vic.spriteLineDirty[idx] = false;
+		cpu.vic.sprite_x_min[idx] = MAX_X;
+		cpu.vic.sprite_x_max[idx] = 0;
 	}
 
 	uint8_t spritesEnabled = cpu.vic.R[0x15]; //Sprite enabled Register
 	unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
 	short lastSpriteNum = 0;
-	sprite_data_t *spl_next = cpu.vic.spriteLine[(r + 1) % 2];
 
 	if (!spritesEnabled)
 		goto sprites_loaded;
@@ -1467,10 +1483,13 @@ after_right_border:
 		if (!spriteData)
 			continue;
 
-		cpu.vic.lineHasSprites = 1;
-		cpu.vic.spriteLineDirty[(r + 1) % 2] = true;
+		/* rotate so we don't need to shift */
+		spriteData = reverse(spriteData);
 
-		process_sprite(spl_next, spriteData, x, i);
+		cpu.vic.lineHasSprites = true;
+		cpu.vic.spriteLineDirty[idx] = true;
+
+		process_sprite(spriteData, x, i, idx);
 	}
 
 sprites_loaded:
