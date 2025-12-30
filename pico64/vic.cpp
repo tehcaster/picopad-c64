@@ -86,10 +86,8 @@ static inline void badline_cycle(int x)
 	if (cpu.vic.badline) {
 		cpu.vic.lineMemChr[x] = cpu.RAM[cpu.vic.videomatrix + cpu.vic.vc + x];
 		cpu.vic.lineMemCol[x] = cpu.vic.COLORRAM[cpu.vic.vc + x];
-		cia_clockt(1);
-	} else {
-		cpu_clock(1);
 	}
+	cpu_clock(1);
 }
 
 static inline void update_charsetPtr(void)
@@ -1291,6 +1289,8 @@ void vic_do(void)
 	/*****************************************************************************************************/
 	/*****************************************************************************************************/
 
+	cpu.ba_low = cpu.vic.badline;
+
 	mode = (cpu.vic.ECM << 2) | (cpu.vic.BMM << 1) | cpu.vic.MCM;
 
 	if (!cpu.vic.idle) {
@@ -1301,12 +1301,11 @@ void vic_do(void)
 			modes[mode](p, pe, spl);
 		} else {
 			//TODO: support idle in all the other modes
-			if (cpu.vic.badline)
-				cpu.ba_low = true;
 			fastFillLine(p, pe, cpu.vic.palette[0], spl);
-			cpu.ba_low = false;
 		}
 	}
+
+	cpu.ba_low = false;
 
 	/*
 	 * In the top/bottom border, sprite-data collisions are not detected and also
