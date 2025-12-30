@@ -1139,11 +1139,20 @@ void vic_do(void)
 			sprite_collisions_clock(spl);
 			spl += 8;
 
+			cpu.ba_low = cpu.vic.spriteBadCycles[9 + i];
+			cpu_clock(1);
+		}
+	} else if (cpu.vic.spriteBadCyclesLeft) {
+		for (int i = 0; i < 10; i++) {
+			cpu.ba_low = cpu.vic.spriteBadCycles[9 + i];
 			cpu_clock(1);
 		}
 	} else {
 		cpu_clock(10);
 	}
+
+	/* reset anything from above */
+	cpu.ba_low = false;
 
 	// TODO: review this
 #ifdef ADDITIONALCYCLES
@@ -1175,10 +1184,10 @@ void vic_do(void)
 	if ((r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE) && !cpu.vic.badline &&
 			!cpu.vic.lineHasSpriteCollisions) {
 		if (r == 0)
-			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES - 1); // (minus hblank l + r)
+			cpu_clock(40 - 1);
 		else
-			cpu_clock(CYCLESPERRASTERLINE - 10 - 2 - MAXCYCLESSPRITES);
-		goto after_right_border;
+			cpu_clock(40);
+		goto right_border;
 	}
 
 	p = &linebuffer[0];
@@ -1327,11 +1336,6 @@ void vic_do(void)
 right_border:
 
 	cpu.ba_low = false;
-
-	/* Right border, in the text area (?) */
-	cpu_clock(5);
-
-after_right_border:
 
 	/* 3.7.2. VC and RC:
 	 *
@@ -1493,13 +1497,17 @@ sprites_loaded:
 
 	/*****************************************************************************************************/
 
-	//HBlank:
-#if PAL
-	cpu_clock(2);
-#else
-	cpu_clock(3);
-#endif
+	//Right border + HBlank:
 
+	if (!cpu.vic.spriteBadCyclesRight) {
+		cpu_clock(7);
+	} else {
+		for (int i = 2; i < 9; i++) {
+			cpu.ba_low = cpu.vic.spriteBadCycles[i];
+			cpu_clock(1);
+		}
+		cpu.ba_low = false;
+	}
 
 #if 0
 	if (cpu.vic.idle) {
