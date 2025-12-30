@@ -205,7 +205,7 @@ rarray_t PLA_READ[8] = {
 	//charen hiram loram
 	/* 000 */
 
-	/* 00-F0 */  { r_ram_64k},
+	/* 00-F0 */  {r_ram_64k},
 
 	/* 001 */
 
@@ -230,7 +230,7 @@ rarray_t PLA_READ[8] = {
 
 	/* 100 */
 
-	/* 00-F0 */  { r_ram_64k},
+	/* 00-F0 */  {r_ram_64k},
 
 	/* 101 */
 
@@ -254,183 +254,55 @@ rarray_t PLA_READ[8] = {
 	/* e0-f0 */   r_ker_8k},
 };
 
-CONSTROM 
+#define w_ramz_4k	w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram
+#define w_ram_4k	w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram
+#define w_ramz_8k	w_ramz_4k, w_ram_4k
+#define w_ram_8k	w_ram_4k, w_ram_4k
+#define w_ramz_16k	w_ramz_8k, w_ram_8k
+#define w_ram_16k	w_ram_8k, w_ram_8k
+
+#define w_ram_48k	w_ramz_16k, w_ram_16k, w_ram_16k
+#define w_ram_64k	w_ramz_16k, w_ram_16k, w_ram_16k, w_ram_16k
+
+#define w_io_4k		w_vic,  w_vic,  w_vic,  w_vic,  w_sid,  w_sid,  w_sid,  w_sid,  w_col,  w_col,  w_col,  w_col,  w_cia1, w_cia2, w_ram,  w_ram
+#define w_ram_io_16k	w_ram_4k, w_io_4k, w_ram_8k
+
+CONSTROM
 warray_t PLA_WRITE[8] = {
 	/* 000 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-F0 */  {w_ram_64k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* D0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram},
-	
 	/* 001 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-F0 */  {w_ram_64k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* D0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram},	
-	
 	/* 010 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-F0 */  {w_ram_64k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-    /* D0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,},	
-	
 	/* 011 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-F0 */  {w_ram_64k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-    /* D0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,		
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,},	
-	
 	/* 100 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-F0 */  {w_ram_64k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* D0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram},	
-	
 	/* 101 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-B0 */  {w_ram_48k,
+	/* C0-F0 */   w_ram_io_16k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* D0 */   w_vic,  w_vic,  w_vic,  w_vic,  w_sid,  w_sid,  w_sid,  w_sid,  w_col,  w_col,  w_col,  w_col,  w_cia1, w_cia2, w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram},	
-	
 	/* 110 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
+	/* 00-B0 */  {w_ram_48k,
+	/* C0-F0 */   w_ram_io_16k},
 
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* D0 */   w_vic,  w_vic,  w_vic,  w_vic,  w_sid,  w_sid,  w_sid,  w_sid,  w_col,  w_col,  w_col,  w_col,  w_cia1, w_cia2, w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram},	
-	
 	/* 111 */
-	/*        	0   	1   	2   	3   	4   	5   	6   	7   	8	   9   		A   	B   	C   	D   	E   	F*/
-	/* 00 */  {w_ramz, w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 10 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 20 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 30 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
 
-	/* 40 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 50 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 60 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 70 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* 80 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* 90 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* A0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* B0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-
-	/* C0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* D0 */   w_vic,  w_vic,  w_vic,  w_vic,  w_sid,  w_sid,  w_sid,  w_sid,  w_col,  w_col,  w_col,  w_col,  w_cia1, w_cia2, w_ram,  w_ram,
-	/* E0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,
-	/* F0 */   w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram,  w_ram}	
+	/* 00-B0 */  {w_ram_48k,
+	/* C0-F0 */   w_ram_io_16k},
 };
 
 /*
