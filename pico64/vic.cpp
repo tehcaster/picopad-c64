@@ -1129,16 +1129,6 @@ void vic_do(void)
 
 	/*****************************************************************************************************/
 	/*****************************************************************************************************/
-	// TODO: review this
-#if 0
-	{
-		int t = MAXCYCLESSPRITES3_7 - cpu.vic.spriteCycles3_7;
-		if (t > 0)
-			cpu_clock(t);
-		if (cpu.vic.spriteCycles3_7 > 0)
-			cia_clockt(cpu.vic.spriteCycles3_7);
-	}
-#endif
 
 	//HBlank:
 	if (cpu.vic.lineHasSpriteCollisions) {
@@ -1384,15 +1374,17 @@ after_right_border:
 	/* Sprites *******************************************************************************************/
 	/*****************************************************************************************************/
 
-	cpu.vic.spriteCycles0_2 = 0;
-	cpu.vic.spriteCycles3_7 = 0;
-
 	bool right_border_sprcols = cpu.vic.lineHasSpriteCollisions;
 	int idx = (r + 1) % 2;
 
 	if (cpu.vic.lineHasSprites) {
 		cpu.vic.lineHasSprites = false;
 		cpu.vic.lineHasSpriteCollisions = false;
+	}
+	if (cpu.vic.spriteBadCyclesLeft || cpu.vic.spriteBadCyclesRight) {
+		memset(&cpu.vic.spriteBadCycles[0], 0, sizeof(cpu.vic.spriteBadCycles));
+		cpu.vic.spriteBadCyclesLeft = false;
+		cpu.vic.spriteBadCyclesRight = false;
 	}
 	if (cpu.vic.spriteLineDirty[idx]) {
 		unsigned int x_min = cpu.vic.sprite_x_min[idx];
@@ -1412,7 +1404,6 @@ after_right_border:
 
 	uint8_t spritesEnabled = cpu.vic.R[0x15]; //Sprite enabled Register
 	unsigned short R17 = cpu.vic.R[0x17]; //Sprite-y-expansion
-	short lastSpriteNum = 0;
 
 	if (!spritesEnabled)
 		goto sprites_loaded;
@@ -1426,35 +1417,21 @@ after_right_border:
 
 		short y = cpu.vic.R[i * 2 + 1];
 
-		if (r < y) {
-			lastSpriteNum = 0;
+		if (r < y)
 			continue;
-		}
 
 		/* without y-expansion */
-		if (!(R17 & b) && r >= y + 21) {
-			lastSpriteNum = 0;
+		if (!(R17 & b) && r >= y + 21)
 			continue;
-		}
 
 		/* with y-expansion */
-		if ((R17 & b) && r >= y + 2 * 21) {
-			lastSpriteNum = 0;
+		if ((R17 & b) && r >= y + 2 * 21)
 			continue;
-		}
 
-		//Sprite Cycles
-		if (i < 3) {
-			if (!lastSpriteNum)
-				cpu.vic.spriteCycles0_2 += 1;
-			cpu.vic.spriteCycles0_2 += 2;
-		} else {
-			if (!lastSpriteNum)
-				cpu.vic.spriteCycles3_7 += 1;
-			cpu.vic.spriteCycles3_7 += 2;
-		}
-		lastSpriteNum = i;
-		//Sprite Cycles END
+		if (i < 3)
+			cpu.vic.spriteBadCyclesRight = true;
+		else
+			cpu.vic.spriteBadCyclesLeft = true;
 
 		uint16_t x = (((cpu.vic.R[0x10] >> i) & 1) << 8) | cpu.vic.R[i * 2];
 		if (x >= MAX_X)
@@ -1485,6 +1462,10 @@ after_right_border:
 		cpu.vic.spriteLineDirty[idx] = true;
 
 		process_sprite(spriteData, x, i, idx);
+
+		for (int j = 0; j < 5; j++) {
+			cpu.vic.spriteBadCycles[2*i + j] = 1;
+		}
 	}
 
 sprites_loaded:
@@ -1511,14 +1492,6 @@ sprites_loaded:
 	}
 
 	/*****************************************************************************************************/
-//TODO: review
-#if 0
-	{
-		int t = MAXCYCLESSPRITES0_2 - cpu.vic.spriteCycles0_2;
-		if (t > 0) cpu_clock(t);
-		if (cpu.vic.spriteCycles0_2 > 0) cia_clockt(cpu.vic.spriteCycles0_2);
-	}
-#endif
 
 	//HBlank:
 #if PAL

@@ -80,8 +80,8 @@ struct tvic {
   uint8_t BAsignal;
   bool lineHasSprites;
   bool lineHasSpriteCollisions;
-  int8_t spriteCycles0_2;
-  int8_t spriteCycles3_7;
+  bool spriteBadCyclesLeft;
+  bool spriteBadCyclesRight;
 
   uint8_t * charsetPtrBase;
   uint8_t * charsetPtr;
@@ -135,6 +135,9 @@ struct tvic {
   bool spriteLineDirty[2];
   unsigned int sprite_x_min[2];
   unsigned int sprite_x_max[2];
+
+  // for cycles [55-63] (9) and [1-10]
+  uint8_t spriteBadCycles[9+10];
 
   uint8_t lineMemChr[40];
   uint8_t lineMemCol[40];
