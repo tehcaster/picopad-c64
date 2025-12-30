@@ -311,6 +311,7 @@ Normal  16kB cartridge at $8000/$a000 (ROML,ROMH): GAME = 0, EXROM = 0
 Ultimax 16kB cartridge at $8000/$e000 (ROML,ROMH): GAME = 0, EXROM = 1
 */
 
+#if 0
 CONSTROM 
 rarray_t PLA_READ_CARTRIGE_10[8] = { 
 	
@@ -861,7 +862,7 @@ rarray_t PLA_READ_CARTRIGE_01[8] = {
 	/* F0 */   r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH, r_crtH},
 };
 
-
+#endif
 
 void resetPLA(void) {
 	
@@ -886,14 +887,14 @@ Normal   8kB cartridge at $8000       (ROML):      GAME = 1, EXROM = 0
 Normal  16kB cartridge at $8000/$a000 (ROML,ROMH): GAME = 0, EXROM = 0
 Ultimax 16kB cartridge at $8000/$e000 (ROML,ROMH): GAME = 0, EXROM = 1
 */
-#if 1 //No Cartrige
+#if 0 //No Cartrige
     cpu._game = 1;
 	cpu._exrom = 1;
 #else //TODO...
     cpu._game = 0;
 	cpu._exrom = 0;	
 #endif	
-
+#if 0
 	if (cpu._game == 1 && cpu._exrom==0) {
 		cpu.plamap_r = (rarray_t*)&PLA_READ_CARTRIGE_10[0x07];
 		cpu.plamap_w = (warray_t*)&PLA_WRITE[0x07];		
@@ -907,9 +908,12 @@ Ultimax 16kB cartridge at $8000/$e000 (ROML,ROMH): GAME = 0, EXROM = 1
 	if (cpu._game == 0 && cpu._exrom==1) {
 		cpu.plamap_r = (rarray_t*)&PLA_READ_CARTRIGE_00[0x07];
 		cpu.plamap_w = (warray_t*)&PLA_WRITE[0x07];		
-	}	
-	else { //C64 without Cartridge
+	}
+#else
+	if (false) {
+	} else { //C64 without Cartridge
 		cpu.plamap_r = (rarray_t*)&PLA_READ[0x07];
 		cpu.plamap_w = (warray_t*)&PLA_WRITE[0x07];
 	}
+#endif
 }
