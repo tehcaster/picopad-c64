@@ -51,9 +51,9 @@ Copyright Frank Bösing, 2017
 //C64 Memory/Device access (PLA)
 
 /* READ */
-typedef uint8_t (*r_ptr_t)( uint32_t address ); //Funktionspointer auf uint8_t foo(uint16_t address);
-typedef r_ptr_t rarray_t[256];          //Array von Funktionspointern
-typedef rarray_t * r_rarr_ptr_t;        //Pointer auf Array von Funktionspointern
+typedef uint8_t r_ptr_t;
+typedef r_ptr_t rarray_t[256];
+typedef rarray_t * r_rarr_ptr_t;
 
 /* WRITE */
 typedef void (*w_ptr_t)( uint32_t address, uint8_t value ); //Funktionspointer auf void foo( uint16_t address, uint8_t value );
@@ -62,5 +62,6 @@ typedef warray_t * w_rarr_ptr_t;              //Pointer auf Array von Funktionsp
 
 
 void resetPLA(void);
+uint8_t pla_read(const uint32_t address);
 
 #endif

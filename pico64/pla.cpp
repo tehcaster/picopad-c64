@@ -48,10 +48,20 @@
 extern CONSTROM rarray_t PLA_READ[8];
 extern CONSTROM warray_t PLA_WRITE[8];
 
-uint8_t r_ram(uint32_t address)		{ return cpu.RAM[address]; }
-uint8_t r_bas(uint32_t address)		{ return rom_basic[address & (sizeof(rom_basic)-1)]; } //BASIC ROM
+enum r_type {
+	r_nul,
+	r_ram,
+	r_chr,
+	r_bas,
+	r_ker,
+	r_vic,
+	r_sid,
+	r_col,
+	r_cia1,
+	r_cia2
+};
 
-uint8_t r_ker(uint32_t address)
+uint8_t _r_ker(uint32_t address)
 {
 	address &= (sizeof(rom_kernal)-1);
 #if APPLY_PATCHES
@@ -59,22 +69,43 @@ uint8_t r_ker(uint32_t address)
 #else
 	return rom_kernal[address];
 #endif
-} //KERNAL ROM
+}
 
-uint8_t r_chr(uint32_t address)		{ return rom_characters[address & (sizeof(rom_characters)-1)]; } //CHARACTER ROM
-uint8_t r_vic(uint32_t address)		{ return vic_read(address); }
-#ifdef HAS_SND      
-uint8_t r_sid(uint32_t address)		{ return playSID.getreg(address & 0x1F);}
-#else
-uint8_t r_sid(uint32_t address)		{ return 0;}
-#endif
-uint8_t r_col(uint32_t address)		{ return cpu.vic.COLORRAM[address & 0x3FF]; }
-uint8_t r_cia1(uint32_t address)	{ return cia1_read(address); }
-uint8_t r_cia2(uint32_t address)	{ return cia2_read(address); }
+#if 0
 uint8_t r_crtL(uint32_t address)	{ return cpu.cartrigeLO[address & 0x1fff]; } //Cartrige Low ($8000) 
 uint8_t r_crtH(uint32_t address)	{ return cpu.cartrigeHI[address & 0x1fff]; } 
 uint8_t r_nul(uint32_t address)		{ return 0;} //No RAM for Ultimax-cartrige
 uint8_t r_rnd(uint32_t address)		{ return 255;} //Random for $DE00-$DFFF
+#endif
+
+uint8_t pla_read(const uint32_t address)
+{
+	switch ((*cpu.plamap_r)[address >> 8]) {
+	case r_nul:
+		return 0;
+	case r_ram:
+		return cpu.RAM[address];
+	case r_chr:
+		return rom_characters[address & (sizeof(rom_characters)-1)];
+	case r_bas:
+		return rom_basic[address & (sizeof(rom_basic)-1)];
+	case r_ker:
+		return _r_ker(address);
+	case r_vic:
+		return vic_read(address);
+	case r_sid:
+		return playSID.getreg(address & 0x1F);
+	case r_col:
+		return cpu.vic.COLORRAM[address & 0x3FF];
+	case r_cia1:
+		return cia1_read(address);
+	case r_cia2:
+		return cia2_read(address);
+	default:
+		printf("unknown plamap value %d\n", (*cpu.plamap_r)[address >> 8]);
+	};
+	return 0;
+}
 
 void w_ram( uint32_t address, uint8_t value )	{ 
     cpu.RAM[address ]=value; 

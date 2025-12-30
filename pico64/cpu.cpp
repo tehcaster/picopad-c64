@@ -99,7 +99,7 @@ static inline void cpu_irq();
 
 INLINEOP uint8_t read6502(const uint32_t address) __attribute__ ((hot));
 INLINEOP uint8_t read6502(const uint32_t address) {
-	return (*cpu.plamap_r)[address >> 8](address);
+	return pla_read(address);
 }
 
 INLINEOP uint8_t read6502ZP(const uint32_t address) __attribute__ ((hot)); //Zeropage
