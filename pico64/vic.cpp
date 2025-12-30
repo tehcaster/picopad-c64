@@ -1206,6 +1206,7 @@ void vic_do(void)
 
 			cpu_clock(1);
 		}
+		cpu.ba_low = cpu.vic.badline;
 		/* x positions 0-24 */
 		spl = &cpu.vic.spriteLine[r % 2][0];
 		for (int i = 0; i < 3; i++) {
@@ -1216,7 +1217,9 @@ void vic_do(void)
 			cpu_clock(1);
 		}
 	} else {
-		cpu_clock(6);
+		cpu_clock(3);
+		cpu.ba_low = cpu.vic.badline;
+		cpu_clock(3);
 		spl = &cpu.vic.spriteLine[r % 2][24];
 	}
 
@@ -1289,8 +1292,6 @@ void vic_do(void)
 	/*****************************************************************************************************/
 	/*****************************************************************************************************/
 
-	cpu.ba_low = cpu.vic.badline;
-
 	mode = (cpu.vic.ECM << 2) | (cpu.vic.BMM << 1) | cpu.vic.MCM;
 
 	if (!cpu.vic.idle) {
@@ -1304,8 +1305,6 @@ void vic_do(void)
 			fastFillLine(p, pe, cpu.vic.palette[0], spl);
 		}
 	}
-
-	cpu.ba_low = false;
 
 	/*
 	 * In the top/bottom border, sprite-data collisions are not detected and also
@@ -1336,6 +1335,8 @@ void vic_do(void)
 	memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET) * SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 
 right_border:
+
+	cpu.ba_low = false;
 
 	/* Right border, in the text area (?) */
 	cpu_clock(5);
