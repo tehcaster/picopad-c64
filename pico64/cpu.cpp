@@ -2647,38 +2647,45 @@ void cia_clockt(int ticks) {
 }
 
 void cpu_clock(int cycles) {
-static int c = 0;
-static int writeCycles = 0;
+	static int c = 0;
+	static int writeCycles = 0;
+
 	cpu.lineCyclesAbs += cycles;
-    c+=cycles;
+
+	if (cpu.ba_low) {
+		cia_clockt(cycles);
+		return;
+	}
+
+	c += cycles;
+
 	while (c > 0) {
+		uint8_t opcode ;
+		cpu.ticks = 0;
 
-			uint8_t opcode ;
-			cpu.ticks = 0;
+		//NMI
 
-			//NMI
+		if (!cpu.nmi && ((cpu.cia2.R[0x0D] & 0x80) | cpu.nmiLine)) {
+			cpu_nmi_do();
+			goto noOpcode;
+		}
 
-			if (!cpu.nmi && ((cpu.cia2.R[0x0D] & 0x80) | cpu.nmiLine)) {
-				cpu_nmi_do();
+		if (!(cpu.cpustatus & FLAG_INTERRUPT)) {
+			if (((cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80)) {
+				cpu_irq();
 				goto noOpcode;
 			}
+		}
 
-		    if (!(cpu.cpustatus & FLAG_INTERRUPT)) {
-				if (((cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80)) {
-					cpu_irq();
-					goto noOpcode;
-				}
-			}
-
-			cpu.cpustatus |= FLAG_CONSTANT;
-			opcode = read6502(cpu.pc++);
-			opcodetable[opcode]();
-			writeCycles = writeCycleTable[opcode];
+		cpu.cpustatus |= FLAG_CONSTANT;
+		opcode = read6502(cpu.pc++);
+		opcodetable[opcode]();
+		writeCycles = writeCycleTable[opcode];
 noOpcode:
 
-			cia_clockt(cpu.ticks);
-			c-= cpu.ticks;
-			cpu.lineCycles += cpu.ticks;
+		cia_clockt(cpu.ticks);
+		c -= cpu.ticks;
+		cpu.lineCycles += cpu.ticks;
 	};
 
 	return;
