@@ -81,14 +81,6 @@ u32 nFramesC64 = 0;
 /*****************************************************************************************************/
 /*****************************************************************************************************/
 
-static inline void vic_cycles(int ticks)
-{
-	if (cpu.vic.badline)
-		cia_clockt(ticks);
-	else
-		cpu_clock(ticks);
-}
-
 static inline void badline_cycle(int x)
 {
 	if (cpu.vic.badline) {
@@ -235,7 +227,7 @@ static void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t 
 			*p++ = col;
 		}
 
-		vic_cycles(1);
+		cpu_clock(1);
 	}
 }
 
@@ -260,7 +252,7 @@ static void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, spri
 			if (sprite_collision)
 				trigger_sprcol(sprite_collision);
 
-			vic_cycles(1);
+			cpu_clock(1);
 		}
 	} else {
 		fastFillLineNoSprites(p, pe, col);
@@ -1309,7 +1301,10 @@ void vic_do(void)
 			modes[mode](p, pe, spl);
 		} else {
 			//TODO: support idle in all the other modes
+			if (cpu.vic.badline)
+				cpu.ba_low = true;
 			fastFillLine(p, pe, cpu.vic.palette[0], spl);
+			cpu.ba_low = false;
 		}
 	}
 
