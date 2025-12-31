@@ -110,7 +110,7 @@ INLINEOP uint8_t read6502ZP(const uint32_t address) {
 /* Ein Schreibzugriff auf einen ROM-Bereich speichert das Byte im „darunterliegenden” RAM. */
 INLINEOP void write6502(const uint32_t address, const uint8_t value) __attribute__ ((hot));
 INLINEOP void write6502(const uint32_t address, const uint8_t value) {
- (*cpu.plamap_w)[address>>8](address, value);
+	return pla_write(address, value);
 }
 
 //a few general functions used by various other functions

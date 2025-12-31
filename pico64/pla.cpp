@@ -61,7 +61,7 @@ enum r_type {
 	r_cia2
 };
 
-uint8_t _r_ker(uint32_t address)
+static uint8_t _r_ker(uint32_t address)
 {
 	address &= (sizeof(rom_kernal)-1);
 #if APPLY_PATCHES
@@ -107,10 +107,18 @@ uint8_t pla_read(const uint32_t address)
 	return 0;
 }
 
-void w_ram( uint32_t address, uint8_t value )	{ 
-    cpu.RAM[address ]=value; 
-}
-void w_ramz( uint32_t address, uint8_t value )
+enum w_type {
+	w_nul,
+	w_ram,
+	w_ramz,
+	w_vic,
+	w_sid,
+	w_col,
+	w_cia1,
+	w_cia2
+};
+
+static void _w_ramz(uint32_t address, uint8_t value)
 {
 	if (address == 1) {	//6510 PortA
 		u8 outmask = cpu.RAM[0];
@@ -147,16 +155,35 @@ void w_ramz( uint32_t address, uint8_t value )
 		cpu.RAM[address] = value;  //zeropage
 	}
 }
-void w_vic( uint32_t address, uint8_t value )	{ vic_write(address, value); }
-void w_col( uint32_t address, uint8_t value )	{ cpu.vic.COLORRAM[address & 0x3FF] = value & 0x0F;}
-#ifdef HAS_SND      
-void w_sid( uint32_t address, uint8_t value )	{ playSID.setreg(address & 0x1F, value); }
-#else
-void w_sid( uint32_t address, uint8_t value )	{ }
-#endif
-void w_cia1( uint32_t address, uint8_t value )	{ cia1_write(address, value); }
-void w_cia2( uint32_t address, uint8_t value )	{ cia2_write(address, value); }
 
+void pla_write(const uint32_t address, const uint8_t value)
+{
+	switch ((*cpu.plamap_w)[address >> 8]) {
+	case w_ram:
+		cpu.RAM[address] = value;
+		break;
+	case w_ramz:
+		_w_ramz(address, value);
+		break;
+	case w_vic:
+		vic_write(address, value);
+		break;
+	case w_sid:
+		playSID.setreg(address & 0x1F, value);
+		break;
+	case w_col:
+		cpu.vic.COLORRAM[address & 0x3FF] = value & 0x0F;
+		break;
+	case w_cia1:
+		cia1_write(address, value);
+		break;
+	case w_cia2:
+		cia2_write(address, value);
+		break;
+	default:
+		printf("unknown plamap_w value %d\n", (*cpu.plamap_w)[address >> 8]);
+	};
+}
 /*
     LORAM (bit 0) can generally be thought of as a control line which banks
   the 8K byte BASIC ROM in and out of the microprocessor address space.

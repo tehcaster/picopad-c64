@@ -56,12 +56,13 @@ typedef r_ptr_t rarray_t[256];
 typedef rarray_t * r_rarr_ptr_t;
 
 /* WRITE */
-typedef void (*w_ptr_t)( uint32_t address, uint8_t value ); //Funktionspointer auf void foo( uint16_t address, uint8_t value );
+typedef uint8_t w_ptr_t;
 typedef w_ptr_t warray_t[256];                //Array von Funktionspointern
 typedef warray_t * w_rarr_ptr_t;              //Pointer auf Array von Funktionspointern
 
 
 void resetPLA(void);
 uint8_t pla_read(const uint32_t address);
+void pla_write(const uint32_t address, const uint8_t value);
 
 #endif
