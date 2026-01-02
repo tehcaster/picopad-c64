@@ -1076,8 +1076,6 @@ void vic_do(void)
 			nFramesC64++;
 	}
 
-	cpu.vic.badlineLate = false;
-
 	int r = cpu.vic.rasterLine;
 
 	/* Rasterline Interrupt
@@ -1349,30 +1347,20 @@ right_border:
 	 * The transition from display to idle state occurs in cycle 58 of a
 	 * line if the RC contains the value 7 and there is no Bad Line
 	 * Condition.
+	 *
+	 * 3.14.3. FLI
+	 *
+	 * If you create a new Bad Line before the current text line has been
+	 * finished, VCBASE is not incremented
 	 */
-	if (cpu.vic.rc == 7) {
-		/*
-		 * TODO: 3.14.3. FLI section suggests this is wrong and we
-		 * should not reset vcbase if there's badline. But that also
-		 * caused River Raid HUD glitching.
-		 */
+	if (cpu.vic.rc == 7 && !cpu.vic.badline) {
 		cpu.vic.vcbase = cpu.vic.vc;
-		if (!cpu.vic.badline)
-			cpu.vic.idle = 1;
+		cpu.vic.idle = 1;
 	}
 
 	if (!cpu.vic.idle) {
 		cpu.vic.rc = (cpu.vic.rc + 1) & 0x07;
 	}
-
-	/*
-	 * If we went idle, a bad line condition becoming true due to YSCROLL write
-	 * at this point will not make us active again. Unsure if this is correct
-	 * but helped against River Raid bottom HUD glitching.
-	 *
-	 * TODO: review
-	 */
-	cpu.vic.badlineLate = true;
 
 	/*****************************************************************************************************/
 	/* Sprites *******************************************************************************************/
@@ -1570,9 +1558,8 @@ void vic_write(uint32_t address, uint8_t value)
 
 		cpu.vic.badline = is_badline(cpu.vic.rasterLine);
 
-		if (cpu.vic.badline && !cpu.vic.badlineLate) {
+		if (cpu.vic.badline)
 			cpu.vic.idle = 0;
-		}
 
 		vic_adrchange();
 
