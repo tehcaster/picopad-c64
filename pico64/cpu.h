@@ -81,6 +81,8 @@ struct tcpu {
   unsigned lineCycles;
   bool kernal_patched;
   bool ba_low;
+  bool irq_pending;
+  uint8_t irq_delay;
 
   r_rarr_ptr_t plamap_r; //Memory-Mapping read
   w_rarr_ptr_t plamap_w; //Memory-Mapping write
@@ -107,9 +109,27 @@ struct tcpu {
 extern struct tio io;
 extern struct tcpu cpu;
 
+static inline void cpu_irq(void)
+{
+	if (!cpu.irq_pending) {
+		cpu.irq_pending = true;
+		cpu.irq_delay = 0;
+	}
+}
+
+static inline void cpu_irq_clear(void)
+{
+	if (!((cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80)) {
+		cpu.irq_pending = false;
+		cpu.irq_delay = 0;
+	}
+}
+
 void cpu_reset();
 void cpu_nmi();
 void cpu_clearNmi();
+void cpu_irq(void);
+void cpu_irq_clear(void);
 void cpu_clock(int cycles);
 
 void cia_clockt(int ticks);

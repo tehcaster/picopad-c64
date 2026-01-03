@@ -147,6 +147,8 @@ void cia1_write(uint32_t address, uint8_t value) {
 					cpu.cia1.R[address] = value;
 					//Fake IRQ
 					cpu.cia1.R[0x0d] |= 8 | ((cpu.cia1.W[0x0d] & 0x08) << 4);
+					if (cpu.cia1.R[0x0d] | 0x80)
+						cpu_irq();
 					}
 					;break;
 		case 0x0D : {
@@ -155,6 +157,7 @@ void cia1_write(uint32_t address, uint8_t value) {
 						//ggf IRQ triggern
 						if (cpu.cia1.R[address] & cpu.cia1.W[address] & 0x1f) {
 							cpu.cia1.R[address] |= 0x80;
+							cpu_irq();
 						};
 					} else {
 						cpu.cia1.W[address] &= ~value;
@@ -239,6 +242,7 @@ uint8_t ret;
 
 		case 0x0D: {ret = cpu.cia1.R[address] & 0x9f;
 					cpu.cia1.R[address]=0;
+					cpu_irq_clear();
 					};
 					break;
 
@@ -380,6 +384,7 @@ tend:
 	if ( regFEDC & cpu.cia1.W32[0x0C/4] & 0x1f00 ) {
 		regFEDC |= 0x8000;
 		cpu.cia1.R32[0x0C/4]=regFEDC;
+		cpu_irq();
 	}
 	else cpu.cia1.R32[0x0C/4]=regFEDC;
 }
@@ -391,12 +396,16 @@ void cia1_checkRTCAlarm() { // call @ 1/10 sec interval minimum
 	if ((int)(millis() - cpu.cia1.TOD) % 86400000l/100 == cpu.cia1.TODAlarm) {
 		//Serial.print("CIA1 RTC interrupt");
 		cpu.cia1.R[13] |= 0x4 | ((cpu.cia1.W[13] & 4) << 5);
+		if (cpu.cia1.R[0x0d] | 0x80)
+			cpu_irq();
 	}
 }
 
 void cia1FLAG(void) {
 	//Serial.println("CIA1 FLAG interrupt");
 	cpu.cia1.R[13] |= 0x10 | ((cpu.cia1.W[13] & 0x10) << 3);
+	if (cpu.cia1.R[0x0d] | 0x80)
+		cpu_irq();
 }
 
 void resetCia1(void) {

@@ -95,7 +95,7 @@ struct tio io;
 
 void reset6502();
 void cpu_nmi();
-static inline void cpu_irq();
+static inline void cpu_irq_do();
 
 INLINEOP uint8_t read6502(const uint32_t address) __attribute__ ((hot));
 INLINEOP uint8_t read6502(const uint32_t address) {
@@ -2626,7 +2626,7 @@ void cpu_nmi_do() {
 	cpu.ticks = 7;
 }
 
-static inline void cpu_irq() {
+static inline void cpu_irq_do() {
   push16(cpu.pc);
   push8(cpu.cpustatus & ~FLAG_BREAK);
   cpu.cpustatus |= FLAG_INTERRUPT;
@@ -2649,18 +2649,33 @@ void cia_clockt(int ticks) {
 void cpu_clock(int cycles) {
 	static int c = 0;
 	static int writeCycles = 0;
+/*	bool irq_pending = (cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80;
 
+	if (irq_pending != cpu.irq_pending) {
+		printf("irq tracking mismatch: vic %x cia1 %x flag %d\n",
+				cpu.vic.R[0x19], cpu.cia1.R[0x0D],
+				cpu.irq_pending);
+	}
+*/
 	cpu.lineCyclesAbs += cycles;
 
 	if (cpu.ba_low) {
 		cia_clockt(cycles);
+		//TODO: this could be innacurate if the cia generated
+		//irq in the last 2 of cycles but we bump pending all the way
+		cpu.irq_delay += cycles;
 		return;
 	}
 
-	c += cycles;
+	c -= cycles;
 
-	while (c > 0) {
-		uint8_t opcode ;
+	if (c > 0) {
+		cpu.irq_delay += cycles;
+		return;
+	}
+
+	while (c <= 0) {
+		uint8_t opcode;
 		cpu.ticks = 0;
 
 		//NMI
@@ -2670,9 +2685,9 @@ void cpu_clock(int cycles) {
 			goto noOpcode;
 		}
 
-		if (!(cpu.cpustatus & FLAG_INTERRUPT)) {
-			if (((cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80)) {
-				cpu_irq();
+		if (cpu.irq_pending) {
+			if (!(cpu.cpustatus & FLAG_INTERRUPT) && cpu.irq_delay > 2) {
+				cpu_irq_do();
 				goto noOpcode;
 			}
 		}
@@ -2684,7 +2699,8 @@ void cpu_clock(int cycles) {
 noOpcode:
 
 		cia_clockt(cpu.ticks);
-		c -= cpu.ticks;
+		cpu.irq_delay += cpu.ticks;
+		c += cpu.ticks;
 		cpu.lineCycles += cpu.ticks;
 	};
 

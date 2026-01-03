@@ -105,8 +105,10 @@ static void trigger_fgcol(uint8_t fgcol)
 {
 	if (cpu.vic.MD == 0) {
 		cpu.vic.IMBC = 1;
-		if (cpu.vic.EMBC)
+		if (cpu.vic.EMBC) {
 			cpu.vic.IRQ = 1;
+			cpu_irq();
+		}
 	}
 	cpu.vic.MD |= fgcol;
 }
@@ -115,8 +117,10 @@ static void trigger_sprcol(uint8_t sprcol)
 {
 	if (cpu.vic.MM == 0) {
 		cpu.vic.IMMC = 1;
-		if (cpu.vic.EMMC)
+		if (cpu.vic.EMMC) {
 			cpu.vic.IRQ = 1;
+			cpu_irq();
+		}
 	}
 	cpu.vic.MM |= sprcol;
 }
@@ -1087,8 +1091,10 @@ void vic_do(void)
 	 */
 	if (r == cpu.vic.intRasterLine) {
 		cpu.vic.IRST = 1;
-		if (cpu.vic.ERST)
+		if (cpu.vic.ERST) {
 			cpu.vic.IRQ = 1;
+			cpu_irq();
+		}
 	}
 
 	/*****************************************************************************************************/
@@ -1584,6 +1590,8 @@ void vic_write(uint32_t address, uint8_t value)
 		 */
 		if (!(cpu.vic.R[0x19] & cpu.vic.R[0x1a] & 0x0f))
 			cpu.vic.IRQ = 0;
+
+		cpu_irq_clear();
 		break;
 	case 0x1A: //IRQ Mask
 		cpu.vic.R[address] = value & 0x0f;
