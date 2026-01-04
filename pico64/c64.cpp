@@ -222,7 +222,7 @@ uint8_t cia1PORTB(void) {
 	uint8_t v;
 	uint8_t filter;
 
-	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
+	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x01] & cpu.cia1.R[0x03]);
 	filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
 
 	if (input_blocked)
