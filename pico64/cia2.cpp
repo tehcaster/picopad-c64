@@ -177,7 +177,8 @@ void cia2_write(uint32_t address, uint8_t value) {
         cpu.cia2.R[address] = value;
         //Fake IRQ
         cpu.cia2.R[0x0d] |= 8 | ((cpu.cia2.W[0x0d] & 0x08) << 4);
-        cpu_nmi();
+	if (cpu.cia2.R[0x0d] & 0x80)
+	        cpu_nmi();
       }
       break;
     case 0x0D : {
@@ -288,7 +289,7 @@ uint8_t cia2_read(uint32_t address) {
     case 0x0D: {
         ret = cpu.cia2.R[address] & 0x9f;
         cpu.cia2.R[address] = 0;
-        cpu_clearNmi();
+        cpu_nmi_clear();
       }; break;
     default: ret = cpu.cia2.R[address]; break;
   }
@@ -417,6 +418,7 @@ tend:
   if ( regFEDC & cpu.cia2.W32[0x0C / 4] & 0x0f00 ) {
     regFEDC |= 0x8000;
     cpu.cia2.R32[0x0C / 4] = regFEDC;
+    cpu_nmi();
   }
   cpu.cia2.R32[0x0C / 4] = regFEDC;
 }
@@ -427,6 +429,8 @@ void cia2_checkRTCAlarm() { // call every 1/10 sec minimum
     // Serial.print("CIA2 RTC interrupt");
     // Interrupt
     cpu.cia2.R[0x0d] |= 0x4 | (cpu.cia2.W[0x0d] & 4) << 5;
+    if (cpu.cia2.R[0x0d] & 0x80)
+        cpu_nmi();
   }
 }
 

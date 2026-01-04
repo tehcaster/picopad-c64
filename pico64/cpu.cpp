@@ -94,7 +94,6 @@ struct tcpu cpu;
 struct tio io;
 
 void reset6502();
-void cpu_nmi();
 static inline void cpu_irq_do();
 
 INLINEOP uint8_t read6502(const uint32_t address) __attribute__ ((hot));
@@ -2607,18 +2606,8 @@ static const uint8_t writeCycleTable[256] =
 };
 
 
-void cpu_nmi() {
-  cpu.nmiLine = 1;
-  printf("nmiLine=1\n");
-}
-void cpu_clearNmi() {
-	cpu.nmi = 0;
-}
-
-void cpu_nmi_do() {
-	if (cpu.nmi) return;
+static void cpu_nmi_do() {
 	cpu.nmi = 1;
-	cpu.nmiLine = 0;
 	push16(cpu.pc);
 	push8(cpu.cpustatus & ~FLAG_BREAK);
 	cpu.cpustatus |= FLAG_INTERRUPT;
@@ -2626,12 +2615,12 @@ void cpu_nmi_do() {
 	cpu.ticks = 7;
 }
 
-static inline void cpu_irq_do() {
-  push16(cpu.pc);
-  push8(cpu.cpustatus & ~FLAG_BREAK);
-  cpu.cpustatus |= FLAG_INTERRUPT;
-  cpu.pc = read6502(0xFFFE) | (read6502(0xFFFF) << 8);
-  cpu.ticks = 7;
+static void cpu_irq_do() {
+	push16(cpu.pc);
+	push8(cpu.cpustatus & ~FLAG_BREAK);
+	cpu.cpustatus |= FLAG_INTERRUPT;
+	cpu.pc = read6502(0xFFFE) | (read6502(0xFFFF) << 8);
+	cpu.ticks = 7;
 }
 
 inline void cia_clock(void)  __attribute__((always_inline));
@@ -2649,12 +2638,19 @@ void cia_clockt(int ticks) {
 void cpu_clock(int cycles) {
 	static int c = 0;
 	static int writeCycles = 0;
-/*	bool irq_pending = (cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80;
+/*
+	bool irq_pending = (cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80;
+	bool nmi_pending = (cpu.cia2.R[0x0D] & 0x80);
 
 	if (irq_pending != cpu.irq_pending) {
 		printf("irq tracking mismatch: vic %x cia1 %x flag %d\n",
 				cpu.vic.R[0x19], cpu.cia1.R[0x0D],
 				cpu.irq_pending);
+	}
+
+	if (nmi_pending != cpu.nmi_pending) {
+		printf("nmi tracking mismatch: cia2 %x flag %d\n",
+				cpu.cia2.R[0x0D], cpu.irq_pending);
 	}
 */
 	cpu.lineCyclesAbs += cycles;
@@ -2679,10 +2675,11 @@ void cpu_clock(int cycles) {
 		cpu.ticks = 0;
 
 		//NMI
-
-		if (!cpu.nmi && ((cpu.cia2.R[0x0D] & 0x80) | cpu.nmiLine)) {
-			cpu_nmi_do();
-			goto noOpcode;
+		if (cpu.nmi_pending) {
+			if (!cpu.nmi) {
+				cpu_nmi_do();
+				goto noOpcode;
+			}
 		}
 
 		if (cpu.irq_pending) {
@@ -2709,6 +2706,8 @@ noOpcode:
 
 void cpu_reset() {
   cpu.nmi = 0;
+  cpu.irq_pending = false;
+  cpu.nmi_pending = false;
   cpu.cpustatus = FLAG_CONSTANT;
   cpu.pc = read6502(0xFFFC) | (read6502(0xFFFD) << 8);
   cpu.sp = 0xFD;

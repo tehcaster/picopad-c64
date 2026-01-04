@@ -80,6 +80,7 @@ struct tcpu {
   unsigned ticks;
   unsigned lineCycles;
   bool kernal_patched;
+  bool nmi_pending;
   bool ba_low;
   bool irq_pending;
   uint8_t irq_delay;
@@ -87,7 +88,6 @@ struct tcpu {
   r_rarr_ptr_t plamap_r; //Memory-Mapping read
   w_rarr_ptr_t plamap_w; //Memory-Mapping write
   uint8_t _exrom:1, _game:1;
-  uint8_t nmiLine;
 
   tvic vic;
   tcia cia1;
@@ -125,11 +125,16 @@ static inline void cpu_irq_clear(void)
 	}
 }
 
+static inline void cpu_nmi(void) {
+	cpu.nmi_pending = true;
+}
+
+static inline void cpu_nmi_clear(void) {
+	cpu.nmi_pending = false;
+	cpu.nmi = false;
+}
+
 void cpu_reset();
-void cpu_nmi();
-void cpu_clearNmi();
-void cpu_irq(void);
-void cpu_irq_clear(void);
 void cpu_clock(int cycles);
 
 void cia_clockt(int ticks);
