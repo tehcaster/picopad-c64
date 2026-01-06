@@ -51,19 +51,34 @@ void cia1_setAlarmTime() {
 	cpu.cia1.TODAlarm = (cpu.cia1.W[0x08] + cpu.cia1.W[0x09] * 10l + cpu.cia1.W[0x0A] * 600l + cpu.cia1.W[0x0B] * 36000l);
 }
 
-void cia1_write(uint32_t address, uint8_t value) {
+void cia1_write(uint32_t address, uint8_t value)
+{
+	struct tcia &cia1 = cpu.cia1;
+	struct cia_timer &timerA = cia1.timerA;
+	struct cia_timer &timerB = cia1.timerB;
 
 	address &= 0x0F;
 
 	switch (address) {
-		case 0x04 : {cpu.cia1.W[address] = value;} ;break; //Timer A LO
-		case 0x05 : {cpu.cia1.W[address] = value; if ((cpu.cia1.R[0x0E] & 0x01) == 0) cpu.cia1.R[address]=value; };break;//Timer A HI
-		case 0x06 : {cpu.cia1.W[address] = value;} ;break; //Timer B LO
-		case 0x07 : {cpu.cia1.W[address] = value; if ((cpu.cia1.R[0x0F] & 0x01) == 0) cpu.cia1.R[address]=value; };break; //Timer B HI
-
+	case 0x04:
+		timerA.latch_lo = value;
+		break;
+	case 0x05:
+		timerA.latch_hi = value;
+		if (!timerA.running)
+			timerA.value_hi = value;
+		break;
+	case 0x06:
+		timerB.latch_lo = value;
+		break;
+	case 0x07:
+		timerB.latch_hi = value;
+		if (!timerB.running)
+			timerB.value_hi = value;
+		break;
 		//RTC
 		case 0x08 : {
-					if ((cpu.cia1.R[0x0f] & 0x80)>0) {
+					if (timerB.TOD_set_alarm) {
 						value &= 0x0f;
 						cpu.cia1.W[address] = value;
 						cia1_setAlarmTime();
@@ -88,7 +103,7 @@ void cia1_write(uint32_t address, uint8_t value) {
 					};
 					break; //TOD-Tenth
 		case 0x09 : {
-					if ((cpu.cia1.R[0x0f] & 0x80)>0) {
+					if (timerB.TOD_set_alarm) {
 						cpu.cia1.W[address] = bcdToDec(value);
 						cia1_setAlarmTime();
 						#if RTCDEBUG
@@ -107,7 +122,7 @@ void cia1_write(uint32_t address, uint8_t value) {
 					};
 					break; //TOD-Secs
 		case 0x0A : {
-					if ((cpu.cia1.R[0x0f] & 0x80)>0) {
+					if (timerB.TOD_set_alarm) {
 						cpu.cia1.W[address] = bcdToDec(value);
 						cia1_setAlarmTime();
 						#if RTCDEBUG
@@ -125,7 +140,7 @@ void cia1_write(uint32_t address, uint8_t value) {
 					}
 					};break; //TOD-Minutes
 		case 0x0B : {
-					if ((cpu.cia1.R[0x0f] & 0x80)>0) {
+					if (timerB.TOD_set_alarm) {
 						cpu.cia1.W[address] = bcdToDec(value & 0x1f) + (value & 0x80?12:0);
 						cia1_setAlarmTime();
 						#if RTCDEBUG
@@ -165,27 +180,60 @@ void cia1_write(uint32_t address, uint8_t value) {
 
 					};
 					break;
-		case 0x0E : {cpu.cia1.R[address] = value & ~0x10;
-					 if ((value & 0x10)>0) { cpu.cia1.R16[0x04/2] = cpu.cia1.W16[0x04/2]; }
-					 };
-					 break;
-		case 0x0F : {cpu.cia1.R[address] = value & ~0x10; if ((value & 0x10)>0) { cpu.cia1.R16[0x06/2] = cpu.cia1.W16[0x06/2]; }};break;
-		default   : {cpu.cia1.R[address] = value;/*if (address ==0) {Serial.print(value);Serial.print(" ");}*/ } break;
+	case 0x0E:
+		timerA.control = value;
+		if (timerA.load_from_latch) {
+			timerA.value = timerA.latch;
+			timerA.load_from_latch = 0;
+		}
+		if (timerA.portB_on)
+			printf("UNIMPLEMENTED: cia1 timer A port B enabled");
+		break;
+	case 0x0F:
+		timerB.control = value;
+		if (timerB.load_from_latch) {
+			timerB.value = timerB.latch;
+			timerB.load_from_latch = 0;
+		}
+		if (timerB.portB_on)
+			printf("UNIMPLEMENTED: cia1 timer A port B enabled");
+		break;
+	default:
+		cpu.cia1.R[address] = value;
+		/*if (address ==0) {Serial.print(value);Serial.print(" ");}*/
+		break;
 	}
 
+	//printf("CIA1: W %x %x\n", address, value);
 #if DEBUGCIA1
 	if (cpu.pc < 0xa000) Serial.printf("%x CIA1: W %x %x\n", cpu.pc, address, value);
 #endif
 }
 
 uint8_t cia1_read(uint32_t address) {
-uint8_t ret;
+	struct tcia &cia1 = cpu.cia1;
+	struct cia_timer &timerA = cia1.timerA;
+	struct cia_timer &timerB = cia1.timerB;
+
+	uint8_t ret;
 
 	address &= 0x0F;
 
 	switch (address) {
 		case 0x00: {ret = cia1PORTA();};break;
 		case 0x01: {ret = cia1PORTB();};break;
+	case 0x04:
+		ret = timerA.value_lo;
+		break;
+	case 0x05:
+		ret = timerA.value_hi;
+		break;
+	case 0x06:
+		ret = timerB.value_lo;
+		break;
+	case 0x07:
+		ret = timerB.value_hi;
+		break;
 		//RTC
 		case 0x08: {
 					ret = tod() % 1000 / 10;
@@ -245,14 +293,22 @@ uint8_t ret;
 					cpu_irq_clear();
 					};
 					break;
-
-		default: ret = cpu.cia1.R[address];break;
+	case 0x0E:
+		ret = timerA.control;
+		break;
+	case 0x0F:
+		ret = timerB.control;
+		break;
+	default:
+		ret = cpu.cia1.R[address];
+		break;
 	}
 
+	//printf("CIA1: R %x %x\n", address, ret);
 #if DEBUGCIA1
 	if (cpu.pc < 0xa000) Serial.printf("%x CIA1: R %x %x\n", cpu.pc, address, ret);
 #endif
-return ret;
+	return ret;
 }
 
 #if 0
@@ -315,17 +371,23 @@ underflow_b:
 }
 #else
 
-void cia1_clock(int clk) {
+void cia1_clock(int clk)
+{
+	struct tcia &cia1 = cpu.cia1;
+	struct cia_timer &timerA = cia1.timerA;
+	struct cia_timer &timerB = cia1.timerB;
 
 	int32_t t;
-	uint32_t regFEDC = cpu.cia1.R32[0x0C/4];
+	uint8_t ICR = cia1.R[0xD];
 	static int tape_clk = 0;
+	bool timerA_underflow = false;
+
 
 tape_retry:
 	if (tape_running) {
 		tape_clk -= clk;
 		if (tape_clk < 0) {
-			regFEDC |= 0x1000;
+			ICR |= 0x10;
 			tape_clk += tape_next_pulse();
 			if (tape_clk < 0 && tape_running) {
 				printf("tape clk underflow: %d\n", tape_clk);
@@ -335,58 +397,63 @@ tape_retry:
 	}
 
 	// TIMER A
-	//if (((cpu.cia1.R[0x0E] & 0x01)>0) && ((cpu.cia1.R[0x0E] & 0x20)==0)) {
-
-	//if ((regFEDC & 0x210000)==0x10000) {
-	if (((regFEDC>>16) & 0x21)==0x1) {
-		t = cpu.cia1.R16[0x04/2];
+	if (timerA.running && !timerA.count_CNT) {
+		t = timerA.value;
 
 		if (clk > t) { //underflow ?
-			t = cpu.cia1.W16[0x04/2] - (clk - t);
-			regFEDC |= 0x00000100;
-			if ((regFEDC & 0x00080000)) regFEDC &= 0xfffeffff; //One-Shot
-		}
-		else {
-			t-=clk;
+			/*
+			 * TODO: should we reset to latch if there's one-shot? if not,
+			 * should the value be 0xffff?
+			 */
+			t = timerA.latch - (clk - t);
+			ICR |= 0x01;
+			timerA_underflow = true;
+
+			if (timerA.underflow_stop)
+				timerA.running = 0;
+		} else {
+			t -= clk;
 		}
 
-		cpu.cia1.R16[0x04/2] = t;
+		timerA.value = t;
 	}
 
 
 	// TIMER B
-	//TODO : Prüfen ob das funktioniert
-	if ( regFEDC & 0x01000000 ) {
-		//uint16_t quelle = (cpu.cia1.R[0x0F]>>5) & 0x03;
-		if ((regFEDC & 0x60000000) == 0x40000000) {
+	if (timerB.running && !timerB.count_CNT) {
+		int timerB_clk = clk;
 
-			if (regFEDC & 0x00000100) //unterlauf TimerA?
-				clk = 1;
+		if (timerB.count_timerA) {
+			if (timerA_underflow)
+				timerB_clk = 1;
 			else
 				goto tend;
 		}
 
-		t = cpu.cia1.R16[0x06/2];
+		t = timerB.value;
 
-		if (clk > t) { //underflow ?
-			t = cpu.cia1.W16[0x06/2] - (clk - t);
-			regFEDC |= 0x00000200;
-			if ((regFEDC & 0x08000000)) regFEDC &= 0xfeffffff;
+		if (timerB_clk > t) { //underflow ?
+			/* TODO: same as for timerA above */
+			t = timerB.latch - (timerB_clk - t);
+			ICR |= 0x02;
+
+			if (timerB.underflow_stop)
+				timerB.running = 0;
 		} else {
-			t -= clk;
+			t -= timerB_clk;
 		}
-		cpu.cia1.R16[0x06/2] = t; //One-Shot
-
+		timerB.value = t;
 	}
 
 tend:
 	// INTERRUPT ?
-	if ( regFEDC & cpu.cia1.W32[0x0C/4] & 0x1f00 ) {
-		regFEDC |= 0x8000;
-		cpu.cia1.R32[0x0C/4]=regFEDC;
+	if (ICR & 0x1f & cia1.W[0x0D]) {
+		ICR |= 0x80;
+		cia1.R[0x0D] = ICR;
 		cpu_irq();
+	} else {
+		cia1.R[0x0D] = ICR;
 	}
-	else cpu.cia1.R32[0x0C/4]=regFEDC;
 }
 
 #endif
@@ -400,20 +467,18 @@ void cia1_checkRTCAlarm() { // call @ 1/10 sec interval minimum
 			cpu_irq();
 	}
 }
-
+/*
 void cia1FLAG(void) {
 	//Serial.println("CIA1 FLAG interrupt");
 	cpu.cia1.R[13] |= 0x10 | ((cpu.cia1.W[13] & 0x10) << 3);
 	if (cpu.cia1.R[0x0d] | 0x80)
 		cpu_irq();
 }
-
+*/
 void resetCia1(void) {
-	memset((uint8_t*)&cpu.cia1.R, 0, sizeof(cpu.cia1.R));
-	cpu.cia1.W[0x04] = cpu.cia1.R[0x04] = 0xff;
-	cpu.cia1.W[0x05] = cpu.cia1.R[0x05] = 0xff;
-	cpu.cia1.W[0x06] = cpu.cia1.R[0x06] = 0xff;
-	cpu.cia1.W[0x07] = cpu.cia1.R[0x07] = 0xff;
+	memset(&cpu.cia1, 0, sizeof(cpu.cia1));
+	cpu.cia1.timerA.value = cpu.cia1.timerA.latch = 0xffff;
+	cpu.cia1.timerB.value = cpu.cia1.timerB.latch = 0xffff;
 
 	//FLAG pin CIA1 - Serial SRQ (input only)
     //pinMode(PIN_SERIAL_SRQ, OUTPUT_OPENDRAIN);

@@ -1,6 +1,35 @@
 #ifndef Teensy64_cia1_h_
 #define Teensy64_cia1_h_
 
+struct cia_timer {
+	union {
+		uint16_t value;
+		struct {
+			uint8_t value_lo;
+			uint8_t value_hi;
+		};
+	};
+	union {
+		uint16_t latch;
+		struct {
+			uint8_t latch_lo;
+			uint8_t latch_hi;
+		};
+	};
+	union {
+		uint8_t control;
+		// Timer A
+		struct {
+			uint8_t running: 1, portB_on: 1, portB_mode: 1, underflow_stop: 1,
+				load_from_latch: 1, count_CNT: 1, SP_output: 1, RTC_Hz: 1;
+		};
+		// Timer B
+		struct {
+			uint8_t : 6, count_timerA: 1, TOD_set_alarm: 1;
+		};
+	};
+};
+
 struct tcia {
 	union {
 		uint8_t R[0x10];
@@ -12,6 +41,8 @@ struct tcia {
 		uint16_t W16[0x10/2];
 		uint32_t W32[0x10/4];
 	};
+	struct cia_timer timerA;
+	struct cia_timer timerB;
 	int32_t TOD;
 	int32_t TODfrozenMillis;
 	int32_t TODAlarm;
