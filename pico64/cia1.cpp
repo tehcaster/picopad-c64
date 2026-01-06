@@ -311,66 +311,6 @@ uint8_t cia1_read(uint32_t address) {
 	return ret;
 }
 
-#if 0
-void cia1_clock(int clk) {
-
-	uint32_t cnta, cntb, cra, crb;
-
-	//Timer A
-	cra = cpu.cia1.R[0x0e];
-	crb = cpu.cia1.R[0x0f];
-
-	if (( cra & 0x21) == 0x01) {
-		cnta = cpu.cia1.R[0x04] | cpu.cia1.R[0x05] << 8;
-		cnta -= clk;
-		if (cnta > 0xffff) { //Underflow
-			cnta = cpu.cia1.W[0x04] | cpu.cia1.W[0x05] << 8; // Reload Timer
-			if (cra & 0x08) { // One Shot
-				cpu.cia1.R[0x0e] &= 0xfe; //Stop timer
-			}
-
-			//Interrupt:
-			cpu.cia1.R[0x0d] |= 1 /*| (cpu.cia1.W[0x1a] & 0x01) */| ((cpu.cia1.W[0x0d] & 0x01) << 7);
-
-			if ((crb & 0x61)== 0x41) { //Timer B counts underflows of Timer A
-				cntb = cpu.cia1.R[0x06] | cpu.cia1.R[0x07] << 8;
-				cntb--;
-				if (cntb > 0xffff) { //underflow
-					cpu.cia1.R[0x04] = cnta;
-					cpu.cia1.R[0x05] = cnta >> 8;
-					goto underflow_b;
-				}
-			}
-		}
-
-		cpu.cia1.R[0x04] = cnta;
-		cpu.cia1.R[0x05] = cnta >> 8;
-
-	}
-
-	//Timer B
-	if (( crb & 0x61) == 0x01) {
-		cntb = cpu.cia1.R[0x06] | cpu.cia1.R[0x07] << 8;
-		cntb -= clk;
-		if (cntb > 0xffff) { //underflow
-underflow_b:
-			cntb = cpu.cia1.W[0x06] | cpu.cia1.W[0x07] << 8; // Reload Timer
-			if (crb & 0x08) { // One Shot
-				cpu.cia1.R[0x0f] &= 0xfe; //Stop timer
-			}
-
-			//Interrupt:
-			cpu.cia1.R[0x0d] |= 2 /*|  (cpu.cia1.W[0x1a] & 0x02) */ | ((cpu.cia1.W[0x0d] & 0x02) << 6);
-
-		}
-
-		cpu.cia1.R[0x06] = cntb;
-		cpu.cia1.R[0x07] = cntb >> 8;
-
-	}
-}
-#else
-
 void cia1_clock(int clk)
 {
 	struct tcia &cia1 = cpu.cia1;
@@ -455,8 +395,6 @@ tend:
 		cia1.R[0x0D] = ICR;
 	}
 }
-
-#endif
 
 void cia1_checkRTCAlarm() { // call @ 1/10 sec interval minimum
 
