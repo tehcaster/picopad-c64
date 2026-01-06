@@ -30,6 +30,29 @@ struct cia_timer {
 	};
 };
 
+struct ICR {
+	union {
+		uint8_t int_raw;
+		struct {
+			uint8_t int_timerA: 1, int_timerB: 1, int_TOD: 1,
+				int_SDR: 1, int_FLAG: 1, : 2, IRQ: 1;
+		};
+		struct {
+			uint8_t int_all: 5, : 3;
+		};
+	};
+	union {
+		uint8_t mask_raw;
+		struct {
+			uint8_t mask_timerA: 1, mask_timerB: 1, mask_TOD: 1,
+				mask_SDR: 1, mask_FLAG: 1, : 3;
+		};
+		struct {
+			uint8_t mask_all: 5, : 3;
+		};
+	};
+};
+
 struct tcia {
 	union {
 		uint8_t R[0x10];
@@ -43,6 +66,7 @@ struct tcia {
 	};
 	struct cia_timer timerA;
 	struct cia_timer timerB;
+	struct ICR ICR;
 	int32_t TOD;
 	int32_t TODfrozenMillis;
 	int32_t TODAlarm;

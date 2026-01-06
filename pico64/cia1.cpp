@@ -158,28 +158,28 @@ void cia1_write(uint32_t address, uint8_t value)
 					}
 					};break; //TOD-Hours
 
-		case 0x0C : {
-					cpu.cia1.R[address] = value;
-					//Fake IRQ
-					cpu.cia1.R[0x0d] |= 8 | ((cpu.cia1.W[0x0d] & 0x08) << 4);
-					if (cpu.cia1.R[0x0d] | 0x80)
-						cpu_irq();
-					}
-					;break;
-		case 0x0D : {
-					if ((value & 0x80)>0) {
-						cpu.cia1.W[address] |= value & 0x1f;
-						//ggf IRQ triggern
-						if (cpu.cia1.R[address] & cpu.cia1.W[address] & 0x1f) {
-							cpu.cia1.R[address] |= 0x80;
-							cpu_irq();
-						};
-					} else {
-						cpu.cia1.W[address] &= ~value;
-					}
+	case 0x0C:
+		cpu.cia1.R[address] = value;
+		//Fake IRQ (TODO: find documentation about this)
+		printf("CIA 1 SDR IRQ after setting value %x\n", value);
+		cia1.ICR.int_SDR = 1;
+		if (cia1.ICR.mask_SDR) {
+			cia1.ICR.IRQ = 1;
+			cpu_irq();
+		}
+		break;
+	case 0x0D:
+		if (value & 0x80) {
+			cia1.ICR.mask_all |= value;
+			if (cia1.ICR.int_all & cia1.ICR.mask_all) {
+				cia1.ICR.IRQ = 1;
+				cpu_irq();
+			};
+		} else {
+			cia1.ICR.mask_all &= ~value;
+		}
 
-					};
-					break;
+		break;
 	case 0x0E:
 		timerA.control = value;
 		if (timerA.load_from_latch) {
@@ -288,11 +288,11 @@ uint8_t cia1_read(uint32_t address) {
 
 				   break;
 
-		case 0x0D: {ret = cpu.cia1.R[address] & 0x9f;
-					cpu.cia1.R[address]=0;
-					cpu_irq_clear();
-					};
-					break;
+	case 0x0D:
+		ret = cia1.ICR.int_raw;
+		cia1.ICR.int_raw = 0;
+		cpu_irq_clear();
+		break;
 	case 0x0E:
 		ret = timerA.control;
 		break;
@@ -318,16 +318,14 @@ void cia1_clock(int clk)
 	struct cia_timer &timerB = cia1.timerB;
 
 	int32_t t;
-	uint8_t ICR = cia1.R[0xD];
 	static int tape_clk = 0;
 	bool timerA_underflow = false;
-
 
 tape_retry:
 	if (tape_running) {
 		tape_clk -= clk;
 		if (tape_clk < 0) {
-			ICR |= 0x10;
+			cia1.ICR.int_FLAG = 1;
 			tape_clk += tape_next_pulse();
 			if (tape_clk < 0 && tape_running) {
 				printf("tape clk underflow: %d\n", tape_clk);
@@ -346,7 +344,7 @@ tape_retry:
 			 * should the value be 0xffff?
 			 */
 			t = timerA.latch - (clk - t);
-			ICR |= 0x01;
+			cia1.ICR.int_timerA = 1;
 			timerA_underflow = true;
 
 			if (timerA.underflow_stop)
@@ -375,7 +373,7 @@ tape_retry:
 		if (timerB_clk > t) { //underflow ?
 			/* TODO: same as for timerA above */
 			t = timerB.latch - (timerB_clk - t);
-			ICR |= 0x02;
+			cia1.ICR.int_timerB = 1;
 
 			if (timerB.underflow_stop)
 				timerB.running = 0;
@@ -387,22 +385,21 @@ tape_retry:
 
 tend:
 	// INTERRUPT ?
-	if (ICR & 0x1f & cia1.W[0x0D]) {
-		ICR |= 0x80;
-		cia1.R[0x0D] = ICR;
+	if (cia1.ICR.int_all & cia1.ICR.mask_all) {
+		cia1.ICR.IRQ = 1;
 		cpu_irq();
-	} else {
-		cia1.R[0x0D] = ICR;
 	}
 }
 
 void cia1_checkRTCAlarm() { // call @ 1/10 sec interval minimum
 
 	if ((int)(millis() - cpu.cia1.TOD) % 86400000l/100 == cpu.cia1.TODAlarm) {
-		//Serial.print("CIA1 RTC interrupt");
-		cpu.cia1.R[13] |= 0x4 | ((cpu.cia1.W[13] & 4) << 5);
-		if (cpu.cia1.R[0x0d] | 0x80)
+		printf("CIA1 RTC interrupt\n");
+		cpu.cia1.ICR.int_TOD = 1;
+		if (cpu.cia1.ICR.mask_TOD) {
+			cpu.cia1.ICR.IRQ = 1;
 			cpu_irq();
+		}
 	}
 }
 /*

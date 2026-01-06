@@ -119,7 +119,7 @@ static inline void cpu_irq(void)
 
 static inline void cpu_irq_clear(void)
 {
-	if (!((cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80)) {
+	if (!(cpu.vic.IRQ || cpu.cia1.ICR.IRQ)) {
 		cpu.irq_pending = false;
 		cpu.irq_delay = 0;
 	}

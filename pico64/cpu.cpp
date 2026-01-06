@@ -2639,12 +2639,12 @@ void cpu_clock(int cycles) {
 	static int c = 0;
 	static int writeCycles = 0;
 /*
-	bool irq_pending = (cpu.vic.R[0x19] | cpu.cia1.R[0x0D]) & 0x80;
+	bool irq_pending = (cpu.vic.IRQ || cpu.cia1.ICR.IRQ);
 	bool nmi_pending = (cpu.cia2.R[0x0D] & 0x80);
 
 	if (irq_pending != cpu.irq_pending) {
 		printf("irq tracking mismatch: vic %x cia1 %x flag %d\n",
-				cpu.vic.R[0x19], cpu.cia1.R[0x0D],
+				cpu.vic.R[0x19], cpu.cia1.ICR.int_raw,
 				cpu.irq_pending);
 	}
 
