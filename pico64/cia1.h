@@ -72,6 +72,7 @@ struct tcia {
 	int32_t TODAlarm;
 	uint8_t TODstopped;
 	uint8_t TODfrozen;
+	uint8_t SDR;
 };
 
 

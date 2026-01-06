@@ -159,7 +159,7 @@ void cia1_write(uint32_t address, uint8_t value)
 					};break; //TOD-Hours
 
 	case 0x0C:
-		cpu.cia1.R[address] = value;
+		cia1.SDR = value;
 		//Fake IRQ (TODO: find documentation about this)
 		printf("CIA 1 SDR IRQ after setting value %x\n", value);
 		cia1.ICR.int_SDR = 1;
@@ -287,7 +287,9 @@ uint8_t cia1_read(uint32_t address) {
 					#endif
 
 				   break;
-
+	case 0x0C:
+		ret = cia1.SDR;
+		break;
 	case 0x0D:
 		ret = cia1.ICR.int_raw;
 		cia1.ICR.int_raw = 0;
