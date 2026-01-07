@@ -54,12 +54,26 @@ void cia1_setAlarmTime() {
 void cia1_write(uint32_t address, uint8_t value)
 {
 	struct tcia &cia1 = cpu.cia1;
+	struct data_port &portA = cia1.portA;
+	struct data_port &portB = cia1.portB;
 	struct cia_timer &timerA = cia1.timerA;
 	struct cia_timer &timerB = cia1.timerB;
 
 	address &= 0x0F;
 
 	switch (address) {
+	case 0x00:
+		portA.data = value;
+		break;
+	case 0x01:
+		portB.data = value;
+		break;
+	case 0x02:
+		portA.direction = value;
+		break;
+	case 0x03:
+		portB.direction = value;
+		break;
 	case 0x04:
 		timerA.latch_lo = value;
 		break;
@@ -220,8 +234,18 @@ uint8_t cia1_read(uint32_t address) {
 	address &= 0x0F;
 
 	switch (address) {
-		case 0x00: {ret = cia1PORTA();};break;
-		case 0x01: {ret = cia1PORTB();};break;
+	case 0x00:
+		ret = cia1PORTA();
+		break;
+	case 0x01:
+		ret = cia1PORTB();
+		break;
+	case 0x02:
+		ret = cia1.portA.direction;
+		break;
+	case 0x03:
+		ret = cia1.portB.direction;
+		break;
 	case 0x04:
 		ret = timerA.value_lo;
 		break;

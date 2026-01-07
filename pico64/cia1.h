@@ -30,6 +30,11 @@ struct cia_timer {
 	};
 };
 
+struct data_port {
+	uint8_t data;
+	uint8_t direction;
+};
+
 struct ICR {
 	union {
 		uint8_t int_raw;
@@ -64,6 +69,8 @@ struct tcia {
 		uint16_t W16[0x10/2];
 		uint32_t W32[0x10/4];
 	};
+	struct data_port portA;
+	struct data_port portB;
 	struct cia_timer timerA;
 	struct cia_timer timerB;
 	struct ICR ICR;

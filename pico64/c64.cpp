@@ -173,8 +173,10 @@ uint8_t cia1PORTA(void) {
 	uint8_t v;
 	uint8_t filter;
 
-	v = ~cpu.cia1.R[0x02] | (cpu.cia1.R[0x00] & cpu.cia1.R[0x02]);
-	filter = ~cpu.cia1.R[0x01] & cpu.cia1.R[0x03];
+	v = ~cpu.cia1.portA.direction;
+	v |= cpu.cia1.portA.data & cpu.cia1.portA.direction;
+
+	filter = ~cpu.cia1.portB.data & cpu.cia1.portB.direction;
 
 	if (input_blocked)
 		goto nobuttons;
@@ -222,8 +224,10 @@ uint8_t cia1PORTB(void) {
 	uint8_t v;
 	uint8_t filter;
 
-	v = ~cpu.cia1.R[0x03] | (cpu.cia1.R[0x01] & cpu.cia1.R[0x03]);
-	filter = ~cpu.cia1.R[0x00] & cpu.cia1.R[0x02];
+	v = ~cpu.cia1.portB.direction;
+	v |= cpu.cia1.portB.data & cpu.cia1.portB.direction;
+
+	filter = ~cpu.cia1.portA.data & cpu.cia1.portA.direction;
 
 	if (input_blocked)
 		goto nobuttons;
