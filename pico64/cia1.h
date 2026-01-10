@@ -71,27 +71,12 @@ struct RTC {
 };
 
 struct tcia {
-	union {
-		uint8_t R[0x10];
-		uint16_t R16[0x10/2];
-		uint32_t R32[0x10/4];
-	};
-	union {
-		uint8_t W[0x10];
-		uint16_t W16[0x10/2];
-		uint32_t W32[0x10/4];
-	};
 	struct data_port portA;
 	struct data_port portB;
 	struct cia_timer timerA;
 	struct cia_timer timerB;
 	struct ICR ICR;
 	struct RTC RTC;
-	int32_t TOD;
-	int32_t TODfrozenMillis;
-	int32_t TODAlarm;
-	uint8_t TODstopped;
-	uint8_t TODfrozen;
 	uint8_t SDR;
 };
 
