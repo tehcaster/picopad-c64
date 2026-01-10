@@ -12,20 +12,10 @@ using namespace std;
 
 /* IRAM_ATTR */
 static void oneRasterLine(void) {
-  static unsigned short lc = 1;
 
+	cpu.lineCycles = cpu.lineCyclesAbs = 0;
 
-    cpu.lineCycles = cpu.lineCyclesAbs = 0;
-
-      vic_do();
-
-    if (--lc == 0) {
-      lc = LINEFREQ / 10; // 10Hz
-//      cia1_checkRTCAlarm();
-      cia2_checkRTCAlarm();
-    }
-
-
+	vic_do();
 }
 
 const u8 ascii2scan[] = {

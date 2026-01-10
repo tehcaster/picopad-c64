@@ -1074,7 +1074,7 @@ void vic_do(void)
 		cpu.vic.vcbase = 0;
 		cpu.vic.denLatch = 0;
 
-		cia1_rtc_frame_update();
+		cia_rtc_frame_update();
 
 		nFramesC64++;
 	}

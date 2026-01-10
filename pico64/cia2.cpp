@@ -50,7 +50,7 @@ void cia2_setAlarmTime() {
   cpu.cia2.TODAlarm = (cpu.cia2.W[0x08] + cpu.cia2.W[0x09] * 10l + cpu.cia2.W[0x0A] * 600l + cpu.cia2.W[0x0B] * 36000l);
 }
 
-void cia2_write(uint32_t address, uint8_t value) {
+static void __cia2_write(uint32_t address, uint8_t value) {
 
   address &= 0x0F;
 
@@ -220,7 +220,7 @@ void cia2_write(uint32_t address, uint8_t value) {
 #endif
 }
 
-uint8_t cia2_read(uint32_t address) {
+static uint8_t __cia2_read(uint32_t address) {
   uint8_t ret;
 
   address &= 0x0F;

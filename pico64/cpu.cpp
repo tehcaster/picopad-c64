@@ -2623,18 +2623,6 @@ static void cpu_irq_do() {
 	cpu.ticks = 7;
 }
 
-inline void cia_clock(void)  __attribute__((always_inline));
-
-void cia_clock(void) {
-	cia1_clock(1);
-	cia2_clock(1);
-}
-
-void cia_clockt(int ticks) {
-	cia1_clock(ticks);
-	cia2_clock(ticks);
-}
-
 void cpu_clock(int cycles) {
 	static int c = 0;
 	static int writeCycles = 0;

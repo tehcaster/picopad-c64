@@ -71,17 +71,15 @@ static inline uint32_t rtc_parts_to_ms(uint8_t hr, uint8_t min, uint8_t s,
 	return res;
 }
 
-static void cia1_rtc_alarm_update(void)
+static void rtc_alarm_update(struct RTC &RTC)
 {
-	struct RTC &RTC = cpu.cia1.RTC;
-
 	RTC.alarm_ms = rtc_parts_to_ms(RTC.alarm_hr, RTC.alarm_min, RTC.alarm_s,
 			RTC.alarm_ds);
 }
 
-static void cia1_rtc_time_write(enum rtc_write_what what, uint8_t val)
+static void rtc_time_write(struct RTC &RTC, enum rtc_write_what what, uint8_t val)
 {
-	uint32_t old = cpu.cia1.RTC.time_ms;
+	uint32_t old = RTC.time_ms;
 	uint8_t ds, s, min, hr;
 
 	old /= 100;
@@ -112,17 +110,24 @@ static void cia1_rtc_time_write(enum rtc_write_what what, uint8_t val)
 		break;
 	};
 
-	cpu.cia1.RTC.time_ms = rtc_parts_to_ms(hr, min, s, ds);
+	RTC.time_ms = rtc_parts_to_ms(hr, min, s, ds);
 }
 
-void cia1_write(uint32_t address, uint8_t value)
+static inline void cia_irq(int cia_num)
 {
-	struct tcia &cia1 = cpu.cia1;
-	struct data_port &portA = cia1.portA;
-	struct data_port &portB = cia1.portB;
-	struct cia_timer &timerA = cia1.timerA;
-	struct cia_timer &timerB = cia1.timerB;
-	struct RTC &RTC = cia1.RTC;
+	if (cia_num == 1)
+		cpu_irq();
+	else
+		cpu_nmi();
+}
+
+static void cia_write(struct tcia &cia, uint32_t address, uint8_t value, int cia_num)
+{
+	struct data_port &portA = cia.portA;
+	struct data_port &portB = cia.portB;
+	struct cia_timer &timerA = cia.timerA;
+	struct cia_timer &timerB = cia.timerB;
+	struct RTC &RTC = cia.RTC;
 	uint8_t tmp;
 
 	address &= 0x0F;
@@ -130,6 +135,10 @@ void cia1_write(uint32_t address, uint8_t value)
 	switch (address) {
 	case 0x00:
 		portA.data = value;
+		if (cia_num == 2) {
+		      cpu.vic.bank = ((~value) & 0x03) * 16384;
+		      vic_adrchange();
+		}
 		break;
 	case 0x01:
 		portB.data = value;
@@ -163,9 +172,9 @@ void cia1_write(uint32_t address, uint8_t value)
 
 		if (timerB.TOD_set_alarm) {
 			RTC.alarm_ds = value;
-			cia1_rtc_alarm_update();
+			rtc_alarm_update(RTC);
 		} else {
-			cia1_rtc_time_write(DS, value);
+			rtc_time_write(RTC, DS, value);
 			//TODO: wiki says it's only reading that resumes?
 			RTC.stopped = false;
 		}
@@ -177,9 +186,9 @@ void cia1_write(uint32_t address, uint8_t value)
 			value = 59;
 		if (timerB.TOD_set_alarm) {
 			RTC.alarm_s = value;
-			cia1_rtc_alarm_update();
+			rtc_alarm_update(RTC);
 		} else {
-			cia1_rtc_time_write(S, value);
+			rtc_time_write(RTC, S, value);
 		}
 		break;
 	case 0x0A: // RTC MIN
@@ -189,9 +198,9 @@ void cia1_write(uint32_t address, uint8_t value)
 			value = 59;
 		if (timerB.TOD_set_alarm) {
 			RTC.alarm_min = value;
-			cia1_rtc_alarm_update();
+			rtc_alarm_update(RTC);
 		} else {
-			cia1_rtc_time_write(MIN, value);
+			rtc_time_write(RTC, MIN, value);
 		}
 		break;
 	case 0x0B: // RTC HR
@@ -202,31 +211,31 @@ void cia1_write(uint32_t address, uint8_t value)
 			tmp += 12;
 		if (timerB.TOD_set_alarm) {
 			RTC.alarm_hr = value;
-			cia1_rtc_alarm_update();
+			rtc_alarm_update(RTC);
 		} else {
-			cia1_rtc_time_write(HR, value);
+			rtc_time_write(RTC, HR, value);
 			RTC.stopped = true;;
 		}
 		break;
 	case 0x0C:
-		cia1.SDR = value;
+		cia.SDR = value;
 		//Fake IRQ (TODO: find documentation about this)
-		printf("CIA 1 SDR IRQ after setting value %x\n", value);
-		cia1.ICR.int_SDR = 1;
-		if (cia1.ICR.mask_SDR) {
-			cia1.ICR.IRQ = 1;
-			cpu_irq();
+		printf("CIA %d SDR IRQ after setting value %x\n", cia_num, value);
+		cia.ICR.int_SDR = 1;
+		if (cia.ICR.mask_SDR) {
+			cia.ICR.IRQ = 1;
+			cia_irq(cia_num);
 		}
 		break;
 	case 0x0D:
 		if (value & 0x80) {
-			cia1.ICR.mask_all |= value;
-			if (cia1.ICR.int_all & cia1.ICR.mask_all) {
-				cia1.ICR.IRQ = 1;
-				cpu_irq();
+			cia.ICR.mask_all |= value;
+			if (cia.ICR.int_all & cia.ICR.mask_all) {
+				cia.ICR.IRQ = 1;
+				cia_irq(cia_num);
 			};
 		} else {
-			cia1.ICR.mask_all &= ~value;
+			cia.ICR.mask_all &= ~value;
 		}
 
 		break;
@@ -249,8 +258,7 @@ void cia1_write(uint32_t address, uint8_t value)
 			printf("UNIMPLEMENTED: cia1 timer A port B enabled");
 		break;
 	default:
-		cpu.cia1.R[address] = value;
-		/*if (address ==0) {Serial.print(value);Serial.print(" ");}*/
+		printf("cia_write() unhandled address %x value %x\n", address, value);
 		break;
 	}
 
@@ -260,11 +268,23 @@ void cia1_write(uint32_t address, uint8_t value)
 #endif
 }
 
-uint8_t cia1_read(uint32_t address) {
-	struct tcia &cia1 = cpu.cia1;
-	struct cia_timer &timerA = cia1.timerA;
-	struct cia_timer &timerB = cia1.timerB;
-	struct RTC &RTC = cia1.RTC;
+void cia1_write(uint32_t address, uint8_t value)
+{
+	cia_write(cpu.cia1, address, value, 1);
+}
+
+void cia2_write(uint32_t address, uint8_t value)
+{
+	cia_write(cpu.cia2, address, value, 2);
+}
+
+static uint8_t cia_read(struct tcia &cia, uint32_t address, int cia_num)
+{
+	struct cia_timer &timerA = cia.timerA;
+	struct cia_timer &timerB = cia.timerB;
+	struct data_port &portA = cia.portA;
+	struct data_port &portB = cia.portB;
+	struct RTC &RTC = cia.RTC;
 
 	uint8_t ret;
 
@@ -272,16 +292,22 @@ uint8_t cia1_read(uint32_t address) {
 
 	switch (address) {
 	case 0x00:
-		ret = cia1PORTA();
+		if (cia_num == 1)
+			ret = cia1PORTA();
+		else
+			ret = ~portA.direction | (portA.data & portA.direction);
 		break;
 	case 0x01:
-		ret = cia1PORTB();
+		if (cia_num == 1)
+			ret = cia1PORTB();
+		else
+			ret = ~portB.direction | (portB.data & portB.direction);
 		break;
 	case 0x02:
-		ret = cia1.portA.direction;
+		ret = portA.direction;
 		break;
 	case 0x03:
-		ret = cia1.portB.direction;
+		ret = portB.direction;
 		break;
 	case 0x04:
 		ret = timerA.value_lo;
@@ -315,12 +341,15 @@ uint8_t cia1_read(uint32_t address) {
 			ret = decToBcd(ret);
 		break;
 	case 0x0C:
-		ret = cia1.SDR;
+		ret = cia.SDR;
 		break;
 	case 0x0D:
-		ret = cia1.ICR.int_raw;
-		cia1.ICR.int_raw = 0;
-		cpu_irq_clear();
+		ret = cia.ICR.int_raw;
+		cia.ICR.int_raw = 0;
+		if (cia_num == 1)
+			cpu_irq_clear();
+		else
+			cpu_nmi_clear();
 		break;
 	case 0x0E:
 		ret = timerA.control;
@@ -329,7 +358,7 @@ uint8_t cia1_read(uint32_t address) {
 		ret = timerB.control;
 		break;
 	default:
-		ret = cpu.cia1.R[address];
+		printf("cia_read() unhandled address %x\n", address);
 		break;
 	}
 
@@ -340,21 +369,30 @@ uint8_t cia1_read(uint32_t address) {
 	return ret;
 }
 
-void cia1_clock(int clk)
+uint8_t cia1_read(uint32_t address)
 {
-	struct tcia &cia1 = cpu.cia1;
-	struct cia_timer &timerA = cia1.timerA;
-	struct cia_timer &timerB = cia1.timerB;
+	return cia_read(cpu.cia1, address, 1);
+}
+
+uint8_t cia2_read(uint32_t address)
+{
+	return cia_read(cpu.cia2, address, 2);
+}
+
+static void __cia_clock(struct tcia &cia, int clk, int cia_num)
+{
+	struct cia_timer &timerA = cia.timerA;
+	struct cia_timer &timerB = cia.timerB;
 
 	int32_t t;
 	static int tape_clk = 0;
 	bool timerA_underflow = false;
 
 tape_retry:
-	if (tape_running) {
+	if (tape_running && cia_num == 1) {
 		tape_clk -= clk;
 		if (tape_clk < 0) {
-			cia1.ICR.int_FLAG = 1;
+			cia.ICR.int_FLAG = 1;
 			tape_clk += tape_next_pulse();
 			if (tape_clk < 0 && tape_running) {
 				printf("tape clk underflow: %d\n", tape_clk);
@@ -373,7 +411,7 @@ tape_retry:
 			 * should the value be 0xffff?
 			 */
 			t = timerA.latch - (clk - t);
-			cia1.ICR.int_timerA = 1;
+			cia.ICR.int_timerA = 1;
 			timerA_underflow = true;
 
 			if (timerA.underflow_stop)
@@ -402,7 +440,7 @@ tape_retry:
 		if (timerB_clk > t) { //underflow ?
 			/* TODO: same as for timerA above */
 			t = timerB.latch - (timerB_clk - t);
-			cia1.ICR.int_timerB = 1;
+			cia.ICR.int_timerB = 1;
 
 			if (timerB.underflow_stop)
 				timerB.running = 0;
@@ -414,16 +452,28 @@ tape_retry:
 
 tend:
 	// INTERRUPT ?
-	if (cia1.ICR.int_all & cia1.ICR.mask_all) {
-		cia1.ICR.IRQ = 1;
-		cpu_irq();
+	if (cia.ICR.int_all & cia.ICR.mask_all) {
+		cia.ICR.IRQ = 1;
+		cia_irq(cia_num);
 	}
 }
 
-void cia1_rtc_frame_update(void)
+void cia_clock(void)
 {
-	struct tcia &cia1 = cpu.cia1;
-	struct RTC &RTC = cia1.RTC;
+	__cia_clock(cpu.cia1, 1, 1);
+	__cia_clock(cpu.cia2, 1, 2);
+}
+
+void cia_clockt(int ticks)
+{
+	__cia_clock(cpu.cia1, ticks, 1);
+	__cia_clock(cpu.cia2, ticks, 2);
+}
+
+
+static void __cia_rtc_frame_update(struct tcia &cia, int cia_num)
+{
+	struct RTC &RTC = cia.RTC;
 
 	if (RTC.stopped)
 		return;
@@ -432,12 +482,12 @@ void cia1_rtc_frame_update(void)
 
 	if (RTC.time_ms < RTC.alarm_ms && RTC.time_ms + 20 >= RTC.alarm_ms) {
 alarm:
-		printf("CIA1 RTC interrupt\n");
+		printf("CIA %d RTC interrupt\n", cia_num);
 		RTC.time_ms = RTC.alarm_ms;
-		cia1.ICR.int_TOD = 1;
-		if (cia1.ICR.mask_TOD) {
-			cia1.ICR.IRQ = 1;
-			cpu_irq();
+		cia.ICR.int_TOD = 1;
+		if (cia.ICR.mask_TOD) {
+			cia.ICR.IRQ = 1;
+			cia_irq(cia_num);
 		}
 		return;
 	}
@@ -449,6 +499,12 @@ alarm:
 			goto alarm;
 	}
 
+}
+
+void cia_rtc_frame_update(void)
+{
+	__cia_rtc_frame_update(cpu.cia1, 1);
+	__cia_rtc_frame_update(cpu.cia2, 2);
 }
 
 /*
@@ -482,4 +538,9 @@ void resetCia1(void) {
 	//attachInterrupt(digitalPinToInterrupt(PIN_SERIAL_SRQ), cia1FLAG, FALLING);
 }
 
+void resetCia2(void) {
+	memset(&cpu.cia2, 0, sizeof(cpu.cia2));
+	cpu.cia2.timerA.value = cpu.cia2.timerA.latch = 0xffff;
+	cpu.cia2.timerB.value = cpu.cia2.timerB.latch = 0xffff;
+}
 
