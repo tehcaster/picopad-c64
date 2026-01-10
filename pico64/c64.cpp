@@ -21,7 +21,7 @@ static void oneRasterLine(void) {
 
     if (--lc == 0) {
       lc = LINEFREQ / 10; // 10Hz
-      cia1_checkRTCAlarm();
+//      cia1_checkRTCAlarm();
       cia2_checkRTCAlarm();
     }
 

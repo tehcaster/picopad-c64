@@ -45,10 +45,74 @@
 
 #define decToBcd(x)	( ( (uint8_t) (x) / 10 * 16) | ((uint8_t) (x) % 10) )
 #define bcdToDec(x) ( ( (uint8_t) (x) / 16 * 10) | ((uint8_t) (x) % 16) )
-#define tod()		(cpu.cia1.TODfrozen?cpu.cia1.TODfrozenMillis:(int)((millis() - cpu.cia1.TOD) % 86400000l))
 
-void cia1_setAlarmTime() {
-	cpu.cia1.TODAlarm = (cpu.cia1.W[0x08] + cpu.cia1.W[0x09] * 10l + cpu.cia1.W[0x0A] * 600l + cpu.cia1.W[0x0B] * 36000l);
+enum rtc_write_what {
+	DS,
+	S,
+	MIN,
+	HR,
+};
+
+static inline uint32_t rtc_parts_to_ms(uint8_t hr, uint8_t min, uint8_t s,
+					uint8_t ds)
+{
+	uint32_t res = hr;
+
+	res *= 60;
+	res += min;
+
+	res *= 60;
+	res += s;
+
+	res *= 10;
+	res += ds;
+
+	res *= 100;
+	return res;
+}
+
+static void cia1_rtc_alarm_update(void)
+{
+	struct RTC &RTC = cpu.cia1.RTC;
+
+	RTC.alarm_ms = rtc_parts_to_ms(RTC.alarm_hr, RTC.alarm_min, RTC.alarm_s,
+			RTC.alarm_ds);
+}
+
+static void cia1_rtc_time_write(enum rtc_write_what what, uint8_t val)
+{
+	uint32_t old = cpu.cia1.RTC.time_ms;
+	uint8_t ds, s, min, hr;
+
+	old /= 100;
+
+	ds = old % 10;
+	old /= 10;
+
+	s = old % 60;
+	old /= 60;
+
+	min = old % 60;
+	old /= 60;
+
+	hr = old;
+
+	switch (what) {
+	case DS:
+		ds = val;
+		break;
+	case S:
+		s = val;
+		break;
+	case MIN:
+		min = val;
+		break;
+	case HR:
+		hr = val;
+		break;
+	};
+
+	cpu.cia1.RTC.time_ms = rtc_parts_to_ms(hr, min, s, ds);
 }
 
 void cia1_write(uint32_t address, uint8_t value)
@@ -58,6 +122,8 @@ void cia1_write(uint32_t address, uint8_t value)
 	struct data_port &portB = cia1.portB;
 	struct cia_timer &timerA = cia1.timerA;
 	struct cia_timer &timerB = cia1.timerB;
+	struct RTC &RTC = cia1.RTC;
+	uint8_t tmp;
 
 	address &= 0x0F;
 
@@ -90,88 +156,58 @@ void cia1_write(uint32_t address, uint8_t value)
 		if (!timerB.running)
 			timerB.value_hi = value;
 		break;
-		//RTC
-		case 0x08 : {
-					if (timerB.TOD_set_alarm) {
-						value &= 0x0f;
-						cpu.cia1.W[address] = value;
-						cia1_setAlarmTime();
+	case 0x08: // RTC 10THS
+		value &= 0x0f;
+		if (value > 9)
+			value = 9;
 
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set Alarm TENTH:");
-						Serial.println(value,HEX);
-						#endif
-
-					} else {
-						value &= 0x0f;
-						cpu.cia1.TODstopped=0;
-						//Translate set Time to TOD:
-						cpu.cia1.TOD = (int)(millis() % 86400000l) - (value * 100 + cpu.cia1.R[0x09] * 1000l + cpu.cia1.R[0x0A] * 60000l + cpu.cia1.R[0x0B] * 3600000l);
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set TENTH:");
-						Serial.println(value,HEX);
-						Serial.print("CIA 1 TOD (millis):");
-						Serial.println(cpu.cia1.TOD);
-						#endif
-					}
-					};
-					break; //TOD-Tenth
-		case 0x09 : {
-					if (timerB.TOD_set_alarm) {
-						cpu.cia1.W[address] = bcdToDec(value);
-						cia1_setAlarmTime();
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set Alarm SEC:");
-						Serial.println(value,HEX);
-						#endif
-
-					} else {
-						cpu.cia1.R[address] = bcdToDec(value);
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set SEC:");
-						Serial.println(value,HEX);
-						#endif
-
-					}
-					};
-					break; //TOD-Secs
-		case 0x0A : {
-					if (timerB.TOD_set_alarm) {
-						cpu.cia1.W[address] = bcdToDec(value);
-						cia1_setAlarmTime();
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set Alarm MIN:");
-						Serial.println(value,HEX);
-						#endif
-
-					} else {
-						cpu.cia1.R[address] = bcdToDec(value);
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set MIN:");
-						Serial.println(value,HEX);
-						#endif
-
-					}
-					};break; //TOD-Minutes
-		case 0x0B : {
-					if (timerB.TOD_set_alarm) {
-						cpu.cia1.W[address] = bcdToDec(value & 0x1f) + (value & 0x80?12:0);
-						cia1_setAlarmTime();
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set Alarm HRS:");
-						Serial.println(value,HEX);
-						#endif
-
-					} else {
-						cpu.cia1.R[address] = bcdToDec(value & 0x1f) + (value & 0x80?12:0);
-						cpu.cia1.TODstopped=1;
-						#if RTCDEBUG
-						Serial.print("CIA 1 Set HRS:");
-						Serial.println(value,HEX);
-						#endif
-					}
-					};break; //TOD-Hours
-
+		if (timerB.TOD_set_alarm) {
+			RTC.alarm_ds = value;
+			cia1_rtc_alarm_update();
+		} else {
+			cia1_rtc_time_write(DS, value);
+			//TODO: wiki says it's only reading that resumes?
+			RTC.stopped = false;
+		}
+		break;
+	case 0x09: // RTC SEC
+		value &= 0x7f;
+		value = bcdToDec(value);
+		if (value > 59)
+			value = 59;
+		if (timerB.TOD_set_alarm) {
+			RTC.alarm_s = value;
+			cia1_rtc_alarm_update();
+		} else {
+			cia1_rtc_time_write(S, value);
+		}
+		break;
+	case 0x0A: // RTC MIN
+		value &= 0x7f;
+		value = bcdToDec(value);
+		if (value > 59)
+			value = 59;
+		if (timerB.TOD_set_alarm) {
+			RTC.alarm_min = value;
+			cia1_rtc_alarm_update();
+		} else {
+			cia1_rtc_time_write(MIN, value);
+		}
+		break;
+	case 0x0B: // RTC HR
+		tmp = bcdToDec(value & 0x7f);
+		if (tmp > 11)
+			tmp = 1;
+		if (value & 0x80)
+			tmp += 12;
+		if (timerB.TOD_set_alarm) {
+			RTC.alarm_hr = value;
+			cia1_rtc_alarm_update();
+		} else {
+			cia1_rtc_time_write(HR, value);
+			RTC.stopped = true;;
+		}
+		break;
 	case 0x0C:
 		cia1.SDR = value;
 		//Fake IRQ (TODO: find documentation about this)
@@ -228,6 +264,7 @@ uint8_t cia1_read(uint32_t address) {
 	struct tcia &cia1 = cpu.cia1;
 	struct cia_timer &timerA = cia1.timerA;
 	struct cia_timer &timerB = cia1.timerB;
+	struct RTC &RTC = cia1.RTC;
 
 	uint8_t ret;
 
@@ -258,59 +295,25 @@ uint8_t cia1_read(uint32_t address) {
 	case 0x07:
 		ret = timerB.value_hi;
 		break;
-		//RTC
-		case 0x08: {
-					ret = tod() % 1000 / 10;
-					cpu.cia1.TODfrozen = 0;
-					};
-
-					#if RTCDEBUG
-					Serial.print("CIA 1 Read TENTH:");
-					Serial.println(ret,HEX);
-					#endif
-
-					break;	//Bit 0..3: Zehntelsekunden im BCD-Format ($0-$9) Bit 4..7: immer 0
-		case 0x09: {
-					ret = decToBcd(tod() / 1000 % 60);
-					};
-					//Serial.println( tod() / 100);
-					#if RTCDEBUG
-					Serial.print("CIA 1 Read SEC:");
-					Serial.println(ret,HEX);
-					#endif
-
-					break;				//Bit 0..3: Einersekunden im BCD-Format ($0-$9) Bit 4..6: Zehnersekunden im BCD-Format ($0-$5) Bit 7: immer 0
-		case 0x0A: {
-					ret = decToBcd(tod() / (1000 * 60) % 60);
-					};
-					#if RTCDEBUG
-					Serial.print("CIA 1 Read MIN:");
-					Serial.println(ret,HEX);
-					#endif
-
-					break;		//Bit 0..3: Einerminuten im BCD-Format( $0-$9) Bit 4..6: Zehnerminuten im BCD-Format ($0-$5) Bit 7: immer 0
-		case 0x0B: {
-					//Bit 0..3: Einerstunden im BCD-Format ($0-$9) Bit 4: Zehnerstunden im BCD-Format ($0-$1) // Bit 7: Unterscheidung AM/PM, 0=AM, 1=PM
-					//Lesen aus diesem Register friert alle TOD-Register ein (TOD läuft aber weiter), bis Register 8 (TOD 10THS) gelesen wird.
-					cpu.cia1.TODfrozen = 0;
-					cpu.cia1.TODfrozenMillis = tod();
-					cpu.cia1.TODfrozen = 1;
-				   	#if RTCDEBUG
-					Serial.print("CIA 1 FrozenMillis:");
-					Serial.println(cpu.cia1.TODfrozenMillis);
-					#endif
-					ret = cpu.cia1.TODfrozenMillis / (1000 * 3600) % 24;
-					if (ret>=12)
-						ret = 128 | decToBcd(ret - 12);
-					else
-						ret = decToBcd(ret);
-				    };
-				   	#if RTCDEBUG
-					Serial.print("CIA 1 Read HRS:");
-					Serial.println(ret,HEX);
-					#endif
-
-				   break;
+	case 0x08:
+		ret = (RTC.time_ms / 100) % 10;
+		RTC.stopped = false;
+		break;
+	case 0x09:
+		ret = (RTC.time_ms / 1000) % 60;
+		ret = decToBcd(ret);
+		break;
+	case 0x0A:
+		ret = (RTC.time_ms / 60000) % 60;
+		ret = decToBcd(ret);
+		break;
+	case 0x0B:
+		ret = RTC.time_ms / 3600000;
+		if (ret >= 12)
+			ret = decToBcd(ret - 12) | 0x80;
+		else
+			ret = decToBcd(ret);
+		break;
 	case 0x0C:
 		ret = cia1.SDR;
 		break;
@@ -417,6 +420,38 @@ tend:
 	}
 }
 
+void cia1_rtc_frame_update(void)
+{
+	struct tcia &cia1 = cpu.cia1;
+	struct RTC &RTC = cia1.RTC;
+
+	if (RTC.stopped)
+		return;
+
+	/* TODO: make it more precise */
+
+	if (RTC.time_ms < RTC.alarm_ms && RTC.time_ms + 20 >= RTC.alarm_ms) {
+alarm:
+		printf("CIA1 RTC interrupt\n");
+		RTC.time_ms = RTC.alarm_ms;
+		cia1.ICR.int_TOD = 1;
+		if (cia1.ICR.mask_TOD) {
+			cia1.ICR.IRQ = 1;
+			cpu_irq();
+		}
+		return;
+	}
+
+	RTC.time_ms += 20;
+	if (RTC.time_ms >= 24 * 3600 * 1000) {
+		RTC.time_ms = 0;
+		if (RTC.alarm_ms == 0)
+			goto alarm;
+	}
+
+}
+
+/*
 void cia1_checkRTCAlarm() { // call @ 1/10 sec interval minimum
 
 	if ((int)(millis() - cpu.cia1.TOD) % 86400000l/100 == cpu.cia1.TODAlarm) {
@@ -428,7 +463,7 @@ void cia1_checkRTCAlarm() { // call @ 1/10 sec interval minimum
 		}
 	}
 }
-/*
+
 void cia1FLAG(void) {
 	//Serial.println("CIA1 FLAG interrupt");
 	cpu.cia1.R[13] |= 0x10 | ((cpu.cia1.W[13] & 0x10) << 3);

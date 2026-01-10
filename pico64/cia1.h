@@ -58,6 +58,18 @@ struct ICR {
 	};
 };
 
+struct RTC {
+	uint32_t time_ms;
+	uint32_t alarm_ms;
+
+	uint8_t alarm_ds;
+	uint8_t alarm_s;
+	uint8_t alarm_min;
+	uint8_t alarm_hr;
+
+	bool stopped;
+};
+
 struct tcia {
 	union {
 		uint8_t R[0x10];
@@ -74,6 +86,7 @@ struct tcia {
 	struct cia_timer timerA;
 	struct cia_timer timerB;
 	struct ICR ICR;
+	struct RTC RTC;
 	int32_t TOD;
 	int32_t TODfrozenMillis;
 	int32_t TODAlarm;
@@ -88,6 +101,7 @@ void cia1_checkRTCAlarm() __attribute__ ((hot));
 void cia1_write(uint32_t address, uint8_t value) __attribute__ ((hot));
 uint8_t cia1_read(uint32_t address) __attribute__ ((hot));
 
+void cia1_rtc_frame_update(void);
 void resetCia1(void);
 
 
