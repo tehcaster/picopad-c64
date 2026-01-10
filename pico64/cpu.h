@@ -53,7 +53,6 @@
 #include "vic.h"
 #include "keyboard.h"
 #include "cia1.h"
-#include "cia2.h"
 
 
 #include "reSID.h"

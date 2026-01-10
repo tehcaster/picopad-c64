@@ -96,12 +96,15 @@ struct tcia {
 };
 
 
-void cia1_checkRTCAlarm() __attribute__ ((hot));
 void cia1_write(uint32_t address, uint8_t value) __attribute__ ((hot));
+void cia2_write(uint32_t address, uint8_t value) __attribute__ ((hot));
+
 uint8_t cia1_read(uint32_t address) __attribute__ ((hot));
+uint8_t cia2_read(uint32_t address) __attribute__ ((hot));
 
 void cia_rtc_frame_update(void);
 void resetCia1(void);
+void resetCia2(void);
 
 
 

@@ -41,7 +41,6 @@
 #include "pla.h"
 #include "vic.h"
 #include "cia1.h"
-#include "cia2.h"
 
 #include "c64.h"
 
