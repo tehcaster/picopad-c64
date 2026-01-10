@@ -1069,15 +1069,12 @@ void vic_do(void)
 	/* Linecounter ***************************************************************************************/
 	/*****************************************************************************************************/
 
-	if (cpu.vic.rasterLine >= LINECNT) {
+	if (++cpu.vic.rasterLine >= LINECNT) {
 		cpu.vic.rasterLine = 0;
 		cpu.vic.vcbase = 0;
 		cpu.vic.denLatch = 0;
 
-	} else {
-		cpu.vic.rasterLine++;
-		if (cpu.vic.rasterLine >= LINECNT) 
-			nFramesC64++;
+		nFramesC64++;
 	}
 
 	int r = cpu.vic.rasterLine;
