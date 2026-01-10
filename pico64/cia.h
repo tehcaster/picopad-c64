@@ -1,5 +1,5 @@
-#ifndef Teensy64_cia1_h_
-#define Teensy64_cia1_h_
+#ifndef Teensy64_cia_h_
+#define Teensy64_cia_h_
 
 struct cia_timer {
 	union {

@@ -7,7 +7,7 @@ ASRC +=
 
 # C++ source files
 SRC += pico64/c64.cpp
-SRC += pico64/cia1.cpp
+SRC += pico64/cia.cpp
 SRC += pico64/cpu.cpp
 SRC += pico64/patches.cpp
 SRC += pico64/pla.cpp

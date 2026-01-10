@@ -52,7 +52,7 @@
 #include "pla.h"
 #include "vic.h"
 #include "keyboard.h"
-#include "cia1.h"
+#include "cia.h"
 
 
 #include "reSID.h"

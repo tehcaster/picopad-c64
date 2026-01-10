@@ -40,7 +40,7 @@
 
 #include "pla.h"
 #include "vic.h"
-#include "cia1.h"
+#include "cia.h"
 
 #include "c64.h"
 
