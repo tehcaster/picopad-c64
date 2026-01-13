@@ -2623,6 +2623,14 @@ static void cpu_irq_do() {
 	cpu.ticks = 7;
 }
 
+static inline void cia_sync_if_needed()
+{
+	if (cpu.input_cycles >= cpu.cia1.cpu_cycles_target)
+		cia_sync_cpu(cpu.cia1, 1);
+	if (cpu.input_cycles >= cpu.cia2.cpu_cycles_target)
+		cia_sync_cpu(cpu.cia2, 2);
+}
+
 void cpu_clock(int cycles) {
 	static int c = 0;
 	static int writeCycles = 0;
@@ -2644,7 +2652,9 @@ void cpu_clock(int cycles) {
 	cpu.lineCyclesAbs += cycles;
 
 	if (cpu.ba_low) {
-		cia_clockt(cycles);
+		cpu.input_cycles += cycles;
+		cia_sync_if_needed();
+
 		//TODO: this could be innacurate if the cia generated
 		//irq in the last 2 of cycles but we bump pending all the way
 		cpu.irq_delay += cycles;
@@ -2682,14 +2692,33 @@ void cpu_clock(int cycles) {
 		opcodetable[opcode]();
 		writeCycles = writeCycleTable[opcode];
 noOpcode:
+		cpu.input_cycles += cpu.ticks;
+		cia_sync_if_needed();
 
-		cia_clockt(cpu.ticks);
 		cpu.irq_delay += cpu.ticks;
 		c += cpu.ticks;
 		cpu.lineCycles += cpu.ticks;
 	};
 
 	return;
+}
+
+void cpu_check_cycles_overflow()
+{
+	if (cpu.input_cycles < 0xF0000000) {
+		return;
+	}
+	printf("cpu cycles reset to prevent overflow\n");
+
+	cia_sync_cpu(cpu.cia1, 1);
+	cia_sync_cpu(cpu.cia2, 2);
+
+	cpu.input_cycles = 0;
+	cpu.cia1.cpu_cycles_processed = cpu.cia2.cpu_cycles_processed = 0;
+	cpu.cia1.cpu_cycles_target = cpu.cia2.cpu_cycles_target = -1;
+
+	cia_set_target(cpu.cia1, 1);
+	cia_set_target(cpu.cia1, 2);
 }
 
 void cpu_reset() {
@@ -2699,4 +2728,5 @@ void cpu_reset() {
   cpu.cpustatus = FLAG_CONSTANT;
   cpu.pc = read6502(0xFFFC) | (read6502(0xFFFD) << 8);
   cpu.sp = 0xFD;
+  cpu.input_cycles = 0;
 }

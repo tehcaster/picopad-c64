@@ -300,7 +300,9 @@ void tape_motor_on()
 	if (!tape_pending)
 		return;
 	printf("tape motor on\n");
+	cia_sync_cpu(cpu.cia1, 1);
 	tape_running = true;
+	cia_set_target(cpu.cia1, 1);
 }
 
 void tape_motor_off()
@@ -308,7 +310,9 @@ void tape_motor_off()
 	if (!tape_pending)
 		return;
 	printf("tape motor off\n");
+	cia_sync_cpu(cpu.cia1, 1);
 	tape_running = false;
+	cia_set_target(cpu.cia1, 1);
 }
 
 unsigned int tape_next_pulse()

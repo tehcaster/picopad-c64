@@ -75,6 +75,12 @@ struct tcpu {
   uint16_t reladdr;
   uint16_t ea;
 
+  /*
+   * Cycles from the VIC to the CPU. Used as a base for determining the time of
+   * future events.
+   */
+  uint32_t input_cycles;
+
   uint16_t lineCyclesAbs; //for debug
   unsigned ticks;
   unsigned lineCycles;
@@ -135,7 +141,6 @@ static inline void cpu_nmi_clear(void) {
 
 void cpu_reset();
 void cpu_clock(int cycles);
-
-void cia_clockt(int ticks);
+void cpu_check_cycles_overflow();
 
 #endif

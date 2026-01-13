@@ -71,6 +71,13 @@ struct RTC {
 };
 
 struct tcia {
+	/* Last value of cpu.input_cycles that is reflected in the CIA state */
+	uint32_t cpu_cycles_processed;
+	/*
+	 * The value of cpu.input_cycles where the next interrupt will happen;
+	 * -1 means nothing is currently planned
+	 */
+	uint32_t cpu_cycles_target;
 	struct data_port portA;
 	struct data_port portB;
 	struct cia_timer timerA;
@@ -91,7 +98,7 @@ void cia_rtc_frame_update(void);
 void resetCia1(void);
 void resetCia2(void);
 
-
-
+void cia_set_target(struct tcia &cia, int cia_num);
+void cia_sync_cpu(struct tcia &cia, int cia_num);
 
 #endif

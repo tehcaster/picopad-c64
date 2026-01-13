@@ -150,20 +150,28 @@ static void cia_write(struct tcia &cia, uint32_t address, uint8_t value, int cia
 		portB.direction = value;
 		break;
 	case 0x04:
+		cia_sync_cpu(cia, cia_num);
 		timerA.latch_lo = value;
+		cia_set_target(cia, cia_num);
 		break;
 	case 0x05:
+		cia_sync_cpu(cia, cia_num);
 		timerA.latch_hi = value;
 		if (!timerA.running)
 			timerA.value_hi = value;
+		cia_set_target(cia, cia_num);
 		break;
 	case 0x06:
+		cia_sync_cpu(cia, cia_num);
 		timerB.latch_lo = value;
+		cia_set_target(cia, cia_num);
 		break;
 	case 0x07:
+		cia_sync_cpu(cia, cia_num);
 		timerB.latch_hi = value;
 		if (!timerB.running)
 			timerB.value_hi = value;
+		cia_set_target(cia, cia_num);
 		break;
 	case 0x08: // RTC 10THS
 		value &= 0x0f;
@@ -240,6 +248,7 @@ static void cia_write(struct tcia &cia, uint32_t address, uint8_t value, int cia
 
 		break;
 	case 0x0E:
+		cia_sync_cpu(cia, cia_num);
 		timerA.control = value;
 		if (timerA.load_from_latch) {
 			timerA.value = timerA.latch;
@@ -247,8 +256,10 @@ static void cia_write(struct tcia &cia, uint32_t address, uint8_t value, int cia
 		}
 		if (timerA.portB_on)
 			printf("UNIMPLEMENTED: cia1 timer A port B enabled");
+		cia_set_target(cia, cia_num);
 		break;
 	case 0x0F:
+		cia_sync_cpu(cia, cia_num);
 		timerB.control = value;
 		if (timerB.load_from_latch) {
 			timerB.value = timerB.latch;
@@ -256,6 +267,7 @@ static void cia_write(struct tcia &cia, uint32_t address, uint8_t value, int cia
 		}
 		if (timerB.portB_on)
 			printf("UNIMPLEMENTED: cia1 timer A port B enabled");
+		cia_set_target(cia, cia_num);
 		break;
 	default:
 		printf("cia_write() unhandled address %x value %x\n", address, value);
@@ -310,15 +322,19 @@ static uint8_t cia_read(struct tcia &cia, uint32_t address, int cia_num)
 		ret = portB.direction;
 		break;
 	case 0x04:
+		cia_sync_cpu(cia, cia_num);
 		ret = timerA.value_lo;
 		break;
 	case 0x05:
+		cia_sync_cpu(cia, cia_num);
 		ret = timerA.value_hi;
 		break;
 	case 0x06:
+		cia_sync_cpu(cia, cia_num);
 		ret = timerB.value_lo;
 		break;
 	case 0x07:
+		cia_sync_cpu(cia, cia_num);
 		ret = timerB.value_hi;
 		break;
 	case 0x08:
@@ -352,9 +368,11 @@ static uint8_t cia_read(struct tcia &cia, uint32_t address, int cia_num)
 			cpu_nmi_clear();
 		break;
 	case 0x0E:
+		cia_sync_cpu(cia, cia_num);
 		ret = timerA.control;
 		break;
 	case 0x0F:
+		cia_sync_cpu(cia, cia_num);
 		ret = timerB.control;
 		break;
 	default:
@@ -387,18 +405,20 @@ static void __cia_clock(struct tcia &cia, int clk, int cia_num)
 	int32_t t;
 	static int tape_clk = 0;
 	bool timerA_underflow = false;
+	uint32_t next_target = -1;
 
-tape_retry:
 	if (tape_running && cia_num == 1) {
 		tape_clk -= clk;
-		if (tape_clk < 0) {
+		if (tape_clk <= 0) {
 			cia.ICR.int_FLAG = 1;
 			tape_clk += tape_next_pulse();
-			if (tape_clk < 0 && tape_running) {
+			while (tape_clk <= 0 && tape_running) {
 				printf("tape clk underflow: %d\n", tape_clk);
-				goto tape_retry;
+				tape_clk += tape_next_pulse();
 			}
 		}
+		if (tape_running)
+			next_target = tape_clk;
 	}
 
 	// TIMER A
@@ -421,6 +441,8 @@ tape_retry:
 		}
 
 		timerA.value = t;
+		if (timerA.running && timerA.value + 1 < next_target)
+			next_target = timerA.value + 1;
 	}
 
 
@@ -448,6 +470,9 @@ tape_retry:
 			t -= timerB_clk;
 		}
 		timerB.value = t;
+		if (timerB.running && !timerB.count_timerA &&
+					timerB.value + 1 < next_target)
+			next_target = timerB.value + 1;
 	}
 
 tend:
@@ -456,20 +481,30 @@ tend:
 		cia.ICR.IRQ = 1;
 		cia_irq(cia_num);
 	}
+	if (next_target == -1)
+		cia.cpu_cycles_target = -1;
+	else
+		cia.cpu_cycles_target = cpu.input_cycles + next_target;
 }
 
-void cia_clock(void)
+
+void cia_set_target(struct tcia &cia, int cia_num)
 {
-	__cia_clock(cpu.cia1, 1, 1);
-	__cia_clock(cpu.cia2, 1, 2);
+	/* Bit hacky but should work */
+	__cia_clock(cia, 0, cia_num);
 }
 
-void cia_clockt(int ticks)
+void cia_sync_cpu(struct tcia &cia, int cia_num)
 {
-	__cia_clock(cpu.cia1, ticks, 1);
-	__cia_clock(cpu.cia2, ticks, 2);
-}
+	int delta = cpu.input_cycles - cia.cpu_cycles_processed;
 
+	if (!delta)
+		return;
+
+	__cia_clock(cia, delta, cia_num);
+
+	cia.cpu_cycles_processed = cpu.input_cycles;
+}
 
 static void __cia_rtc_frame_update(struct tcia &cia, int cia_num)
 {
