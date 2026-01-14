@@ -2652,6 +2652,12 @@ void cpu_clock(int cycles) {
 	cpu.lineCyclesAbs += cycles;
 
 	if (cpu.ba_low) {
+		if (cpu.input_cycles + cycles < cpu.cia_earliest_target) {
+			cpu.input_cycles += cycles;
+			cpu.irq_delay += cycles;
+			return;
+		}
+
 		cpu.input_cycles += cycles;
 		cia_sync_if_needed();
 
@@ -2693,7 +2699,8 @@ void cpu_clock(int cycles) {
 		writeCycles = writeCycleTable[opcode];
 noOpcode:
 		cpu.input_cycles += cpu.ticks;
-		cia_sync_if_needed();
+		if (cpu.input_cycles >= cpu.cia_earliest_target)
+			cia_sync_if_needed();
 
 		cpu.irq_delay += cpu.ticks;
 		c += cpu.ticks;
@@ -2716,6 +2723,7 @@ void cpu_check_cycles_overflow()
 	cpu.input_cycles = 0;
 	cpu.cia1.cpu_cycles_processed = cpu.cia2.cpu_cycles_processed = 0;
 	cpu.cia1.cpu_cycles_target = cpu.cia2.cpu_cycles_target = -1;
+	cpu.cia_earliest_target = -1;
 
 	cia_set_target(cpu.cia1, 1);
 	cia_set_target(cpu.cia1, 2);

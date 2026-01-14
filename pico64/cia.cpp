@@ -485,6 +485,11 @@ tend:
 		cia.cpu_cycles_target = -1;
 	else
 		cia.cpu_cycles_target = cpu.input_cycles + next_target;
+
+	if (cpu.cia1.cpu_cycles_target < cpu.cia2.cpu_cycles_target)
+		cpu.cia_earliest_target = cpu.cia1.cpu_cycles_target;
+	else
+		cpu.cia_earliest_target = cpu.cia2.cpu_cycles_target;
 }
 
 

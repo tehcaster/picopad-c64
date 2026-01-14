@@ -80,6 +80,8 @@ struct tcpu {
    * future events.
    */
   uint32_t input_cycles;
+  /* the lower of the two cpu_cycles_target */
+  uint32_t cia_earliest_target;
 
   uint16_t lineCyclesAbs; //for debug
   unsigned ticks;
