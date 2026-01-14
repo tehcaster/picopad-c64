@@ -2652,18 +2652,23 @@ void cpu_clock(int cycles) {
 	cpu.lineCyclesAbs += cycles;
 
 	if (cpu.ba_low) {
-		if (cpu.input_cycles + cycles < cpu.cia_earliest_target) {
-			cpu.input_cycles += cycles;
-			cpu.irq_delay += cycles;
-			return;
-		}
+		do {
+			if (cpu.input_cycles + cycles < cpu.cia_earliest_target) {
+				cpu.input_cycles += cycles;
+				cpu.irq_delay += cycles;
+				return;
+			}
 
-		cpu.input_cycles += cycles;
-		cia_sync_if_needed();
+			int cia_cycles = cpu.cia_earliest_target - cpu.input_cycles;
 
-		//TODO: this could be innacurate if the cia generated
-		//irq in the last 2 of cycles but we bump pending all the way
-		cpu.irq_delay += cycles;
+			cpu.input_cycles += cia_cycles;
+			cpu.irq_delay += cia_cycles;
+
+			cia_sync_if_needed();
+
+			cycles -= cia_cycles;
+		} while (cycles);
+
 		return;
 	}
 
