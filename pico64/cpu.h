@@ -82,6 +82,8 @@ struct tcpu {
   uint32_t input_cycles;
   /* the lower of the two cpu_cycles_target */
   uint32_t cia_earliest_target;
+  /* remaining cycles in the current instruction */
+  int instr_cycles_remaining;
 
   uint16_t lineCyclesAbs; //for debug
   unsigned ticks;

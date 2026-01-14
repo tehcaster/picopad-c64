@@ -2632,7 +2632,6 @@ static inline void cia_sync_if_needed()
 }
 
 void cpu_clock(int cycles) {
-	static int c = 0;
 	static int writeCycles = 0;
 /*
 	bool irq_pending = (cpu.vic.IRQ || cpu.cia1.ICR.IRQ);
@@ -2672,14 +2671,14 @@ void cpu_clock(int cycles) {
 		return;
 	}
 
-	c -= cycles;
+	cpu.instr_cycles_remaining -= cycles;
 
-	if (c > 0) {
+	if (cpu.instr_cycles_remaining > 0) {
 		cpu.irq_delay += cycles;
 		return;
 	}
 
-	while (c <= 0) {
+	while (cpu.instr_cycles_remaining <= 0) {
 		uint8_t opcode;
 		cpu.ticks = 0;
 
@@ -2708,7 +2707,7 @@ noOpcode:
 			cia_sync_if_needed();
 
 		cpu.irq_delay += cpu.ticks;
-		c += cpu.ticks;
+		cpu.instr_cycles_remaining += cpu.ticks;
 		cpu.lineCycles += cpu.ticks;
 	};
 
