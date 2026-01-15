@@ -92,7 +92,9 @@ struct tcpu {
   bool nmi_pending;
   bool ba_low;
   bool irq_pending;
-  uint8_t irq_delay;
+
+  /* To implement the irq 2 cycles delay */
+  uint32_t irq_pending_cycle;
 
   r_rarr_ptr_t plamap_r; //Memory-Mapping read
   w_rarr_ptr_t plamap_w; //Memory-Mapping write
@@ -122,16 +124,16 @@ static inline void cpu_irq(void)
 {
 	if (!cpu.irq_pending) {
 		cpu.irq_pending = true;
-		cpu.irq_delay = 0;
+		cpu.irq_pending_cycle = cpu.input_cycles + 2;
+		if (cpu.instr_cycles_remaining > 0)
+			cpu.irq_pending_cycle -= cpu.instr_cycles_remaining;
 	}
 }
 
 static inline void cpu_irq_clear(void)
 {
-	if (!(cpu.vic.IRQ || cpu.cia1.ICR.IRQ)) {
+	if (!(cpu.vic.IRQ || cpu.cia1.ICR.IRQ))
 		cpu.irq_pending = false;
-		cpu.irq_delay = 0;
-	}
 }
 
 static inline void cpu_nmi(void) {

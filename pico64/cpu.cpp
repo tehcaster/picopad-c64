@@ -2654,14 +2654,12 @@ void cpu_clock(int cycles) {
 		do {
 			if (cpu.input_cycles + cycles < cpu.cia_earliest_target) {
 				cpu.input_cycles += cycles;
-				cpu.irq_delay += cycles;
 				return;
 			}
 
 			int cia_cycles = cpu.cia_earliest_target - cpu.input_cycles;
 
 			cpu.input_cycles += cia_cycles;
-			cpu.irq_delay += cia_cycles;
 
 			cia_sync_if_needed();
 
@@ -2673,10 +2671,8 @@ void cpu_clock(int cycles) {
 
 	cpu.instr_cycles_remaining -= cycles;
 
-	if (cpu.instr_cycles_remaining > 0) {
-		cpu.irq_delay += cycles;
+	if (cpu.instr_cycles_remaining > 0)
 		return;
-	}
 
 	while (cpu.instr_cycles_remaining <= 0) {
 		uint8_t opcode;
@@ -2691,7 +2687,7 @@ void cpu_clock(int cycles) {
 		}
 
 		if (cpu.irq_pending) {
-			if (!(cpu.cpustatus & FLAG_INTERRUPT) && cpu.irq_delay > 2) {
+			if (!(cpu.cpustatus & FLAG_INTERRUPT) && cpu.irq_pending_cycle < cpu.input_cycles) {
 				cpu_irq_do();
 				goto noOpcode;
 			}
@@ -2703,11 +2699,10 @@ void cpu_clock(int cycles) {
 		writeCycles = writeCycleTable[opcode];
 noOpcode:
 		cpu.input_cycles += cpu.ticks;
+		cpu.instr_cycles_remaining += cpu.ticks;
 		if (cpu.input_cycles >= cpu.cia_earliest_target)
 			cia_sync_if_needed();
 
-		cpu.irq_delay += cpu.ticks;
-		cpu.instr_cycles_remaining += cpu.ticks;
 		cpu.lineCycles += cpu.ticks;
 	};
 
@@ -2723,6 +2718,12 @@ void cpu_check_cycles_overflow()
 
 	cia_sync_cpu(cpu.cia1, 1);
 	cia_sync_cpu(cpu.cia2, 2);
+
+	/* keep existing irq delay if it exists */
+	if (cpu.irq_pending_cycle > cpu.input_cycles)
+		cpu.irq_pending_cycle -= cpu.input_cycles;
+	else
+		cpu.irq_pending_cycle = 0;
 
 	cpu.input_cycles = 0;
 	cpu.cia1.cpu_cycles_processed = cpu.cia2.cpu_cycles_processed = 0;
@@ -2741,4 +2742,5 @@ void cpu_reset() {
   cpu.pc = read6502(0xFFFC) | (read6502(0xFFFD) << 8);
   cpu.sp = 0xFD;
   cpu.input_cycles = 0;
+  cpu.irq_pending_cycle = 0;
 }
