@@ -2680,7 +2680,7 @@ void cpu_clock(int cycles) {
 
 		//NMI
 		if (cpu.nmi_pending) {
-			if (!cpu.nmi) {
+			if (!cpu.nmi && cpu.nmi_pending_cycle < cpu.input_cycles) {
 				cpu_nmi_do();
 				goto noOpcode;
 			}
@@ -2724,6 +2724,12 @@ void cpu_check_cycles_overflow()
 		cpu.irq_pending_cycle -= cpu.input_cycles;
 	else
 		cpu.irq_pending_cycle = 0;
+
+	/* same for nmi */
+	if (cpu.nmi_pending_cycle > cpu.input_cycles)
+		cpu.nmi_pending_cycle -= cpu.input_cycles;
+	else
+		cpu.nmi_pending_cycle = 0;
 
 	cpu.input_cycles = 0;
 	cpu.cia1.cpu_cycles_processed = cpu.cia2.cpu_cycles_processed = 0;
