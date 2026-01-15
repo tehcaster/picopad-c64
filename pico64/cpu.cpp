@@ -1094,1435 +1094,1435 @@ OPCODE void opKIL(void) {
 }
 
 OPCODE void op0x0(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	imp();
 	brk();
 }
 
 OPCODE void op0x1(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	ora();
 }
 
 OPCODE void op0x3(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indx();
 	slo();
 }
 
 OPCODE void op0x4(void) { //nop read zeropage
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 }
 
 OPCODE void op0x5(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	oraZP();
 }
 
 OPCODE void op0x6(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	aslZP();
 }
 
 OPCODE void op0x7(void) { //undocumented SLO
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	slo();
 }
 
 OPCODE void op0x8(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	imp();
 	php();
 }
 
 OPCODE void op0x9(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	ora();
 }
 
 OPCODE void op0xA(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	//acc();
 	asla();
 }
 
 OPCODE void op0xB(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	anc();
 }
 
 OPCODE void op0xC(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 }
 
 OPCODE void op0xD(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	ora();
 }
 
 OPCODE void op0xE(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	asl();
 }
 
 OPCODE void op0xF(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	slo();
 }
 
 OPCODE void op0x10(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bpl();
 }
 
 OPCODE void op0x11(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	ora();
 }
 
 OPCODE void op0x13(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indy();
 	slo();
 }
 
 OPCODE void op0x14(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 }
 
 OPCODE void op0x15(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	ora();
 }
 
 OPCODE void op0x16(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	asl();
 }
 
 OPCODE void op0x17(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	//zpy(); bug
 	zpx();
 	slo();
 }
 
 OPCODE void op0x18(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	clc();
 }
 
 OPCODE void op0x19(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	ora();
 }
 
 OPCODE void op0x1A(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0x1B(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absy();
 	slo();
 }
 
 OPCODE void op0x1C(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	 //();
 }
 
 OPCODE void op0x1D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	ora();
 }
 
 OPCODE void op0x1E(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	asl();
 }
 
 
 OPCODE void op0x1F(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	slo();
 }
 
 OPCODE void op0x20(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	jsr();
 }
 
 OPCODE void op0x21(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	op_and();
 }
 
 OPCODE void op0x23(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indx();
 	rla();
 }
 
 OPCODE void op0x24(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	op_bitZP();
 }
 
 OPCODE void op0x25(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	op_and();
 }
 
 OPCODE void op0x26(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	rolZP();
 }
 
 OPCODE void op0x27(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	rla();
 }
 
 OPCODE void op0x28(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	imp();
 	plp();
 }
 
 OPCODE void op0x29(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	op_and();
 }
 
 OPCODE void op0x2A(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	//acc();
 	rola();
 }
 
 OPCODE void op0x2B(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	anc();
 }
 
 OPCODE void op0x2C(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	op_bit();
 }
 
 OPCODE void op0x2D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	op_and();
 }
 
 OPCODE void op0x2E(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	rol();
 }
 
 OPCODE void op0x2F(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	rla();
 }
 
 OPCODE void op0x30(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bmi();
 }
 
 OPCODE void op0x31(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	op_and();
 }
 
 OPCODE void op0x33(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indy();
 	rla();
 }
 
 OPCODE void op0x34(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 }
 
 OPCODE void op0x35(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	op_and();
 }
 
 OPCODE void op0x36(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	rol();
 }
 
 OPCODE void op0x37(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	rla();
 }
 
 OPCODE void op0x38(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	sec();
 }
 
 OPCODE void op0x39(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	op_and();
 }
 
 OPCODE void op0x3A(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0x3B(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absy();
 	rla();
 }
 
 OPCODE void op0x3C(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 }
 
 OPCODE void op0x3D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	op_and();
 }
 
 OPCODE void op0x3E(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	rol();
 }
 
 OPCODE void op0x3F(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	rla();
 }
 
 OPCODE void op0x40(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	imp();
 	rti();
 }
 
 OPCODE void op0x41(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	eor();
 }
 
 OPCODE void op0x43(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indx();
 	sre();
 }
 
 OPCODE void op0x44(void) { //nop
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 }
 
 OPCODE void op0x45(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	eorZP();
 }
 
 OPCODE void op0x46(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	lsrZP();
 }
 
 OPCODE void op0x47(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	sre();
 }
 
 OPCODE void op0x48(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	imp();
 	pha();
 }
 
 OPCODE void op0x49(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	eor();
 }
 
 OPCODE void op0x4A(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 //	acc();
 	lsra();
 }
 
 OPCODE void op0x4B(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	alr();
 }
 
 OPCODE void op0x4C(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	abso();
 	jmp();
 }
 
 OPCODE void op0x4D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	eor();
 }
 
 OPCODE void op0x4E(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	lsr();
 }
 
 OPCODE void op0x4F(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	sre();
 }
 
 OPCODE void op0x50(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bvc();
 }
 
 OPCODE void op0x51(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	eor();
 }
 
 OPCODE void op0x53(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	//zp(); BUG
 	indy();
 	sre();
 }
 
 OPCODE void op0x54(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 }
 
 OPCODE void op0x55(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	eor();
 }
 
 OPCODE void op0x56(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	lsr();
 }
 
 OPCODE void op0x57(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	sre();
 }
 
 OPCODE void op0x58(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	cli_();
 }
 
 OPCODE void op0x59(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	eor();
 }
 
 OPCODE void op0x5A(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0x5B(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absy();
 	sre();
 }
 
 OPCODE void op0x5C(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 }
 
 OPCODE void op0x5D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	eor();
 }
 
 OPCODE void op0x5E(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	lsr();
 }
 
 OPCODE void op0x5F(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	sre();
 }
 
 OPCODE void op0x60(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	imp();
 	rts();
 }
 
 OPCODE void op0x61(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	adc();
 }
 
 OPCODE void op0x63(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indx();
 	rra();
 }
 
 OPCODE void op0x64(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 }
 
 OPCODE void op0x65(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	adcZP();
 }
 
 OPCODE void op0x66(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	rorZP();
 }
 
 OPCODE void op0x67(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	rra();
 }
 
 OPCODE void op0x68(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	imp();
 	pla();
 }
 
 OPCODE void op0x69(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	adc();
 }
 
 OPCODE void op0x6A(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 //	acc();
 	rora();
 }
 
 OPCODE void op0x6B(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	arr();
 }
 
 OPCODE void op0x6C(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	ind();
 	jmp();
 }
 
 OPCODE void op0x6D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	adc();
 }
 
 OPCODE void op0x6E(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	ror();
 }
 
 OPCODE void op0x6F(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	rra();
 }
 
 OPCODE void op0x70(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bvs();
 }
 
 OPCODE void op0x71(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	adc();
 }
 
 OPCODE void op0x73(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indy();
 	rra();
 }
 
 OPCODE void op0x74(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 }
 
 OPCODE void op0x75(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	adc();
 }
 
 OPCODE void op0x76(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	ror();
 }
 
 OPCODE void op0x77(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	rra();
 }
 
 OPCODE void op0x78(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	sei_();
 }
 
 OPCODE void op0x79(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	adc();
 }
 
 OPCODE void op0x7A(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0x7B(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absy();
 	rra();
 }
 
 OPCODE void op0x7C(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 }
 
 OPCODE void op0x7D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	adc();
 }
 
 OPCODE void op0x7E(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	ror();
 }
 
 OPCODE void op0x7F(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	rra();
 }
 
 OPCODE void op0x80(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 }
 
 OPCODE void op0x81(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	sta();
 }
 
 OPCODE void op0x82(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 }
 
 OPCODE void op0x83(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	sax();
 }
 
 OPCODE void op0x84(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	sty();
 }
 
 OPCODE void op0x85(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	sta();
 }
 
 OPCODE void op0x86(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	stx();
 }
 
 OPCODE void op0x87(void) { //undocumented
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	sax();
 }
 
 OPCODE void op0x88(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	dey();
 }
 
 OPCODE void op0x89(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 }
 
 OPCODE void op0x8A(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	txa();
 }
 
 OPCODE void op0x8B(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	xaa();
 }
 
 OPCODE void op0x8C(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	sty();
 }
 
 OPCODE void op0x8D(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	sta();
 }
 
 OPCODE void op0x8E(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	stx();
 }
 
 OPCODE void op0x8F(void) { //undocumented
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	sax();
 }
 
 OPCODE void op0x90(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bcc();
 }
 
 OPCODE void op0x91(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indy();
 	sta();
 }
 
 OPCODE void op0x93(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indy();
 	ahx();
 }
 
 OPCODE void op0x94(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	sty();
 }
 
 OPCODE void op0x95(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	sta();
 }
 
 OPCODE void op0x96(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpy();
 	stx();
 }
 
 OPCODE void op0x97(void) { //undocumented
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpy();
 	sax();
 }
 
 OPCODE void op0x98(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	tya();
 }
 
 OPCODE void op0x99(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	absy();
 	sta();
 }
 
 OPCODE void op0x9A(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	txs();
 }
 
 OPCODE void op0x9B(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	absy();
 	//tas();
 	UNSUPPORTED;
 }
 
 OPCODE void op0x9C(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	absy();
 	//shy();
 	UNSUPPORTED;
 }
 
 OPCODE void op0x9D(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	absx();
 	sta();
 }
 
 OPCODE void op0x9E(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	absx();
 	//shx();
 }
 
 OPCODE void op0x9F(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	absx();
 	ahx();
 }
 
 OPCODE void op0xA0(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	ldy();
 }
 
 OPCODE void op0xA1(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	lda();
 }
 
 OPCODE void op0xA2(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	ldx();
 }
 
 OPCODE void op0xA3(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	lax();
 }
 
 OPCODE void op0xA4(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	ldyZP();
 }
 
 OPCODE void op0xA5(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	ldaZP();
 }
 
 OPCODE void op0xA6(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	ldxZP();
 }
 
 OPCODE void op0xA7(void) { //undocumented
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	lax();
 }
 
 OPCODE void op0xA8(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	tay();
 }
 
 OPCODE void op0xA9(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	lda();
 }
 
 OPCODE void op0xAA(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	tax();
 }
 
 OPCODE void op0xAB(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	lxa();
 }
 
 OPCODE void op0xAC(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	ldy();
 }
 
 OPCODE void op0xAD(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	lda();
 }
 
 OPCODE void op0xAE(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	ldx();
 }
 
 OPCODE void op0xAF(void) { //undocumented
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	lax();
 }
 
 OPCODE void op0xB0(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bcs();
 }
 
 OPCODE void op0xB1(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	lda();
 }
 
 OPCODE void op0xB3(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	lax();
 }
 
 OPCODE void op0xB4(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	ldy();
 }
 
 OPCODE void op0xB5(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	lda();
 }
 
 OPCODE void op0xB6(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpy();
 	ldx();
 }
 
 OPCODE void op0xB7(void) { //undocumented
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpy();
 	lax();
 }
 
 OPCODE void op0xB8(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	clv();
 }
 
 OPCODE void op0xB9(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	lda();
 }
 
 OPCODE void op0xBA(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	tsx();
 }
 
 OPCODE void op0xBB(void) { //undocumented
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	las();
 }
 
 OPCODE void op0xBC(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	ldy();
 }
 
 OPCODE void op0xBD(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	lda();
 }
 
 OPCODE void op0xBE(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	ldx();
 }
 
 OPCODE void op0xBF(void) { //undocumented
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	lax();
 }
 
 OPCODE void op0xC0(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	cpy();
 }
 
 OPCODE void op0xC1(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	indx();
 	cmp();
 }
 
 OPCODE void op0xC2(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 }
 
 OPCODE void op0xC3(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indx();
 	dcp();
 }
 
 OPCODE void op0xC4(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	cpyZP();
 }
 
 OPCODE void op0xC5(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	cmpZP();
 }
 
 OPCODE void op0xC6(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	decZP();
 }
 
 OPCODE void op0xC7(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	dcp();
 }
 
 OPCODE void op0xC8(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	iny();
 }
 
 OPCODE void op0xC9(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	cmp();
 }
 
 OPCODE void op0xCA(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	dex();
 }
 
 OPCODE void op0xCB(void) { //undocumented
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	axs();
 }
 
 OPCODE void op0xCC(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	cpy();
 }
 
 OPCODE void op0xCD(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	cmp();
 }
 
 OPCODE void op0xCE(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	dec();
 }
 
 OPCODE void op0xCF(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	dcp();
 }
 
 OPCODE void op0xD0(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	bne();
 }
 
 OPCODE void op0xD1(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	cmp();
 }
 
 OPCODE void op0xD3(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indy();
 	dcp();
 }
 
 OPCODE void op0xD4(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 }
 
 OPCODE void op0xD5(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	cmp();
 }
 
 OPCODE void op0xD6(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	dec();
 }
 
 OPCODE void op0xD7(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	dcp();
 }
 
 OPCODE void op0xD8(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	cld();
 }
 
 OPCODE void op0xD9(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	cmp();
 }
 
 OPCODE void op0xDA(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0xDB(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absy();
 	dcp();
 }
 
 OPCODE void op0xDC(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 }
 
 OPCODE void op0xDD(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	cmp();
 }
 
 OPCODE void op0xDE(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	dec();
 }
 
 OPCODE void op0xDF(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	dcp();
 }
 
 OPCODE void op0xE0(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	cpx();
 }
 
 OPCODE void op0xE1(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indx();
 	sbc();
 }
 
 OPCODE void op0xE2(void) { //NOP
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 }
 
 OPCODE void op0xE3(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indx();
 	c64_isb();
 }
 
 OPCODE void op0xE4(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	cpxZP();
 }
 
 OPCODE void op0xE5(void) {
-	cpu.ticks = 3;
+	//cpu.ticks = 3;
 	zp();
 	sbcZP();
 }
 
 OPCODE void op0xE6(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	incZP();
 }
 
 OPCODE void op0xE7(void) { //undocumented
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	zp();
 	c64_isb();
 }
 
 OPCODE void op0xE8(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	inx();
 }
 
 OPCODE void op0xE9(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	sbc();
 }
 
 OPCODE void op0xEA(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0xEB(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imm();
 	sbc();
 }
 
 OPCODE void op0xEC(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	cpx();
 }
 
 OPCODE void op0xED(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	abso();
 	sbc();
 }
 
 OPCODE void op0xEE(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	inc();
 }
 
 OPCODE void op0xEF(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	abso();
 	c64_isb();
 }
 
 OPCODE void op0xF0(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	rel();
 	beq();
 }
 
 OPCODE void op0xF1(void) {
-	cpu.ticks = 5;
+	//cpu.ticks = 5;
 	indy_t();
 	sbc();
 }
 
 OPCODE void op0xF3(void) { //undocumented
-	cpu.ticks = 8;
+	//cpu.ticks = 8;
 	indy();
 	c64_isb();
 }
 
 OPCODE void op0xF4(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 }
 
 OPCODE void op0xF5(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	zpx();
 	sbc();
 }
 
 OPCODE void op0xF6(void) {
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	inc();
 }
 
 OPCODE void op0xF7(void) { //undocumented
-	cpu.ticks = 6;
+	//cpu.ticks = 6;
 	zpx();
 	c64_isb();
 }
 
 OPCODE void op0xF8(void) {
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 	imp();
 	sed();
 }
 
 OPCODE void op0xF9(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absy_t();
 	sbc();
 }
 
 OPCODE void op0xFA(void) { //nop
-	cpu.ticks = 2;
+	//cpu.ticks = 2;
 }
 
 OPCODE void op0xFB(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absy();
 	c64_isb();
 }
 
 OPCODE void op0xFC(void) { //nop
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 }
 
 OPCODE void op0xFD(void) {
-	cpu.ticks = 4;
+	//cpu.ticks = 4;
 	absx_t();
 	sbc();
 }
 
 OPCODE void op0xFE(void) {
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	inc();
 }
 
 OPCODE void op0xFF(void) { //undocumented
-	cpu.ticks = 7;
+	//cpu.ticks = 7;
 	absx();
 	c64_isb();
 }
@@ -2567,22 +2567,23 @@ static const op_ptr_t opcodetable[256] = {
 
 static const uint8_t cyclesTable[256] =
 {
+//	0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
 	7, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 4, 4, 6, 6,  // $00
-	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 5, 5, 7, 7,  // $10
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,  // $10 1C and 1D were 5
 	6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 4, 4, 6, 6,  // $20
-	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 5, 5, 7, 7,  // $30
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,  // $30 3C and 3D were 5
 	6, 6, 2, 8, 3, 3, 5, 5, 3, 2, 2, 2, 3, 4, 6, 6,  // $40
-	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 5, 5, 7, 7,  // $50
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,  // $50 5C and 5D were 5
 	6, 6, 2, 8, 3, 3, 5, 5, 4, 2, 2, 2, 5, 4, 6, 6,  // $60
-	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 5, 5, 7, 7,  // $70
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,  // $70 7C and 7D were 5
 	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,  // $80
 	2, 6, 2, 6, 4, 4, 4, 4, 2, 5, 2, 5, 5, 5, 5, 5,  // $90
 	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 2, 4, 4, 4, 4,  // $A0
-	2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 5, 4, 4, 4, 4,  // $B0
+	2, 5, 2, 5, 4, 4, 4, 4, 2, 4, 2, 4, 4, 4, 4, 4,  // $B0 BB was 5
 	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,  // $C0
-	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 5, 5, 7, 7,  // $D0
-	2, 6, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,  // $E0
-	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 5, 5, 7, 7   // $F0
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7,  // $D0 DC an DD were 5
+	2, 5, 2, 8, 3, 3, 5, 5, 2, 2, 2, 2, 4, 4, 6, 6,  // $E0 E1 was 6
+	2, 5, 2, 8, 4, 4, 6, 6, 2, 4, 2, 7, 4, 4, 7, 7   // $F0 FC and FD were 5
 };
 
 static const uint8_t writeCycleTable[256] =
@@ -2676,7 +2677,6 @@ void cpu_clock(int cycles) {
 
 	while (cpu.instr_cycles_remaining <= 0) {
 		uint8_t opcode;
-		cpu.ticks = 0;
 
 		//NMI
 		if (cpu.nmi_pending) {
@@ -2695,6 +2695,7 @@ void cpu_clock(int cycles) {
 
 		cpu.cpustatus |= FLAG_CONSTANT;
 		opcode = read6502(cpu.pc++);
+		cpu.ticks = cyclesTable[opcode];
 		opcodetable[opcode]();
 		writeCycles = writeCycleTable[opcode];
 noOpcode:
