@@ -2634,6 +2634,8 @@ static inline void cia_sync_if_needed()
 
 void cpu_clock(int cycles) {
 	static int writeCycles = 0;
+	static uint8_t opcode_pending = 0;
+	static bool has_opcode_pending = false;
 /*
 	bool irq_pending = (cpu.vic.IRQ || cpu.cia1.ICR.IRQ);
 	bool nmi_pending = (cpu.cia2.R[0x0D] & 0x80);
@@ -2686,7 +2688,13 @@ void cpu_clock(int cycles) {
 		if (cpu.input_cycles >= cpu.cia_earliest_target)
 			cia_sync_if_needed();
 
-		//NMI
+		if (has_opcode_pending) {
+			cpu.ticks = 0;
+			opcode = opcode_pending;
+			has_opcode_pending = false;
+			goto doOpcode;
+		}
+
 		if (cpu.nmi_pending) {
 			if (!cpu.nmi && cpu.nmi_pending_cycle < cpu.input_cycles) {
 				cpu_nmi_do();
@@ -2695,7 +2703,8 @@ void cpu_clock(int cycles) {
 		}
 
 		if (cpu.irq_pending) {
-			if (!(cpu.cpustatus & FLAG_INTERRUPT) && cpu.irq_pending_cycle < cpu.input_cycles) {
+			if (!(cpu.cpustatus & FLAG_INTERRUPT)
+			    && cpu.irq_pending_cycle < cpu.input_cycles) {
 				cpu_irq_do();
 				goto noOpcode;
 			}
@@ -2704,6 +2713,12 @@ void cpu_clock(int cycles) {
 		cpu.cpustatus |= FLAG_CONSTANT;
 		opcode = read6502(cpu.pc++);
 		cpu.ticks = cyclesTable[opcode];
+
+		opcode_pending = opcode;
+		has_opcode_pending = true;
+		goto noOpcode;
+
+doOpcode:
 		opcodetable[opcode]();
 		writeCycles = writeCycleTable[opcode];
 noOpcode:
