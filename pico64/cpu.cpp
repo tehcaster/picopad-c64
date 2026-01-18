@@ -2670,13 +2670,21 @@ void cpu_clock(int cycles) {
 		return;
 	}
 
-	cpu.instr_cycles_remaining -= cycles;
+	do {
+		if (cpu.instr_cycles_remaining > cycles) {
+			cpu.instr_cycles_remaining -= cycles;
+			cpu.input_cycles += cycles;
+			if (cpu.input_cycles >= cpu.cia_earliest_target)
+				cia_sync_if_needed();
+			return;
+		}
 
-	if (cpu.instr_cycles_remaining > 0)
-		return;
-
-	while (cpu.instr_cycles_remaining <= 0) {
 		uint8_t opcode;
+
+		cycles -= cpu.instr_cycles_remaining;
+		cpu.input_cycles += cpu.instr_cycles_remaining;
+		if (cpu.input_cycles >= cpu.cia_earliest_target)
+			cia_sync_if_needed();
 
 		//NMI
 		if (cpu.nmi_pending) {
@@ -2699,15 +2707,10 @@ void cpu_clock(int cycles) {
 		opcodetable[opcode]();
 		writeCycles = writeCycleTable[opcode];
 noOpcode:
-		cpu.input_cycles += cpu.ticks;
-		cpu.instr_cycles_remaining += cpu.ticks;
-		if (cpu.input_cycles >= cpu.cia_earliest_target)
-			cia_sync_if_needed();
+		cpu.instr_cycles_remaining = cpu.ticks;
 
 		cpu.lineCycles += cpu.ticks;
-	};
-
-	return;
+	} while (true);
 }
 
 void cpu_check_cycles_overflow()

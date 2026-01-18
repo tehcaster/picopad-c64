@@ -126,8 +126,6 @@ static inline void cpu_irq(void)
 	if (!cpu.irq_pending) {
 		cpu.irq_pending = true;
 		cpu.irq_pending_cycle = cpu.input_cycles + 2;
-		if (cpu.instr_cycles_remaining > 0)
-			cpu.irq_pending_cycle -= cpu.instr_cycles_remaining;
 	}
 }
 
@@ -141,8 +139,6 @@ static inline void cpu_nmi(void) {
 	if (!cpu.nmi_pending) {
 		cpu.nmi_pending = true;
 		cpu.nmi_pending_cycle = cpu.input_cycles + 2;
-		if (cpu.instr_cycles_remaining > 0)
-			cpu.nmi_pending_cycle -= cpu.instr_cycles_remaining;
 	}
 }
 
