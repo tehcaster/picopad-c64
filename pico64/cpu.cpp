@@ -2671,8 +2671,8 @@ void cpu_clock(int cycles) {
 	}
 
 	do {
-		if (cpu.instr_cycles_remaining > cycles) {
-			cpu.instr_cycles_remaining -= cycles;
+		if (cpu.ticks > cycles) {
+			cpu.ticks -= cycles;
 			cpu.input_cycles += cycles;
 			if (cpu.input_cycles >= cpu.cia_earliest_target)
 				cia_sync_if_needed();
@@ -2681,22 +2681,26 @@ void cpu_clock(int cycles) {
 
 		uint8_t opcode;
 
-		cycles -= cpu.instr_cycles_remaining;
-		cpu.input_cycles += cpu.instr_cycles_remaining;
+		cycles -= cpu.ticks;
+		cpu.input_cycles += cpu.ticks;
 		if (cpu.input_cycles >= cpu.cia_earliest_target)
 			cia_sync_if_needed();
 
 		if (has_opcode_pending) {
 			cpu.ticks = 0;
+
+			opcodetable[opcode_pending]();
+
 			opcode = opcode_pending;
 			has_opcode_pending = false;
-			goto doOpcode;
+
+			continue;
 		}
 
 		if (cpu.nmi_pending) {
 			if (!cpu.nmi && cpu.nmi_pending_cycle < cpu.input_cycles) {
 				cpu_nmi_do();
-				goto noOpcode;
+				continue;
 			}
 		}
 
@@ -2704,7 +2708,7 @@ void cpu_clock(int cycles) {
 			if (!(cpu.cpustatus & FLAG_INTERRUPT)
 			    && cpu.irq_pending_cycle < cpu.input_cycles) {
 				cpu_irq_do();
-				goto noOpcode;
+				continue;
 			}
 		}
 
@@ -2714,13 +2718,6 @@ void cpu_clock(int cycles) {
 
 		opcode_pending = opcode;
 		has_opcode_pending = true;
-		goto noOpcode;
-
-doOpcode:
-		opcodetable[opcode]();
-
-noOpcode:
-		cpu.instr_cycles_remaining = cpu.ticks;
 
 	} while (true);
 }
