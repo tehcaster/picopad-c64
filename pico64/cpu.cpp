@@ -2633,7 +2633,6 @@ static inline void cia_sync_if_needed()
 }
 
 void cpu_clock(int cycles) {
-	static int writeCycles = 0;
 	static uint8_t opcode_pending = 0;
 	static bool has_opcode_pending = false;
 /*
@@ -2651,7 +2650,6 @@ void cpu_clock(int cycles) {
 				cpu.cia2.R[0x0D], cpu.irq_pending);
 	}
 */
-	cpu.lineCyclesAbs += cycles;
 
 	if (cpu.ba_low) {
 		do {
@@ -2720,11 +2718,10 @@ void cpu_clock(int cycles) {
 
 doOpcode:
 		opcodetable[opcode]();
-		writeCycles = writeCycleTable[opcode];
+
 noOpcode:
 		cpu.instr_cycles_remaining = cpu.ticks;
 
-		cpu.lineCycles += cpu.ticks;
 	} while (true);
 }
 
