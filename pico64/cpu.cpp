@@ -2632,7 +2632,8 @@ static inline void cia_sync_if_needed()
 		cia_sync_cpu(cpu.cia2, 2);
 }
 
-void cpu_clock(int cycles) {
+void cpu_clock(int cycles)
+{
 	static uint8_t opcode_pending = 0;
 	static bool has_opcode_pending = false;
 /*

@@ -75,6 +75,18 @@ typedef uint16_t tpixel;
 #define MAXCYCLESSPRITES3_7       5
 #define MAXCYCLESSPRITES    (MAXCYCLESSPRITES0_2 + MAXCYCLESSPRITES3_7)
 
+static void cpu_1clock()
+{
+	if ((cpu.ba_low || cpu.ticks > 1) &&
+	    cpu.input_cycles + 1 < cpu.cia_earliest_target) {
+		cpu.input_cycles += 1;
+		if (!cpu.ba_low)
+			cpu.ticks -= 1;
+		return;
+	}
+	cpu_clock(1);
+}
+
 u32 nFramesC64 = 0;
 
 /*****************************************************************************************************/
@@ -87,7 +99,7 @@ static inline void badline_cycle(int x)
 		cpu.vic.lineMemChr[x] = cpu.RAM[cpu.vic.videomatrix + cpu.vic.vc + x];
 		cpu.vic.lineMemCol[x] = cpu.vic.COLORRAM[cpu.vic.vc + x];
 	}
-	cpu_clock(1);
+	cpu_1clock();
 }
 
 static inline void update_charsetPtr(void)
@@ -229,7 +241,7 @@ static void fastFillLineNoSprites(tpixel * p, const tpixel * pe, const uint16_t 
 			*p++ = col;
 		}
 
-		cpu_clock(1);
+		cpu_1clock();
 	}
 }
 
@@ -254,7 +266,7 @@ static void fastFillLine(tpixel * p, const tpixel * pe, const uint16_t col, spri
 			if (sprite_collision)
 				trigger_sprcol(sprite_collision);
 
-			cpu_clock(1);
+			cpu_1clock();
 		}
 	} else {
 		fastFillLineNoSprites(p, pe, col);
@@ -384,7 +396,7 @@ static void mode1 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 	while (p < pe) {
 
 		if (cpu.vic.idle) {
-			cpu_clock(1);
+			cpu_1clock();
 			fgcol = colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
@@ -420,7 +432,7 @@ nosprites:
 		colors[0] = bgcol;
 
 		if (cpu.vic.idle) {
-			cpu_clock(1);
+			cpu_1clock();
 			c = colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
@@ -577,7 +589,7 @@ static void mode3 (tpixel *p, const tpixel *pe, sprite_data_t *spl)
 	while (p < pe) {
 
 		if (cpu.vic.idle) {
-			cpu_clock(1);
+			cpu_1clock();
 			colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
@@ -605,7 +617,7 @@ nosprites:
 		colors[0] = cpu.vic.colors[1];
 
 		if (cpu.vic.idle) {
-			cpu_clock(1);
+			cpu_1clock();
 			colors[1] = colors[2] = colors[3] = 0;
 			chr = cpu.RAM[cpu.vic.bank + 0x3fff];
 		} else {
@@ -1144,12 +1156,12 @@ void vic_do(void)
 			spl += 8;
 
 			cpu.ba_low = cpu.vic.spriteBadCycles[9 + i];
-			cpu_clock(1);
+			cpu_1clock();
 		}
 	} else if (cpu.vic.spriteBadCyclesLeft) {
 		for (int i = 0; i < 10; i++) {
 			cpu.ba_low = cpu.vic.spriteBadCycles[9 + i];
-			cpu_clock(1);
+			cpu_1clock();
 		}
 	} else {
 		cpu_clock(10);
@@ -1207,7 +1219,7 @@ void vic_do(void)
 			sprite_collisions_clock(spl);
 			spl += 8;
 
-			cpu_clock(1);
+			cpu_1clock();
 		}
 		cpu.ba_low = cpu.vic.badline;
 		/* x positions 0-24 */
@@ -1217,7 +1229,7 @@ void vic_do(void)
 			sprite_collisions_clock(spl);
 			spl += 8;
 
-			cpu_clock(1);
+			cpu_1clock();
 		}
 	} else {
 		cpu_clock(3);
@@ -1498,7 +1510,7 @@ sprites_loaded:
 	} else {
 		for (int i = 2; i < 9; i++) {
 			cpu.ba_low = cpu.vic.spriteBadCycles[i];
-			cpu_clock(1);
+			cpu_1clock();
 		}
 		cpu.ba_low = false;
 	}
