@@ -1093,6 +1093,7 @@ void vic_do(void)
 	}
 
 	int r = cpu.vic.rasterLine;
+	bool display_line = (r >= FIRSTDISPLAYLINE && r <= LASTDISPLAYLINE);
 
 	/* Rasterline Interrupt
 	 * TODO:
@@ -1196,9 +1197,11 @@ void vic_do(void)
 			cpu.vic.borderFlag = true;
 	}
 
-	//TODO: why subtract MAXCYCLESSPRITES ?
-	if ((r < FIRSTDISPLAYLINE || r > LASTDISPLAYLINE) && !cpu.vic.badline &&
-			!cpu.vic.lineHasSpriteCollisions) {
+	/*
+	 * Top/bottom borders that we don't display, unless we need to simulate
+	 * badline or sprite collisions
+	 */
+	if (!display_line && !cpu.vic.badline && !cpu.vic.lineHasSpriteCollisions) {
 		if (r == 0)
 			cpu_clock(40 - 1);
 		else
@@ -1248,7 +1251,7 @@ void vic_do(void)
 	 */
 	if (cpu.vic.borderFlag && !cpu.vic.badline) {
 		fastFillLine(p, pe, cpu.vic.colors[0], spl);
-		if (r >= FIRSTDISPLAYLINE && r <= LASTDISPLAYLINE)
+		if (display_line)
 			memcpy(&FrameBuf[(r - SCREEN_ROW_OFFSET)*SCREEN_WIDTH], &linebuffer[0], SCREEN_WIDTH*2);
 		goto right_border;
 	}
@@ -1322,13 +1325,18 @@ void vic_do(void)
 	}
 
 	/*
-	 * In the top/bottom border, sprite-data collisions are not detected and also
-	 * discard the graphics we just generated (only to emulate the bad line).
+	 * In the top/bottom border, sprite-data collisions are not detected and
+	 * also discard the graphics we just generated (only to emulate the bad
+	 * line), if we are even going to display it (most likely not given it's
+	 * the border)
 	 *
 	 * TODO: actually not detect collisions there...
 	 */
 	if (cpu.vic.borderFlag) {
-		fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
+		if (display_line)
+			fastFillLineNoCycles(p, pe, cpu.vic.colors[0]);
+		else
+			goto right_border;
 	}
 
 	/*****************************************************************************************************/
