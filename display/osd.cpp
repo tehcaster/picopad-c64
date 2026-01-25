@@ -693,19 +693,22 @@ static bool osd_main_action(int row, u8 key, void *_private)
 	case 3: /* autorun */
 		config.autorun = !config.autorun;
 		break;
-	case 4: /* fps */
+	case 4: /* stabilize fps */
+		config.stable_fps = !config.stable_fps;
+		break;
+	case 5: /* show fps */
 		config.show_fps = !config.show_fps;
 		break;
-	case 5: /* key hints */
+	case 6: /* key hints */
 		config.show_keys = !config.show_keys;
 		break;
-	case 6:
+	case 7:
 		config_game_save();
 		break;
-	case 7:
+	case 8:
 		config_global_save();
 		break;
-	case 8:
+	case 9:
 		config.single_frame_mode = !config.single_frame_mode;
 		break;
 	default:
@@ -722,11 +725,12 @@ static void osd_main_draw(int selrow, void *_private)
 	osd_draw_vol(1, selrow);
 	osd_draw_btn_layout(2, selrow);
 	osd_draw_bool(3, selrow, "AUTORUN:", &config.autorun);
-	osd_draw_bool(4, selrow, "SHOW FPS:", &config.show_fps);
-	osd_draw_bool(5, selrow, "BTN HINTS:", &config.show_keys);
-	osd_menu_name("SAVE PER-GAME CONFIG", 6, selrow);
-	osd_menu_name("SAVE GLOBAL CONFIG", 7, selrow);
-	osd_draw_bool(8, selrow, "FRM STEP:", &config.single_frame_mode);
+	osd_draw_bool(4, selrow, "STABLE FPS:", &config.stable_fps);
+	osd_draw_bool(5, selrow, "SHOW FPS:", &config.show_fps);
+	osd_draw_bool(6, selrow, "BTN HINTS:", &config.show_keys);
+	osd_menu_name("SAVE PER-GAME CONFIG", 7, selrow);
+	osd_menu_name("SAVE GLOBAL CONFIG", 8, selrow);
+	osd_draw_bool(9, selrow, "FRM STEP:", &config.single_frame_mode);
 }
 
 static bool osd_do(const struct osd_menu *menu, void *_private, int selrow)

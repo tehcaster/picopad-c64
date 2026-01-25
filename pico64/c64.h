@@ -62,6 +62,7 @@ struct emu_config {
 	bool show_fps;
 	bool show_keys;
 	bool autorun;
+	bool stable_fps;
 	bool single_frame_mode;
 	bool kernal_patched;
 	u8 button_layout;

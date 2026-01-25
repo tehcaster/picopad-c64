@@ -64,11 +64,13 @@ static void config_global_load()
 		printf("global config read name '%s' value '%s'\n", name, value);
 
 		if (!strcmp(name, "autorun")) {
-			config.autorun = *value == '1' ? 1 : 0;
+			config.autorun = *value == '1' ? true : false;
 		} else if (!strcmp(name, "show_fps")) {
-			config.show_fps = *value == '1' ? 1 : 0;
+			config.show_fps = *value == '1' ? true : false;
+		} else if (!strcmp(name, "stable_fps")) {
+			config.stable_fps = *value == '1' ? true : false;
 		} else if (!strcmp(name, "show_keys")) {
-			config.show_keys = *value == '1' ? 1 : 0;
+			config.show_keys = *value == '1' ? true : false;
 		} else if (!strcmp(name, "volume")) {
 			int vol = atoi(value);
 			ConfigSetVolume(vol);
@@ -97,6 +99,7 @@ void config_global_save()
 
 	FilePrint(&file, "autorun=%d\n", config.autorun ? 1 : 0);
 	FilePrint(&file, "show_fps=%d\n", config.show_fps ? 1 : 0);
+	FilePrint(&file, "stable_fps=%d\n", config.stable_fps ? 1 : 0);
 	FilePrint(&file, "show_keys=%d\n", config.show_keys ? 1 : 0);
 	FilePrint(&file, "volume=%d\n", ConfigGetVolume());
 
@@ -633,7 +636,19 @@ int main(void) {
 
     draw_key_hints();
 
+    /* for FPS throttling */
+    u32 nframesC64LastFrame = nFramesC64;
+    u32 nframesC64LastFrameTime = Time();
+
     while (true) {
+	if (config.stable_fps && nFramesC64 != nframesC64LastFrame) {
+		while ((Time() - nframesC64LastFrameTime) < (1000000 / 50)) {
+			nop();
+		}
+		nframesC64LastFrame = nFramesC64;
+		nframesC64LastFrameTime = Time();
+	}
+
 	if (nFramesC64 == nFramesC64NextInput) {
 		nFramesC64NextInput = nFramesC64 + 1;
 		c64_Input();
